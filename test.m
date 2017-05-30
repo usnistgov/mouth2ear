@@ -84,7 +84,7 @@ subplot(1,2,2);
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
 
 %make data direcotry
-[~]=mkdir('data');
+[~,~,~]=mkdir('data');
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
