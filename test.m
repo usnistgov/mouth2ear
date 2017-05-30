@@ -30,11 +30,13 @@ N=80;
 %preallocate arrays
 st_idx=zeros(size(y,1),N);
 st_dly=zeros(size(y,1),N);
+underRun=zeros(size(y,1),N);
+overRun=zeros(size(y,1),N);
 recordings=cell(1,N);
 
 for k=1:N
 
-    dat=aPR(y.');
+    [dat,underRun(k),overRun(k)]=aPR(y.');
 
     %get maximum values
     mx=max(dat);
@@ -96,4 +98,4 @@ dvn=device_names{find(cellfun(@(s)contains(ad{devIdx},s),device_names),1)};
 Device_used=ad{devIdx};
 
 %save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used');
+save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used','underRun','overRun');
