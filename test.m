@@ -25,7 +25,7 @@ end
 aPR(zeros(length(y),1));
 
 %number of trials
-N=80;
+N=800;
 
 %preallocate arrays
 st_idx=zeros(size(y,1),N);
