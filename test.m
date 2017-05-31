@@ -85,9 +85,6 @@ subplot(1,2,2);
 %plot histogram
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
 
-%make data direcotry
-[~,~,~]=mkdir('data');
-
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
@@ -96,6 +93,15 @@ dvn=device_names{find(cellfun(@(s)contains(ad{devIdx},s),device_names),1)};
 
 %get full device name
 Device_used=ad{devIdx};
+
+%make plots direcotry
+[~,~,~]=mkdir('plots');
+
+%print plot to .png
+print(fullfile('plots',sprintf('capture_%s_%s.png',dvn,dtn)),'-dpng','-r600');
+
+%make data direcotry
+[~,~,~]=mkdir('data');
 
 %save datafile
 save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used','underRun','overRun');
