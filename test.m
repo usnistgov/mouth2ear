@@ -15,6 +15,11 @@ devIdx=find(contains(ad,device_names),1);
 %set device
 aPR.Device=ad{devIdx};
 
+%set to chage buffer size
+aPR.SupportVariableSize=true;
+
+%set buffer size
+aPR.BufferSize=2048;
 
 if(size(y,1)==1)
     dat_idx=1;
