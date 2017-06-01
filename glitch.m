@@ -1,35 +1,65 @@
 load('chirp.mat','y','fs');
 
+%get audio device info
+ad=audiodevinfo;
+
 %list of sound device names to use
 device_names={'UH-7000','M-Track','Focusrite','UMC204HD','Scarlett'};
 
-%create an object for playback and recording
-aPR=audioPlayerRecorder(fs);
-
-%get a list of the audio devices
-ad=aPR.getAudioDevices();
-
-%get the first match
-devIdx=find(contains(ad,device_names),1);
-
-%set device
-aPR.Device=ad{devIdx};
-
-if(size(y,1)==1)
-    dat_idx=1;
-else
-    dat_idx=0;
+input_dev_idx=0;
+%find input device
+for k=1:length(ad.input)
+    %check if device name is what we are looking for
+    if(contains(ad.input(k).Name,device_names))
+        %get ID of device
+        input_dev_idx=k;
+        %done
+        break;
+    end
 end
 
-[dat,underRun,overRun]=aPR(y.');
-[dat,underRun,overRun]=aPR(y.');
-
-if(dat_idx==0)
-    %get index of channel to use
-    dat_idx=double(mx(1)<mx(2))+1;
-    %get start threshold
-    st_th=0.1*mx(dat_idx);
+%check that input device was found
+if(input_dev_idx==0)
+    error('Could not find sutable input device');
 end
+
+
+output_dev_idx=0;
+%find matching output device
+for k=1:length(ad.output)
+    %check if device name is what we are looking for
+    if(strcmp(ad.output(k).Name,ad.input(input_dev_idx).Name))
+        %get ID of device
+        output_dev_idx=k;
+        %done
+        break;
+    end
+end
+
+%check that input device was found
+if(output_dev_idx==0)
+    error('Could not find sutable output device');
+end
+
+%get input device id's from index
+input_dev=ad.input(input_dev_idx).ID;
+%get output device id's from index
+output_dev=ad.output(output_dev_idx).ID;
+
+%create audio device objects to use
+p=audioplayer(y,fs,24,output_dev);
+r=audiorecorder(fs,24,size(y,1),input_dev);
+
+
+%start recording
+record(r);
+%play waveform
+playblocking(p);
+%stop recording
+stop(r)
+
+%get recorded data
+dat=getaudiodata(r);
 
 t_r=((1:length(dat))-1)*1/fs;
 
@@ -85,17 +115,3 @@ figure;
 plot(rng*1/fs,d,rng*1/fs,a(rng),rng*1/fs,(amp_a/amp_b)*b(rng));
 
 legend('diffrence','Transmit','Recieve');
-
-%check for buffer over runs
-if(any(overRun))
-    fprintf('There were %i buffer over runs\n',sum(overRun));
-else
-    fprintf('There were no buffer over runs\n');
-end
-
-%check for buffer over runs
-if(any(underRun))
-    fprintf('There were %i buffer under runs\n',sum(underRun));
-else
-    fprintf('There were no buffer under runs\n');
-end
