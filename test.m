@@ -21,7 +21,7 @@ else
     dat_idx=0;
 end
 
-aPR(zeros(length(y),1));
+aPR(y.');
 
 %number of trials
 N=800;
