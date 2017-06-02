@@ -115,3 +115,23 @@ figure;
 plot(rng*1/fs,d,rng*1/fs,a(rng),rng*1/fs,(amp_a/amp_b)*b(rng));
 
 legend('diffrence','Transmit','Recieve');
+
+figure;
+
+[yu,yl]=envelope(dat,round(fs/100));
+
+plot(yu)
+
+%check for buffer over runs
+if(any(overRun))
+    fprintf('There were %i buffer over runs\n',sum(overRun));
+else
+    fprintf('There were no buffer over runs\n');
+end
+
+%check for buffer over runs
+if(any(underRun))
+    fprintf('There were %i buffer under runs\n',sum(underRun));
+else
+    fprintf('There were no buffer under runs\n');
+end

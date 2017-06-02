@@ -1,50 +1,25 @@
 load('chirp.mat','y','fs');
 
-%get audio device info
-ad=audiodevinfo;
-
 %list of sound device names to use
 device_names={'UH-7000','M-Track','Focusrite','UMC204HD','Scarlett'};
 
-input_dev_idx=0;
-%find input device
-for k=1:length(ad.input)
-    %check if device name is what we are looking for
-    if(contains(ad.input(k).Name,device_names))
-        %get ID of device
-        input_dev_idx=k;
-        %done
-        break;
-    end
-end
+%create an object for playback and recording
+aPR=audioPlayerRecorder(fs);
 
-%check that input device was found
-if(input_dev_idx==0)
-    error('Could not find sutable input device');
-end
+%get a list of the audio devices
+ad=aPR.getAudioDevices();
 
+%get the first match
+devIdx=find(contains(ad,device_names),1);
 
-output_dev_idx=0;
-%find matching output device
-for k=1:length(ad.output)
-    %check if device name is what we are looking for
-    if(strcmp(ad.output(k).Name,ad.input(input_dev_idx).Name))
-        %get ID of device
-        output_dev_idx=k;
-        %done
-        break;
-    end
-end
+%set device
+aPR.Device=ad{devIdx};
 
-%check that input device was found
-if(output_dev_idx==0)
-    error('Could not find sutable output device');
-end
+%set to chage buffer size
+aPR.SupportVariableSize=true;
 
-%get input device id's from index
-input_dev=ad.input(input_dev_idx).ID;
-%get output device id's from index
-output_dev=ad.output(output_dev_idx).ID;
+%set buffer size
+aPR.BufferSize=2048;
 
 if(size(y,1)==1)
     dat_idx=1;
@@ -52,29 +27,21 @@ else
     dat_idx=0;
 end
 
-%create audio device objects to use
-p=audioplayer(y,fs,24,output_dev);
-r=audiorecorder(fs,24,size(y,1),input_dev);
+aPR(zeros(length(y),1));
 
 %number of trials
-N=80;
+N=800;
 
 %preallocate arrays
 st_idx=zeros(size(y,1),N);
 st_dly=zeros(size(y,1),N);
+underRun=zeros(size(y,1),N);
+overRun=zeros(size(y,1),N);
 recordings=cell(1,N);
 
 for k=1:N
 
-    %start recording
-    record(r);
-    %play waveform
-    playblocking(p);
-    %stop recording
-    stop(r)
-
-    %get recorded data
-    dat=getaudiodata(r);
+    [dat,underRun(k),overRun(k)]=aPR(y.');
 
     %get maximum values
     mx=max(dat);
@@ -110,6 +77,20 @@ for k=1:N
 
 end
 
+%check for buffer over runs
+if(any(overRun))
+    fprintf('There were %i buffer over runs\n',sum(overRun));
+else
+    fprintf('There were no buffer over runs\n');
+end
+
+%check for buffer over runs
+if(any(underRun))
+    fprintf('There were %i buffer under runs\n',sum(underRun));
+else
+    fprintf('There were no buffer under runs\n');
+end
+
 %new figure
 figure;
 
@@ -123,14 +104,23 @@ subplot(1,2,2);
 %plot histogram
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
 
-%make data direcotry
-[~]=mkdir('data');
-
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
 %get device name that was used
-dvn=device_names{find(cellfun(@(s)contains(ad.input(input_dev_idx).Name,s),device_names),1)};
+dvn=device_names{find(cellfun(@(s)contains(ad{devIdx},s),device_names),1)};
+
+%get full device name
+Device_used=ad{devIdx};
+
+%make plots direcotry
+[~,~,~]=mkdir('plots');
+
+%print plot to .png
+print(fullfile('plots',sprintf('capture_%s_%s.png',dvn,dtn)),'-dpng','-r600');
+
+%make data direcotry
+[~,~,~]=mkdir('data');
 
 %save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly');
+save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used','underRun','overRun');
