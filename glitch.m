@@ -15,9 +15,7 @@ devIdx=find(contains(ad,device_names),1);
 %set device
 aPR.Device=ad{devIdx};
 
-[dat,underRun,overRun]=aPR(y.');
-[dat,underRun,overRun]=aPR(y.');
-
+[dat,underRun,overRun]=play_record(aPR,y.');
 
 
 st_idx=finddelay(y',dat);

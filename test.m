@@ -21,8 +21,6 @@ else
     dat_idx=0;
 end
 
-aPR(y.');
-
 %number of trials
 N=800;
 
@@ -34,8 +32,8 @@ overRun=zeros(size(y,1),N);
 recordings=cell(1,N);
 
 for k=1:N
-
-    [dat,underRun(k),overRun(k)]=aPR(y.');
+    
+    [dat,underRun(k),overRun(k)]=play_record(aPR,y);
 
     %get maximum values
     mx=max(dat);
