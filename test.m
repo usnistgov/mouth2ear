@@ -39,7 +39,6 @@ for k=1:N
 
     %get maximum values
     mx=max(dat);
-
     
     if(dat_idx==0)
         %get index of channel to use
