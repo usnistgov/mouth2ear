@@ -4,7 +4,7 @@ load('chirp.mat','y','fs');
 ad=audiodevinfo;
 
 %list of sound device names to use
-device_names={'UH-7000','M-Track','Focusrite','UMC204HD','Scarlett'};
+device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
 
 input_dev_idx=0;
 %find input device
