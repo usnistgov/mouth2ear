@@ -15,19 +15,11 @@ devIdx=find(contains(ad,device_names),1);
 %set device
 aPR.Device=ad{devIdx};
 
-%set to chage buffer size
-aPR.SupportVariableSize=true;
-
-%set buffer size
-aPR.BufferSize=2048;
-
 if(size(y,1)==1)
     dat_idx=1;
 else
     dat_idx=0;
 end
-
-aPR(zeros(length(y),1));
 
 %number of trials
 N=800;
@@ -53,8 +45,46 @@ for k=1:N
         %get start threshold
         st_th=0.1*mx(dat_idx);
     end
-
-    t_r=((1:length(dat))-1)*1/fs;
+    
+    if(mod(k,10)==0)
+        fprintf('Run %i of %i complete :\n',k,N);
+        %calculate RMS
+        rms=sqrt(mean(dat.^2));
+        %calculate maximum
+        [mx,mx_idx]=max(dat);
+        %print values
+        fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+        %check if levels are low
+        if(rms<1e-3)
+            %print warning
+            warning('Low levels input levels detected. RMS = %g',rms);
+            %length of plot in sec
+            plen=0.01;
+            %generate range centered around maximum value
+            rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+            if(length(rng)>length(dat))
+                rng=1:length(dat);
+            end
+            %check that we didn't go off of the beginning of the array
+            if(rng(1)<1)
+                %shift range
+                rng=rng-rng(1)+1;
+            end
+            %check that we didn't go off of the end of the array
+            if(rng(end)>length(dat))
+                %shift range
+                rng=rng+(length(dat)-rng(end));
+            end
+            %new figure for plot
+            figure;
+            %generate time axis
+            t_r=((1:length(dat))-1)*1/fs;
+            %plot graph
+            plot(t_r(rng),dat(rng));
+            %force drawing
+            drawnow;
+        end
+    end
 
     %get start index for waveform
     %st_idx(k)=find(abs(dat(:,dat_idx))>=st_th,1);
@@ -96,13 +126,20 @@ figure;
 
 %split window into subplots
 subplot(1,2,1);
+
 %plot histogram
 histogram(st_dly(dat_idx,:),'Normalization','probability');
+
+%add mean in title
+title(sprintf('Mean : %g',mean(st_dly(dat_idx,:))));
 
 %switch to second subplot
 subplot(1,2,2);
 %plot histogram
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
+
+%add Standard Deveation in title
+title(sprintf('StD : %g',std(st_dly(dat_idx,:))));
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');

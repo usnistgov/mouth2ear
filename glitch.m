@@ -61,23 +61,10 @@ stop(r)
 %get recorded data
 dat=getaudiodata(r);
 
-t_r=((1:length(dat))-1)*1/fs;
-
-%get start index for waveform
-%st_idx=find(abs(dat(:,dat_idx))>=st_th,1);
-%get start index in seconds
-%st_dly=t_r(st_idx);
 
 st_idx=finddelay(y',dat);
 
 st_dly=1/fs*st_idx;
-
-%plot(t_r(1:(st_idx+200)),dat(1:(st_idx+200),dat_idx),st_dly*[1 1],[0 mx(dat_idx)]);
-
-%drawnow;
-
-%print start delay
-%fprintf('Start Delay : %f ms\n',st_dly*1e3);
 
 %check if delay is positive or negative
 if(st_idx>0)
