@@ -1,7 +1,7 @@
 load('chirp.mat','y','fs');
 
 %list of sound device names to use
-device_names={'UH-7000','M-Track','Focusrite','UMC204HD','Scarlett'};
+device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
