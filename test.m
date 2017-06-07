@@ -125,13 +125,20 @@ figure;
 
 %split window into subplots
 subplot(1,2,1);
+
 %plot histogram
 histogram(st_dly(dat_idx,:),'Normalization','probability');
+
+%add mean in title
+title(sprintf('Mean : %g',mean(st_dly(dat_idx,:))));
 
 %switch to second subplot
 subplot(1,2,2);
 %plot histogram
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
+
+%add Standard Deveation in title
+title(sprintf('StD : %g',std(st_dly(dat_idx,:))));
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
