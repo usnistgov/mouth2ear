@@ -44,8 +44,46 @@ for k=1:N
         %get start threshold
         st_th=0.1*mx(dat_idx);
     end
-
-    t_r=((1:length(dat))-1)*1/fs;
+    
+    if(mod(k,10)==0)
+        fprintf('Run %i of %i complete :\n',k,N);
+        %calculate RMS
+        rms=sqrt(mean(dat.^2));
+        %calculate maximum
+        [mx,mx_idx]=max(dat);
+        %print values
+        fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+        %check if levels are low
+        if(rms<1e-3)
+            %print warning
+            warning('Low levels input levels detected. RMS = %g',rms);
+            %length of plot in sec
+            plen=0.01;
+            %generate range centered around maximum value
+            rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+            if(length(rng)>length(dat))
+                rng=1:length(dat);
+            end
+            %check that we didn't go off of the beginning of the array
+            if(rng(1)<1)
+                %shift range
+                rng=rng-rng(1)+1;
+            end
+            %check that we didn't go off of the end of the array
+            if(rng(end)>length(dat))
+                %shift range
+                rng=rng+(length(dat)-rng(end));
+            end
+            %new figure for plot
+            figure;
+            %generate time axis
+            t_r=((1:length(dat))-1)*1/fs;
+            %plot graph
+            plot(t_r(rng),dat(rng));
+            %force drawing
+            drawnow;
+        end
+    end
 
     %get start index for waveform
     %st_idx(k)=find(abs(dat(:,dat_idx))>=st_th,1);
