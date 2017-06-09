@@ -129,16 +129,28 @@ subplot(1,2,1);
 %plot histogram
 histogram(st_dly(dat_idx,:),'Normalization','probability');
 
+%calculate delay mean
+dly_m=mean(st_dly(dat_idx,:));
+
+%get engineering units
+[dly_m_e,~,dly_u]=engunits(dly_m,'time');
+
 %add mean in title
-title(sprintf('Mean : %g',mean(st_dly(dat_idx,:))));
+title(sprintf('Mean : %.2f %s',dly_m_e,dly_u));
 
 %switch to second subplot
 subplot(1,2,2);
 %plot histogram
 histogram(st_dly(dat_idx,:),300,'Normalization','probability');
 
+%calculate standard deviation
+st_dev=std(st_dly(dat_idx,:));
+
+%get engineering units
+[st_dev_e,~,st_u]=engunits(st_dev,'time');
+
 %add Standard Deveation in title
-title(sprintf('StD : %g',std(st_dly(dat_idx,:))));
+title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
