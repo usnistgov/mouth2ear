@@ -107,7 +107,34 @@ figure;
 
 [yu,yl]=envelope(dat,round(fs/100));
 
-plot(yu)
+%bin envalope
+[env_n,env_edg]=histcounts(yu);
+
+%find the most common bin
+[~,idx]=max(env_n);
+
+%get the threshold 90% of the lower edge of the most comon bin
+env_th=0.9*env_edg(idx);
+
+%threshold envalope
+yu_th=yu>env_th;
+
+%find the start of the envalope
+env_st=find(yu_th,1);
+
+%find glitches
+g_idx=find(~yu_th);
+
+%eliminate start of sample
+g_idx=g_idx(g_idx>env_st);
+
+fprintf('There were %i glitches\n',length(g_idx))
+
+%generate time vector
+t=(1:length(dat))*1/fs;
+
+%plot envalope and detected glitch samples
+plot(t,yu,t,yl,t,dat,t(g_idx),yu(g_idx),'ro')
 
 %check for buffer over runs
 if(any(overRun))
