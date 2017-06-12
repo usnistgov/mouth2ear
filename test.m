@@ -7,7 +7,7 @@ device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
 aPR=audioPlayerRecorder(fs);
 
 %set bit depth
-aPR.BitDepth='24-bit integer'
+aPR.BitDepth='24-bit integer';
 
 %get a list of the audio devices
 ad=aPR.getAudioDevices();
