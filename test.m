@@ -12,8 +12,24 @@ aPR.BitDepth='24-bit integer'
 %get a list of the audio devices
 ad=aPR.getAudioDevices();
 
-%get the first match
-devIdx=find(contains(ad,device_names),1);
+%get matches
+devIdx=find(contains(ad,device_names));
+
+%check if there were more than one matching device
+if(length(devIdx)>1)
+    %type of driver to use
+    %dtype='(Bit Accurate)';
+    dtype='(Core Audio)';
+    %print out devices found
+    fprintf('Multiple devices found :\n');
+    fprintf('\t%s\n',ad{devIdx});
+    %get the matching one
+    devIdxIdx=find(contains(ad(devIdx),dtype),1);
+    %set the new index
+    devIdx=devIdx(devIdxIdx);
+    %print out which is being used
+    fprintf('Using "%s"\n',ad{devIdx});
+end
 
 %set device
 aPR.Device=ad{devIdx};
