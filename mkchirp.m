@@ -7,8 +7,9 @@ fo = 200;
 f1 = 800;
 y0 = 0.01*chirp(t,fo,c_len,f1,'logarithmic',90);
 
-%find last zero in the waveform
-idx=find(abs(y0)<1e-3,1,'last');
+%find last zero in the waveform with a negitive slope
+%This ensures that the waveforms match up
+idx=find(abs(y0)<1e-3 & diff([0 y0])<0 & y0>0,1,'last');
 
 y=repmat(y0(1:idx),chan,rep);
 
