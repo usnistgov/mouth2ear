@@ -13,7 +13,7 @@ function [y,underRun,overRun]=play_record(apr,x)
     underRun=0;
     overRun=0;
     
-    for k=bsz:bsz:(length(x)+2*bsz)
+    for k=bsz:bsz:(length(x)+5*bsz)
         
         if(k<=length(x))
             %get a chunk of data
