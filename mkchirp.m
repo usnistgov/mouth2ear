@@ -1,6 +1,6 @@
 fs=48e3;
 c_len=1;
-rep=10;
+rep=2;
 chan=1;
 t = 0:1/fs:c_len;
 fo = 200;
