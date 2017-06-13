@@ -7,10 +7,10 @@ aPR=audioPlayerRecorder(fs);
 aPR.BitDepth='24-bit integer';
 
 %chose which device to use
-name=choose_device(aPR);
+dev_name=choose_device(aPR);
 
 %print the device used
-fprintf('Using "%s" for audio test\n',name);
+fprintf('Using "%s" for audio test\n',dev_name);
 
 if(size(y,1)==1)
     dat_idx=1;
@@ -152,20 +152,14 @@ title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
-%get device name that was used
-dvn=device_names{find(cellfun(@(s)contains(ad{devIdx},s),device_names),1)};
-
-%get full device name
-Device_used=ad{devIdx};
-
 %make plots direcotry
 [~,~,~]=mkdir('plots');
 
 %print plot to .png
-print(fullfile('plots',sprintf('capture_%s_%s.png',dvn,dtn)),'-dpng','-r600');
+print(fullfile('plots',sprintf('capture_%s_%s.png',dev_name,dtn)),'-dpng','-r600');
 
 %make data direcotry
 [~,~,~]=mkdir('data');
 
 %save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used','underRun','overRun');
+save(fullfile('data',sprintf('capture_%s_%s.mat',dev_name,dtn)),'recordings','st_dly','dev_name','underRun','overRun');
