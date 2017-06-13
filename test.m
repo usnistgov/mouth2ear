@@ -1,38 +1,16 @@
 load('chirp.mat','y','fs');
 
-%list of sound device names to use
-device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
-
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
 
 %set bit depth
 aPR.BitDepth='24-bit integer';
 
-%get a list of the audio devices
-ad=aPR.getAudioDevices();
+%chose which device to use
+name=choose_device(aPR);
 
-%get matches
-devIdx=find(contains(ad,device_names));
-
-%check if there were more than one matching device
-if(length(devIdx)>1)
-    %type of driver to use
-    %dtype='(Bit Accurate)';
-    dtype='(Core Audio)';
-    %print out devices found
-    fprintf('Multiple devices found :\n');
-    fprintf('\t%s\n',ad{devIdx});
-    %get the matching one
-    devIdxIdx=find(contains(ad(devIdx),dtype),1);
-    %set the new index
-    devIdx=devIdx(devIdxIdx);
-    %print out which is being used
-    fprintf('Using "%s"\n',ad{devIdx});
-end
-
-%set device
-aPR.Device=ad{devIdx};
+%print the device used
+fprintf('Using "%s" for audio test\n',name);
 
 if(size(y,1)==1)
     dat_idx=1;

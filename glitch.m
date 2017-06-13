@@ -1,19 +1,13 @@
 load('chirp.mat','y','fs');
 
-%list of sound device names to use
-device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
-
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
 
-%get a list of the audio devices
-ad=aPR.getAudioDevices();
+%chose which device to use
+name=choose_device(aPR);
 
-%get the first match
-devIdx=find(contains(ad,device_names),1);
-
-%set device
-aPR.Device=ad{devIdx};
+%print the device used
+fprintf('Using "%s" for audio test\n',name);
 
 [dat,underRun,overRun]=play_record(aPR,y.');
 
