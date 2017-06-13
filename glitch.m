@@ -63,8 +63,8 @@ figure;
 %find the most common bin
 [~,idx]=max(env_n);
 
-%get the threshold 90% of the lower edge of the most comon bin
-env_th=0.9*env_edg(idx);
+%get the threshold 80% of the lower edge of the most comon bin
+env_th=0.8*env_edg(idx);
 
 %threshold envalope
 yu_th=yu>env_th;
@@ -72,11 +72,14 @@ yu_th=yu>env_th;
 %find the start of the envalope
 env_st=find(yu_th,1);
 
+%find the end of the envalope
+env_end=find(yu_th,1,'last');
+
 %find glitches
 g_idx=find(~yu_th);
 
-%eliminate start of sample
-g_idx=g_idx(g_idx>env_st);
+%eliminate start and end of sample
+g_idx=g_idx(g_idx>env_st & g_idx<env_end);
 
 fprintf('There were %i glitches\n',length(g_idx))
 
