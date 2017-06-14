@@ -1,25 +1,60 @@
 load('chirp.mat','y','fs');
 
+%get audio device info
+ad=audiodevinfo;
+
 %list of sound device names to use
 device_names={'UH-7000','M-Track','Focusrite','UMC','Scarlett'};
 
-%create an object for playback and recording
-aPR=audioPlayerRecorder(fs);
+input_dev_idx=0;
+%find input device
+for k=1:length(ad.input)
+    %check if device name is what we are looking for
+    if(contains(ad.input(k).Name,device_names))
+        %get ID of device
+        input_dev_idx=k;
+        %done
+        break;
+    end
+end
 
-%get a list of the audio devices
-ad=aPR.getAudioDevices();
+%check that input device was found
+if(input_dev_idx==0)
+    error('Could not find sutable input device');
+end
 
-%get the first match
-devIdx=find(contains(ad,device_names),1);
 
-%set device
-aPR.Device=ad{devIdx};
+output_dev_idx=0;
+%find matching output device
+for k=1:length(ad.output)
+    %check if device name is what we are looking for
+    if(strcmp(ad.output(k).Name,ad.input(input_dev_idx).Name))
+        %get ID of device
+        output_dev_idx=k;
+        %done
+        break;
+    end
+end
+
+%check that input device was found
+if(output_dev_idx==0)
+    error('Could not find sutable output device');
+end
+
+%get input device id's from index
+input_dev=ad.input(input_dev_idx).ID;
+%get output device id's from index
+output_dev=ad.output(output_dev_idx).ID;
 
 if(size(y,1)==1)
     dat_idx=1;
 else
     dat_idx=0;
 end
+
+%create audio device objects to use
+p=audioplayer(y,fs,24,output_dev);
+r=audiorecorder(fs,24,size(y,1),input_dev);
 
 %number of trials
 N=800;
@@ -33,7 +68,15 @@ recordings=cell(1,N);
 
 for k=1:N
 
-    [dat,underRun(k),overRun(k)]=aPR(y.');
+    %start recording
+    record(r);
+    %play waveform
+    playblocking(p);
+    %stop recording
+    stop(r)
+
+    %get recorded data
+    dat=getaudiodata(r);
 
     %get maximum values
     mx=max(dat);
@@ -145,10 +188,7 @@ title(sprintf('StD : %g',std(st_dly(dat_idx,:))));
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
 %get device name that was used
-dvn=device_names{find(cellfun(@(s)contains(ad{devIdx},s),device_names),1)};
-
-%get full device name
-Device_used=ad{devIdx};
+dvn=device_names{find(cellfun(@(s)contains(ad.input(input_dev_idx).Name,s),device_names),1)};
 
 %make plots direcotry
 [~,~,~]=mkdir('plots');
@@ -159,5 +199,9 @@ print(fullfile('plots',sprintf('capture_%s_%s.png',dvn,dtn)),'-dpng','-r600');
 %make data direcotry
 [~,~,~]=mkdir('data');
 
+%name of the device that was used
+Device_used=ad.input(input_dev_idx).Name;
+
 %save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used','underRun','overRun');
+save(fullfile('data',sprintf('capture_%s_%s.mat',dvn,dtn)),'recordings','st_dly','Device_used');
+
