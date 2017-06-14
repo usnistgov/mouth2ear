@@ -162,4 +162,4 @@ print(fullfile('plots',sprintf('capture_%s_%s.png',dev_name,dtn)),'-dpng','-r600
 [~,~,~]=mkdir('data');
 
 %save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dev_name,dtn)),'recordings','st_dly','dev_name','underRun','overRun');
+save(fullfile('data',sprintf('capture_%s_%s.mat',dev_name,dtn)),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
