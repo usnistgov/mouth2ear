@@ -71,14 +71,6 @@ for k=1:N
                 %shift range
                 rng=rng+(length(dat)-rng(end));
             end
-            %new figure for plot
-            figure;
-            %generate time axis
-            t_r=((1:length(dat))-1)*1/fs;
-            %plot graph
-            plot(t_r(rng),dat(rng));
-            %force drawing
-            drawnow;
         end
     end
 
