@@ -7,13 +7,13 @@ function [y,underRun,overRun]=play_record(apr,x)
     bsz=apr.BufferSize;
 
     %initialize recive audio buffer
-    y=zeros(size(x));
+    y=zeros(size(x)+[5*bsz 0]);
     
     %zerro under and over runs
     underRun=0;
     overRun=0;
     
-    for k=bsz:bsz:(length(x)+5*bsz)
+    for k=bsz:bsz:(length(y))
         
         if(k<=length(x))
             %get a chunk of data
