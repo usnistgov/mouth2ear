@@ -118,7 +118,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','-v7.3');
 
     %TESTING: print message
     fprintf('Run %i of %i complete\n',kk,runs);
@@ -166,7 +166,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','-v7.3');
     
 end
 
