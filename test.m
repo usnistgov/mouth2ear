@@ -21,78 +21,149 @@ end
 %number of trials
 N=800;
 
-%preallocate arrays
-st_idx=zeros(size(y,1),N);
-st_dly=zeros(size(y,1),N);
-underRun=zeros(size(y,1),N);
-overRun=zeros(size(y,1),N);
-recordings=cell(1,N);
+%run size
+Sr=min(N,max_size);
 
-for k=1:N
-    
-    [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+%calculate the number of runs that will be required
+runs=ceil(N/Sr);
 
-    %get maximum values
-    mx=max(dat);
-    
-    if(dat_idx==0)
-        %get index of channel to use
-        dat_idx=double(mx(1)<mx(2))+1;
-        %get start threshold
-        st_th=0.1*mx(dat_idx);
+
+%make plots direcotry
+[~,~,~]=mkdir('plots');
+
+%make data direcotry
+[~,~,~]=mkdir('data');
+
+%get datestr for file name
+dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
+
+%generate base file name to use for all files
+base_filename=sprintf('capture_%s_%s',dev_name,dtn);
+
+for kk=1:runs
+
+    %if this is the last run, adjust the run size
+    if(kk==runs && kk>1)
+        Sr=N-Sr*(runs-1);
     end
     
-    if(mod(k,10)==0)
-        fprintf('Run %i of %i complete :\n',k,N);
-        %calculate RMS
-        rms=sqrt(mean(dat.^2));
-        %calculate maximum
-        [mx,mx_idx]=max(dat);
-        %print values
-        fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
-        %check if levels are low
-        if(rms<1e-3)
-            %print warning
-            warning('Low levels input levels detected. RMS = %g',rms);
-            %length of plot in sec
-            plen=0.01;
-            %generate range centered around maximum value
-            rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
-            if(length(rng)>length(dat))
-                rng=1:length(dat);
-            end
-            %check that we didn't go off of the beginning of the array
-            if(rng(1)<1)
-                %shift range
-                rng=rng-rng(1)+1;
-            end
-            %check that we didn't go off of the end of the array
-            if(rng(end)>length(dat))
-                %shift range
-                rng=rng+(length(dat)-rng(end));
+    %preallocate arrays
+    st_idx=zeros(size(y,1),Sr);
+    st_dly=zeros(size(y,1),Sr);
+    underRun=zeros(size(y,1),Sr);
+    overRun=zeros(size(y,1),Sr);
+    recordings=cell(1,Sr);
+
+    for k=1:Sr
+
+        [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+
+        %get maximum values
+        mx=max(dat);
+
+        if(dat_idx==0)
+            %get index of channel to use
+            dat_idx=double(mx(1)<mx(2))+1;
+            %get start threshold
+            st_th=0.1*mx(dat_idx);
+        end
+
+        if(mod(k,10)==0)
+            fprintf('Run %i of %i complete :\n',k,N);
+            %calculate RMS
+            rms=sqrt(mean(dat.^2));
+            %calculate maximum
+            [mx,mx_idx]=max(dat);
+            %print values
+            fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+            %check if levels are low
+            if(rms<1e-3)
+                %print warning
+                warning('Low levels input levels detected. RMS = %g',rms);
+                %length of plot in sec
+                plen=0.01;
+                %generate range centered around maximum value
+                rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+                if(length(rng)>length(dat))
+                    rng=1:length(dat);
+                end
+                %check that we didn't go off of the beginning of the array
+                if(rng(1)<1)
+                    %shift range
+                    rng=rng-rng(1)+1;
+                end
+                %check that we didn't go off of the end of the array
+                if(rng(end)>length(dat))
+                    %shift range
+                    rng=rng+(length(dat)-rng(end));
+                end
+                %new figure for plot
+                figure;
+                %generate time axis
+                t_r=((1:length(dat))-1)*1/fs;
+                %plot graph
+                plot(t_r(rng),dat(rng));
+                %force drawing
+                drawnow;
             end
         end
+
+        st_idx(:,k)=finddelay(y',dat);
+
+        st_dly(:,k)=1/fs*st_idx(k);
+
+
+        %save data
+        recordings{k}=dat;
+
     end
+    %save datafile
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
 
-    %get start index for waveform
-    %st_idx(k)=find(abs(dat(:,dat_idx))>=st_th,1);
-    %get start index in seconds
-    %st_dly(k)=t_r(st_idx(k));
-
-    st_idx(:,k)=finddelay(y',dat);
+    %TESTING: print message
+    fprintf('Run %i of %i complete\n',kk,runs);
     
-    st_dly(:,k)=1/fs*st_idx(k);
+    if(kk<runs)
+        %clear saved variables
+        clear recordings st_dly underRun overRun
     
-    %plot(t_r(1:(st_idx(k)+200)),dat(1:(st_idx(k)+200),dat_idx),st_dly(k)*[1 1],[0 mx(dat_idx)]);
+        %pause for 10s to let writing complete
+        pause(10);
+    end
+end
 
-    %drawnow;
 
-    %save data
-    recordings{k}=dat;
-    
-    %print start delay
-    %fprintf('Start Delay : %f ms\n',st_dly*1e3);
+if(runs>1)
+    %preallocate arrays
+    st_idx=zeros(size(y,1),N);
+    st_dly=zeros(size(y,1),N);
+    underRun=zeros(size(y,1),N);
+    overRun=zeros(size(y,1),N);
+    recordings=cell(1,N);
 
+    pos=1;
+
+    for k=1:runs
+        fprintf('Loading run %i of %i\n',k,runs);
+
+        %get run data
+        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
+
+        %get run length
+        run_length=length(run_dat.recordings);
+
+        %get range of values that are being set
+        rng=pos+(0:(run_length-1));
+
+        %put data in larger array
+        st_dly(rng)    =run_dat.st_dly;
+        underRun(rng)  =run_dat.underRun;
+        overRun(rng)   =run_dat.overRun;
+        recordings(rng)=run_dat.recordings;
+
+        pos=pos+run_length;
+
+    end
 end
 
 %check for buffer over runs
@@ -141,17 +212,5 @@ st_dev=std(st_dly(dat_idx,:));
 %add Standard Deveation in title
 title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 
-%get datestr for file name
-dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
-
-%make plots direcotry
-[~,~,~]=mkdir('plots');
-
 %print plot to .png
-print(fullfile('plots',sprintf('capture_%s_%s.png',dev_name,dtn)),'-dpng','-r600');
-
-%make data direcotry
-[~,~,~]=mkdir('data');
-
-%save datafile
-save(fullfile('data',sprintf('capture_%s_%s.mat',dev_name,dtn)),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
