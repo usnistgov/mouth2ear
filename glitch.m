@@ -55,6 +55,8 @@ r=audiorecorder(fs,24,size(y,1),input_dev);
 record(r);
 %play waveform
 playblocking(p);
+%pause to get all data
+pause(0.5);
 %stop recording
 stop(r)
 
