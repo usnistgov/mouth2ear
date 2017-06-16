@@ -29,7 +29,7 @@ function name=choose_device(apr)
             %use the last
             idx=idx(end);
             %print which is used
-            fprintf('Could not find one matching "%s" using %s\n',dtype,ad{idx});
+            fprintf('Could not find one matching "%s" using "%s" instead\n',dtype,ad{idx});
         end
     end
     
