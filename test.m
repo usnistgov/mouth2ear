@@ -164,6 +164,10 @@ if(runs>1)
         pos=pos+run_length;
 
     end
+    
+    %save one big file with everything
+    save(fullfile('data',[base_filename '_all.mat']),'recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+    
 end
 
 %check for buffer over runs
