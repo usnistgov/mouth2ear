@@ -12,12 +12,6 @@ dev_name=choose_device(aPR);
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
 
-if(size(y,1)==1)
-    dat_idx=1;
-else
-    dat_idx=0;
-end
-
 %number of trials
 N=800;
 
@@ -56,17 +50,11 @@ for kk=1:runs
 
     for k=1:Sr
 
+        %play and record audio data
         [dat,underRun(k),overRun(k)]=play_record(aPR,y);
 
         %get maximum values
         mx=max(dat);
-
-        if(dat_idx==0)
-            %get index of channel to use
-            dat_idx=double(mx(1)<mx(2))+1;
-            %get start threshold
-            st_th=0.1*mx(dat_idx);
-        end
 
         if(mod(k,10)==0)
             fprintf('Run %i of %i complete :\n',k,N);
@@ -119,9 +107,6 @@ for kk=1:runs
     end
     %save datafile
     save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','-v7.3');
-
-    %TESTING: print message
-    fprintf('Run %i of %i complete\n',kk,runs);
     
     if(kk<runs)
         %clear saved variables
@@ -132,7 +117,7 @@ for kk=1:runs
     end
 end
 
-
+%check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
     %preallocate arrays
     st_idx=zeros(size(y,1),N);
@@ -144,7 +129,6 @@ if(runs>1)
     pos=1;
 
     for k=1:runs
-        fprintf('Loading run %i of %i\n',k,runs);
 
         %get run data
         run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
@@ -160,7 +144,8 @@ if(runs>1)
         underRun(rng)  =run_dat.underRun;
         overRun(rng)   =run_dat.overRun;
         recordings(rng)=run_dat.recordings;
-
+        
+        %add run length to position
         pos=pos+run_length;
 
     end
@@ -191,10 +176,10 @@ figure;
 subplot(1,2,1);
 
 %plot histogram
-histogram(st_dly(dat_idx,:),'Normalization','probability');
+histogram(st_dly,'Normalization','probability');
 
 %calculate delay mean
-dly_m=mean(st_dly(dat_idx,:));
+dly_m=mean(st_dly);
 
 %get engineering units
 [dly_m_e,~,dly_u]=engunits(dly_m,'time');
@@ -205,10 +190,10 @@ title(sprintf('Mean : %.2f %s',dly_m_e,dly_u));
 %switch to second subplot
 subplot(1,2,2);
 %plot histogram
-histogram(st_dly(dat_idx,:),300,'Normalization','probability');
+histogram(st_dly,300,'Normalization','probability');
 
 %calculate standard deviation
-st_dev=std(st_dly(dat_idx,:));
+st_dev=std(st_dly);
 
 %get engineering units
 [st_dev_e,~,st_u]=engunits(st_dev,'time');
