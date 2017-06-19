@@ -106,7 +106,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','fs','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -151,7 +151,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','-v7.3');
+    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','fs','-v7.3');
     
 end
 
