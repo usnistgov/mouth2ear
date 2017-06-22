@@ -1,5 +1,8 @@
 load('chirp.mat','y','fs');
 
+%maximum number of runs in a file
+max_size=2e3;
+
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
 
