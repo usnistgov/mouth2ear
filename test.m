@@ -1,4 +1,11 @@
-load('chirp.mat','y','fs');
+%read audio file
+[y,fs]=audioread('C:\Users\jfrey\Documents\MATLAB\Selected\M5\M5_b50_w2_orig.wav');
+
+%reshape y to be a column vector
+y=reshape(y,[],1);
+
+%maximum size for a run
+max_size=2e3;
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
@@ -42,10 +49,10 @@ for kk=1:runs
     end
     
     %preallocate arrays
-    st_idx=zeros(size(y,1),Sr);
-    st_dly=zeros(size(y,1),Sr);
-    underRun=zeros(size(y,1),Sr);
-    overRun=zeros(size(y,1),Sr);
+    st_idx=zeros(1,Sr);
+    st_dly=zeros(1,Sr);
+    underRun=zeros(1,Sr);
+    overRun=zeros(1,Sr);
     recordings=cell(1,Sr);
 
     for k=1:Sr
@@ -120,10 +127,10 @@ end
 %check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
     %preallocate arrays
-    st_idx=zeros(size(y,1),N);
-    st_dly=zeros(size(y,1),N);
-    underRun=zeros(size(y,1),N);
-    overRun=zeros(size(y,1),N);
+    st_idx=zeros(1,N);
+    st_dly=zeros(1,N);
+    underRun=zeros(1,N);
+    overRun=zeros(1,N);
     recordings=cell(1,N);
 
     pos=1;
