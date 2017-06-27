@@ -37,6 +37,9 @@ dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 %generate base file name to use for all files
 base_filename=sprintf('capture_%s_%s',dev_name,dtn);
 
+%print name and location of run
+fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
+
 for kk=1:runs
 
     %if this is the last run, adjust the run size
