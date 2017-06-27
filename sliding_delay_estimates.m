@@ -76,9 +76,12 @@ end
 Delays=Delays/8; %convert from samples to ms
 Times=Times/fs; %convert from samples to seconds
 
-figure(1)
-plot(Times,Delays,'o-')
-xlabel('Time (Sec)')
-ylabel('Delay Estimate (mS)')
-title('Estimated Delay vs Location in File')
-grid
+%check if output arguments were given
+if(nargout==0)
+    %if no arguments given, plot
+    plot(Times,Delays,'o-')
+    xlabel('Time (Sec)')
+    ylabel('Delay Estimate (mS)')
+    title('Estimated Delay vs Location in File')
+    grid
+end
