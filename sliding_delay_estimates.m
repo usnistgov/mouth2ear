@@ -1,4 +1,4 @@
-function Delays=sliding_delay_estimates(infile,winLength,winStep)
+function Delays=sliding_delay_estimates(infile,varargin)
 
 %This function performs a sequence of windowed time delay estimates
 %between two channels of a stereo
@@ -31,24 +31,34 @@ function Delays=sliding_delay_estimates(infile,winLength,winStep)
 %Notes:  requires access to ITS_delay_est.m, written at ITS
 %        requires access to resample function included in Matlab Signal Processing Toolbox
 
-%-----set default values of inputs-----
-if nargin==1
-    winLength=4;
-    winStep=2;
-elseif nargin==2
-    winStep=2;
-end
+
+%create new input parser
+p=inputParser();
+
+%add filename argument
+addRequired(p,'infile',@ischar);
+
+%add window length argument
+addOptional(p,'winLength',4,@(l)validateattributes(l,{'numeric'},{'scalar','positive'}));
+%add window separation argument
+addOptional(p,'winStep',2,@(l)validateattributes(l,{'numeric'},{'scalar','positive'}));
+
+%set parameter names to be case sensitive
+p.CaseSensitive= true;
+
+%parse inputs
+parse(p,infile,varargin{:});
 
 %-----read .wav file and test sample rate-----
-[x,fs]=audioread(infile);
+[x,fs]=audioread(p.Results.infile);
 if ~any(fs==[48000 32000 24000 16000 8000])
     error('Audio file must use sample rate 8, 16, 24, 32, or 48k')
 end
 
 
 N=size(x,1); %number of samples available
-Nwin=round(winLength*fs); %number of samples needed for each window
-Nstep=round(winStep*fs);  %number of sampels to advance between windows
+Nwin=round(p.Results.winLength*fs); %number of samples needed for each window
+Nstep=round(p.Results.winStep*fs);  %number of sampels to advance between windows
 
 firstSmp=1;
 lastSmp=firstSmp+Nwin-1;
