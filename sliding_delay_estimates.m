@@ -62,7 +62,7 @@ while lastSmp<=N
     test=x(firstSmp:lastSmp,2); %extract right channel signal (SUT ouput)
 
     %-----Apply our delay estimation tool to extracted portions of signal-----    
-    temp=ITS_delay_est(resample(ref,1,6),resample(test,1,fs/8000),'f');
+    temp=ITS_delay_est(resample(ref,1,fs/8000),resample(test,1,fs/8000),'f');
     
     %-----Store results-----
     Delays=[Delays;temp(2)];
