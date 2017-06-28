@@ -7,6 +7,9 @@ y=reshape(y,[],1);
 %maximum size for a run
 max_size=2e3;
 
+%maximum number of runs in a file
+max_size=2e3;
+
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
 
@@ -40,6 +43,9 @@ dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
 %generate base file name to use for all files
 base_filename=sprintf('capture_%s_%s',dev_name,dtn);
+
+%print name and location of run
+fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
 
 for kk=1:runs
 
