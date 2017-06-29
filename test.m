@@ -73,6 +73,7 @@ for kk=1:runs
     underRun=zeros(1,Sr);
     overRun=zeros(1,Sr);
     recordings=cell(1,Sr);
+    dly_its=cell(1,Sr);
 
     for k=1:Sr
 
@@ -126,13 +127,13 @@ for kk=1:runs
 
         st_dly(:,k)=1/fs*st_idx(k);
 
-
+        dly_its{k}=ITS_delay_wrapper(dat,y',fs,0.4,0.2);
         %save data
         recordings{k}=dat;
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -151,6 +152,7 @@ if(runs>1)
     underRun=zeros(1,N);
     overRun=zeros(1,N);
     recordings=cell(1,N);
+    dly_its=cell(1,N);
 
     pos=1;
 
@@ -170,6 +172,7 @@ if(runs>1)
         underRun(rng)  =run_dat.underRun;
         overRun(rng)   =run_dat.overRun;
         recordings(rng)=run_dat.recordings;
+        dly_its(rng)   =run_dat.dly_its;
         
         %add run length to position
         pos=pos+run_length;
@@ -177,7 +180,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','dly_its','fs','-v7.3');
     
 end
 
