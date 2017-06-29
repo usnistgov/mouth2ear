@@ -235,3 +235,22 @@ title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 
 %print plot to .png
 print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
+
+its_dly_dat=cell2mat(dly_its);
+
+%calculate difference between ITS delay and finddelay delay
+dly_diff=bsxfun(@minus,its_dly_dat*1e-3,st_dly);
+
+[~,scl,n]=engunits(dly_diff,'time');
+
+figure;
+for k=size(its_dly_dat,1)
+    histogram(dly_diff(k,:),300,'Normalization','probability');
+    hold on;
+end
+hold off;
+%xlabel(sprintf('Delay difference [%s]',n));
+
+figure;
+plot(dly_diff);
+
