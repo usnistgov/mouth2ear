@@ -1,6 +1,15 @@
 %read audio file
 [y,fs]=audioread('test.wav');
 
+%check fs and resample if nessicessary
+if(fs<44.1e3)
+    %resample to 48e3
+    y=resample(y,48e3/fs,1);
+    %set new fs
+    fs=48e3;
+end
+
+
 %reshape y to be a column vector
 y=reshape(y,[],1);
 
