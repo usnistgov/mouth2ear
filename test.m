@@ -9,9 +9,16 @@ if(fs<44.1e3)
     fs=48e3;
 end
 
+%reshape y to be a column vector/matrix
+y=reshape(y,sort(size(y),'descend'));
 
-%reshape y to be a column vector
-y=reshape(y,[],1);
+%check if there is more than one channel
+if(size(y,2)>1)
+    %warn user
+    warning('audio file has %i channels. discarding all but channel 1',size(y,2));
+    %get first column
+    y=y(:,1);
+end
 
 %maximum size for a run
 max_size=2e3;
