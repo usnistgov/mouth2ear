@@ -1,5 +1,5 @@
 %read audio file
-[y,fs]=audioread('C:\Users\jfrey\Documents\MATLAB\Selected\M5\M5_b50_w2_orig.wav');
+[y,fs]=audioread('test.wav');
 
 %reshape y to be a column vector
 y=reshape(y,[],1);
