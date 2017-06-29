@@ -130,7 +130,7 @@ for kk=1:runs
 
         st_dly(:,k)=1/fs*st_idx(k);
 
-        dly_its{k}=ITS_delay_wrapper(dat,y',fs,0.4,0.2);
+        dly_its{k}=ITS_delay_wrapper(dat,y',fs);
         %save data
         recordings{k}=dat;
 
