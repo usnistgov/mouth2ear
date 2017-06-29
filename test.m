@@ -59,6 +59,9 @@ for kk=1:runs
         %play and record audio data
         [dat,underRun(k),overRun(k)]=play_record(aPR,y);
 
+        %add a pause after play_record to remove run to run dependencys
+        pause(3.1);
+        
         %get maximum values
         mx=max(dat);
 
