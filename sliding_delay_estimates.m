@@ -1,4 +1,4 @@
-function Delays=sliding_delay_estimates(test,ref,fs,varargin)
+function [Delays,Times]=sliding_delay_estimates(test,ref,fs,varargin)
 % SLIDING_DELAY_ESTIMATES perform sequence of windowed time delay estimates
 %
 %   SLIDING_DELAY_ESTIMATES(test,ref,fs) performs delay estimates between
