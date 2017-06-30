@@ -1,4 +1,4 @@
-function Delays=sliding_delay_estimates(test,ref,fs,varargin)
+function [Delays,Times]=sliding_delay_estimates(test,ref,fs,varargin)
 % SLIDING_DELAY_ESTIMATES perform sequence of windowed time delay estimates
 %
 %   SLIDING_DELAY_ESTIMATES(test,ref,fs) performs delay estimates between
@@ -51,9 +51,17 @@ p.CaseSensitive= true;
 %parse inputs
 parse(p,test,ref,fs,varargin{:});
 
-%check sample rate
-if ~any(fs==[48000 32000 24000 16000 8000])
-    error('Audio must use sample rate 8, 16, 24, 32, or 48k')
+%sample rate to resample to
+%this is the rate that ITS_delay_est expects inputs to be in
+fs_re=8e3;
+
+%calculate resample factor
+n_re=fs/fs_re;
+
+%check that resample rate is an integer
+if(round(n_re)~=n_re)
+    %give error for invalid sample rate
+    error('fs must be an integer multiple of %i',fs_re);
 end
 
 %number of samples available in both files
@@ -77,7 +85,7 @@ while lastSmp<=N
     test=p.Results.test(firstSmp:lastSmp); 
 
     %-----Apply our delay estimation tool to extracted portions of signal-----    
-    temp=ITS_delay_est(resample(ref,1,fs/8000),resample(test,1,fs/8000),'f');
+    temp=ITS_delay_est(resample(ref,1,n_re),resample(test,1,n_re),'f');
     
     %-----Store results-----
     Delays=[Delays;temp(2)];
