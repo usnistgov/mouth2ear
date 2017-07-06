@@ -1,13 +1,36 @@
-function [y,underRun,overRun]=play_record(apr,x)
+function [y,underRun,overRun]=play_record(apr,x,varargin)
     
+
+    %create new input parser
+    p=inputParser();
+
+    %add audio object argument
+    addRequired(p,'apr',@(l)validateattributes(l,{'audioPlayerRecorder'},{'scalar'}));
+    %add output audio argument
+    addRequired(p,'x',@(l)validateattributes(l,{'numeric'},{'real','finite'}));
+    %add overplay parameter
+    addParameter(p,'OverPlay',0.1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
+
+    %add window length argument
+    addOptional(p,'winLength',4,@(l)validateattributes(l,{'numeric'},{'scalar','positive'}));
+
+    %set parameter names to be case sensitive
+    p.CaseSensitive= true;
+
+    %parse inputs
+    parse(p,apr,x,varargin{:});
+
     %reshape x into a column vector
-    x=reshape(x,[],1);
+    x=reshape(p.Results.x,[],1);
 
     %get buffer size
-    bsz=apr.BufferSize;
+    bsz=p.Results.apr.BufferSize;
+    
+    %get sample rate
+    fs=p.Results.apr.SampleRate;
 
     %calculate the number of loops needed
-    runs=ceil(length(x)/bsz+5);
+    runs=ceil(length(x+p.Results.OverPlay*fs)/bsz);
     
     %initialize recive audio buffer
     y=zeros((runs-1)*bsz,size(x,2));
