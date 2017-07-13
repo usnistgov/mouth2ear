@@ -30,7 +30,7 @@ aPR=audioPlayerRecorder(fs);
 aPR.BitDepth='24-bit integer';
 
 %set input channel mapping to record timecode
-aPR.RecorderChannelMapping=[2];
+aPR.RecorderChannelMapping=2;
 
 %chose which device to use
 dev_name=choose_device(aPR);
