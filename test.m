@@ -214,7 +214,7 @@ histogram(st_dly,'Normalization','probability');
 its_dly_mean=cellfun(@mean,dly_its);
 
 %calculate delay mean
-dly_m=mean(st_dly);
+dly_m=mean(its_dly_mean);
 
 %get engineering units
 [dly_m_e,~,dly_u]=engunits(dly_m,'time');
@@ -228,7 +228,7 @@ subplot(1,2,2);
 histogram(st_dly,300,'Normalization','probability');
 
 %calculate standard deviation
-st_dev=std(st_dly);
+st_dev=std(its_dly_mean);
 
 %get engineering units
 [st_dev_e,~,st_u]=engunits(st_dev,'time');
@@ -238,22 +238,4 @@ title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 
 %print plot to .png
 print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
-
-its_dly_dat=cell2mat(dly_its);
-
-%calculate difference between ITS delay and finddelay delay
-dly_diff=bsxfun(@minus,its_dly_dat*1e-3,st_dly);
-
-[~,scl,n]=engunits(dly_diff,'time');
-
-figure;
-for k=size(its_dly_dat,1)
-    histogram(dly_diff(k,:),300,'Normalization','probability');
-    hold on;
-end
-hold off;
-%xlabel(sprintf('Delay difference [%s]',n));
-
-figure;
-plot(dly_diff);
 
