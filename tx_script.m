@@ -47,8 +47,11 @@ Sr=min(N,max_size);
 %calculate the number of runs that will be required
 runs=ceil(N/Sr);
 
+%folder name for tx data
+tx_dat_fold='tx-data';
+
 %make data direcotry
-[~,~,~]=mkdir('tx-data');
+[~,~,~]=mkdir(tx_dat_fold);
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
@@ -57,7 +60,7 @@ dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 base_filename=sprintf('capture_%s_%s',dev_name,dtn);
 
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile('tx-data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
+fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.mat',base_filename,runs)));
 
 for kk=1:runs
 
@@ -127,7 +130,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -166,7 +169,7 @@ if(runs>1)
     for k=1:runs
 
         %get run data
-        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
+        run_dat=load(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
 
         %get run length
         run_length=length(run_dat.recordings);
@@ -185,7 +188,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     %print out that the data was saved
     fprintf('Data file saved in "%s"\n',[base_filename '_all.mat']);
