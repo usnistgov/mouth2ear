@@ -210,6 +210,9 @@ subplot(1,2,1);
 %plot histogram
 histogram(st_dly,'Normalization','probability');
 
+%calculate mean ITS delay for each run
+its_dly_mean=cellfun(@mean,dly_its);
+
 %calculate delay mean
 dly_m=mean(st_dly);
 
