@@ -5,8 +5,10 @@
 #matlab data files
 *.mat
 
-#data directory
+#data directorys
 data/
+tx-data/
+rx-data/
 
 #plots directory
 plots/
