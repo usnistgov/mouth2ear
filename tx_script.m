@@ -29,6 +29,9 @@ aPR=audioPlayerRecorder(fs);
 %set bit depth
 aPR.BitDepth='24-bit integer';
 
+%set input channel mapping to record timecode
+aPR.RecorderChannelMapping=[2];
+
 %chose which device to use
 dev_name=choose_device(aPR);
 
@@ -44,12 +47,8 @@ Sr=min(N,max_size);
 %calculate the number of runs that will be required
 runs=ceil(N/Sr);
 
-
-%make plots direcotry
-[~,~,~]=mkdir('plots');
-
 %make data direcotry
-[~,~,~]=mkdir('data');
+[~,~,~]=mkdir('tx-data');
 
 %get datestr for file name
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
@@ -58,7 +57,7 @@ dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 base_filename=sprintf('capture_%s_%s',dev_name,dtn);
 
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
+fprintf('Storing data in:\n\t''%s''\n',fullfile('tx-data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
 
 for kk=1:runs
 
@@ -68,12 +67,9 @@ for kk=1:runs
     end
     
     %preallocate arrays
-    st_idx=zeros(1,Sr);
-    st_dly=zeros(1,Sr);
     underRun=zeros(1,Sr);
     overRun=zeros(1,Sr);
     recordings=cell(1,Sr);
-    dly_its=cell(1,Sr);
 
     for k=1:Sr
 
@@ -125,67 +121,25 @@ for kk=1:runs
                 drawnow;
             end
         end
-
-        st_idx(:,k)=finddelay(y',dat);
-
-        st_dly(:,k)=1/fs*st_idx(k);
-
-        dly_its{k}=ITS_delay_wrapper(dat,y',fs);
+        
         %save data
         recordings{k}=dat;
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     if(kk<runs)
         %clear saved variables
-        clear recordings st_dly underRun overRun
+        clear recordings underRun overRun
     
         %pause for 10s to let writing complete
         pause(10);
     end
 end
 
-%check if there was more than one run meaning that we should load in datafiles
-if(runs>1)
-    %preallocate arrays
-    st_idx=zeros(1,N);
-    st_dly=zeros(1,N);
-    underRun=zeros(1,N);
-    overRun=zeros(1,N);
-    recordings=cell(1,N);
-    dly_its=cell(1,N);
-
-    pos=1;
-
-    for k=1:runs
-
-        %get run data
-        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
-
-        %get run length
-        run_length=length(run_dat.recordings);
-
-        %get range of values that are being set
-        rng=pos+(0:(run_length-1));
-
-        %put data in larger array
-        st_dly(rng)    =run_dat.st_dly;
-        underRun(rng)  =run_dat.underRun;
-        overRun(rng)   =run_dat.overRun;
-        recordings(rng)=run_dat.recordings;
-        dly_its(rng)   =run_dat.dly_its;
-        
-        %add run length to position
-        pos=pos+run_length;
-
-    end
-    
-    %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','st_dly','dev_name','underRun','overRun','dly_its','fs','-v7.3');
-    
-end
+%print out completion message
+fprintf('Data collection complete you may now stop data collection on the reciving end\n');
 
 %check for buffer over runs
 if(any(overRun))
@@ -201,56 +155,41 @@ else
     fprintf('There were no buffer under runs\n');
 end
 
-%new figure
-figure;
+%check if there was more than one run meaning that we should load in datafiles
+if(runs>1)
+    %preallocate arrays
+    underRun=zeros(1,N);
+    overRun=zeros(1,N);
+    recordings=cell(1,N);
+    pos=1;
 
-%split window into subplots
-subplot(1,2,1);
+    for k=1:runs
 
-%plot histogram
-histogram(st_dly,'Normalization','probability');
+        %get run data
+        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
 
-%calculate delay mean
-dly_m=mean(st_dly);
+        %get run length
+        run_length=length(run_dat.recordings);
 
-%get engineering units
-[dly_m_e,~,dly_u]=engunits(dly_m,'time');
+        %get range of values that are being set
+        rng=pos+(0:(run_length-1));
 
-%add mean in title
-title(sprintf('Mean : %.2f %s',dly_m_e,dly_u));
+        %put data in larger array
+        underRun(rng)  =run_dat.underRun;
+        overRun(rng)   =run_dat.overRun;
+        recordings(rng)=run_dat.recordings;
+        
+        %add run length to position
+        pos=pos+run_length;
 
-%switch to second subplot
-subplot(1,2,2);
-%plot histogram
-histogram(st_dly,300,'Normalization','probability');
-
-%calculate standard deviation
-st_dev=std(st_dly);
-
-%get engineering units
-[st_dev_e,~,st_u]=engunits(st_dev,'time');
-
-%add Standard Deveation in title
-title(sprintf('StD : %.1f %s',st_dev_e,st_u));
-
-%print plot to .png
-print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
-
-its_dly_dat=cell2mat(dly_its);
-
-%calculate difference between ITS delay and finddelay delay
-dly_diff=bsxfun(@minus,its_dly_dat*1e-3,st_dly);
-
-[~,scl,n]=engunits(dly_diff,'time');
-
-figure;
-for k=size(its_dly_dat,1)
-    histogram(dly_diff(k,:),300,'Normalization','probability');
-    hold on;
+    end
+    
+    %save one big file with everything
+    save(fullfile('data',[base_filename '_all.mat']),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    
+    %print out that the data was saved
+    fprintf('Data file saved in "%s"\n',[base_filename '_all.mat']);
+    
 end
-hold off;
-%xlabel(sprintf('Delay difference [%s]',n));
 
-figure;
-plot(dly_diff);
 
