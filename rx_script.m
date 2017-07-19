@@ -24,7 +24,7 @@ rx_dat_fold='rx-data';
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
 %generate base file name to use for all files
-filename=sprintf('capture_%s_%s.wav',dev_name,dtn);
+filename=sprintf('Rx_capture_%s.wav',dtn);
 
 %create an object two write audio data to output file
 RecWriter=dsp.AudioFileWriter(fullfile(rx_dat_fold,filename),'FileFormat','WAV','SampleRate',fs,'DataType','int24');
@@ -80,4 +80,4 @@ release(RecObj);
 release(RecWriter);
 
 %print completion message
-fprintf('Recording complete! data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
+fprintf('Data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));

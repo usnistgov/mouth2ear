@@ -57,7 +57,7 @@ tx_dat_fold='tx-data';
 dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
 
 %generate base file name to use for all files
-base_filename=sprintf('capture_%s_%s',dev_name,dtn);
+base_filename=sprintf('Tx_capture_%s',dtn);
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.mat',base_filename,runs)));
