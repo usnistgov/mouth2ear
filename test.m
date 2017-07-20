@@ -53,8 +53,8 @@ git_status=gitStatus();
 %make data direcotry
 [~,~,~]=mkdir('data');
 
-%get datestr for file name
-dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
+%get a string to represent the current date in the filename
+dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
 
 %open test type file
 test_type_f=fopen('test-type.txt');
