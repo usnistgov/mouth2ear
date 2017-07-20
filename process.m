@@ -193,11 +193,11 @@ st_dev=std(dly_its_mean);
 %get engineering units
 [st_dev_e,~,st_u]=engunits(st_dev,'time');
 
-%add mean and standard deveation in title
-title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
-
 %plot histogram
 histogram(dly_its_mean,300,'Normalization','probability');
+
+%add mean and standard deveation in title
+title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 
 %print plot to .png
 print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
