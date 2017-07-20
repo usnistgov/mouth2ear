@@ -123,6 +123,7 @@ end
 dly_its=cell(1,length(tx_dat.recordings));
 mfdr=cell(1,length(tx_dat.recordings));
 rx_rec=cell(1,length(tx_dat.recordings));
+good=zeros(1,length(tx_dat.recordings),'logical');
 
 %loop through all transmit recordings
 for k=1:length(tx_dat.recordings)
@@ -158,6 +159,8 @@ for k=1:length(tx_dat.recordings)
     
     if(~all(mfdr{k}<(1+tc_tol) & mfdr{k}>(1-tc_tol)))
         warning('Timecodes out of tolerence for run %i',k);
+    else
+        good(k)=true;
     end
     
     %calculate first rx sample to use
@@ -178,7 +181,7 @@ end
 figure;
 
 %calculate mean delay for each run
-dly_its_mean=cellfun(@mean,dly_its);
+dly_its_mean=cellfun(@mean,dly_its(good));
 
 %calculate delay mean
 dly_m=mean(dly_its_mean);
