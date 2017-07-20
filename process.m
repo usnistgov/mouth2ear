@@ -158,7 +158,6 @@ for k=1:length(tx_dat.recordings)
     
     if(~all(mfdr{k}<(1+tc_tol) & mfdr{k}>(1-tc_tol)))
         warning('Timecodes out of tolerence for run %i',k);
-        mfdr{k}
     end
     
     %calculate first rx sample to use
