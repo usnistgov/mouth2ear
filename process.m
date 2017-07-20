@@ -171,7 +171,7 @@ for k=1:length(tx_dat.recordings)
     rx_rec{k}=rx_dat(first:last,1);
     
     %calculate delay
-    dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs);
+    dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs)*1e-3;
 end
 
 
