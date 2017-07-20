@@ -20,8 +20,8 @@ rx_dat_fold='rx-data';
 %make data direcotry
 [~,~,~]=mkdir(rx_dat_fold);
 
-%get datestr for file name
-dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
+%get a string to represent the current date in the filename
+dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
 
 %generate base file name to use for all files
 filename=sprintf('Rx_capture_%s.wav',dtn);

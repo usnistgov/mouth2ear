@@ -53,8 +53,8 @@ tx_dat_fold='tx-data';
 %make data direcotry
 [~,~,~]=mkdir(tx_dat_fold);
 
-%get datestr for file name
-dtn=datestr(datetime,'dd-mmm-yyyy_HH-MM-SS');
+%get a string to represent the current date in the filename
+dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
 
 %generate base file name to use for all files
 base_filename=sprintf('Tx_capture_%s',dtn);
