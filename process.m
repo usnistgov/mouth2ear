@@ -1,4 +1,18 @@
+function process(tx_name,varargin)
 
+%create new input parser
+p=inputParser();
+
+%add audio object argument
+addRequired(p,'tx_name',@(l)validateattributes(l,{'char'},{'vector'}));
+%add output audio argument
+addOptional(p,'rx_name',[],@(l)validateattributes(l,{'char'},{'vector'}));
+
+%set parameter names to be case sensitive
+p.CaseSensitive= true;
+
+%parse inputs
+parse(p,tx_name,varargin{:});
 
 %folder name for tx data
 tx_dat_fold='tx-data';
@@ -9,11 +23,92 @@ rx_dat_fold='rx-data';
 %tolerence for timecode variation
 tc_tol=0.0001;
 
+%split tx filename
+[tx_fold,tx_name_only,~]=fileparts(p.Results.tx_name);
+
+%check if tx_folder given
+if(isempty(tx_fold))
+    %add tx folder to path
+    tx_name=fullfile(tx_dat_fold,p.Results.tx_name);
+else
+    %just use given filename
+    tx_name=p.Results.tx_name;
+end
+
 %load data from transmit side
-tx_dat=load(fullfile(tx_dat_fold,'capture_UMC ASIO Driver_13-Jul-2017_13-06-16_1_of_1.mat'));
+tx_dat=load(tx_name);
+
+%check if rx filename given
+if(isempty(p.Results.rx_name))
+    %split tx filename
+    tx_parts=split(tx_name_only,'_');
+    %check prefix
+    if(~(strcmp(tx_parts{1},'Tx') && strcmp(tx_parts{2},'capture')))
+        %give error
+        error('Tx filename "%s" is not in the propper form. Can not determine Rx filename',p.Results.tx_name);
+    end
+    %attempt to get date from tx filename
+    tx_date=datetime([tx_parts{3} '_' tx_parts{4}],'InputFormat','dd-MMM-yyyy_HH-mm-ss');
+    
+    %list files in the recive folder
+    names=cellstr(ls(fullfile('rx-data','Rx_capture_*')));
+    
+    %check that files were found
+    if(isempty(names))
+        error('Files not found in Rx folder');
+    end
+    
+    found=0;
+    
+    for k=1:length(names)
+        %extract date string from filename
+        [~,dstr]=fileparts(erase(names{k},'Rx_capture_'));
+        
+        %get the date in the file
+        rx_date_start=datetime(dstr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
+        
+        %read info on the audio file
+        info=audioinfo(fullfile('rx-data',names{k}));
+        
+        %calculate the stop time
+        rx_date_end=rx_date_start+seconds(info.Duration);
+        
+        %check that tx date falls within rx file time
+        if(tx_date>rx_date_start && tx_date<rx_date_end)
+            %flag as found
+            found=1;
+            %set rx filename
+            rx_name=fullfile(rx_dat_fold,names{k});
+            %print out filename
+            fprintf('Rx file found "%s"\n',rx_name);
+            %exit the loop
+            break;
+        end
+    end
+    
+    %check that a file was found
+    if(~found)
+        %file not found, give error
+        error('Could not find a suitable Rx file');
+    end
+    
+else
+    %split rx filename and retain folder
+    rx_fold=fileparts(p.Results.rx_name);
+    
+    %check if rx_folder given
+    if(isempty(rx_fold))
+        %add folder to filename
+        rx_name=fullfile(rx_dat_fold,p.results.rx_name);
+    else
+        %use name as given
+        rx_name=p.results.rx_name;
+    end
+end
+    
 
 %load data from recive side
-[rx_dat,rx_fs]=audioread(fullfile(rx_dat_fold,'Capture_13-Jul-2017.wav'));
+[rx_dat,rx_fs]=audioread(rx_name);
 
 %decode timecode from recive waveform
 [rx_time,rx_fsamp]=time_decode(rx_dat(:,2),rx_fs);
