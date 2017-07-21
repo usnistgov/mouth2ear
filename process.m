@@ -20,6 +20,12 @@ tx_dat_fold='tx-data';
 %folder name for rx data
 rx_dat_fold='rx-data';
 
+%folder name for processing data
+proc_dat_fold='proc-data';
+
+%make data direcotry
+[~,~,~]=mkdir(proc_dat_fold);
+
 %tolerence for timecode variation
 tc_tol=0.0001;
 
@@ -206,4 +212,7 @@ title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 
 %print plot to .png
 print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
+
+%save everything
+save(fullfile(proc_dat_fold,[base_filename '.mat']));
 
