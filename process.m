@@ -131,20 +131,21 @@ end
 %prealocate arrays
 dly_its=cell(1,length(tx_dat.recordings));
 mfdr=cell(1,length(tx_dat.recordings));
+tx_tc=cell(1,length(tx_dat.recordings));
 rx_rec=cell(1,length(tx_dat.recordings));
 good=zeros(1,length(tx_dat.recordings),'logical');
 
 %loop through all transmit recordings
 for k=1:length(tx_dat.recordings)
     %decode timecode
-    [tx_tc,tx_frs]=time_decode(tx_dat.recordings{k},tx_dat.fs);
+    [tx_tc{k},tx_frs]=time_decode(tx_dat.recordings{k},tx_dat.fs);
     
     %array for index of matching timecodes
-    tc_match=zeros(size(tx_tc));
+    tc_match=zeros(size(tx_tc{k}));
     
-    for kk=1:length(tx_tc)
+    for kk=1:length(tx_tc{k})
         %find where timecode matches
-        idx=find(rx_time==tx_tc(kk));
+        idx=find(rx_time==tx_tc{k}(kk));
         
         %make sure we found one match
         if(length(idx)==1)
