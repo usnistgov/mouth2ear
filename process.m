@@ -120,7 +120,7 @@ end
 [rx_time,rx_fsamp]=time_decode(rx_dat(:,2),rx_fs);
 
 %get the first timecode from the rx side as a string
-base_filename=['Capture_',char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'))];
+base_filename=['Capture_',char(datetime(rx_time(1),'Format','dd-MMM-yyyy_HH-mm-ss'))];
 
 %check to see that sample rates match
 if(rx_fs~=tx_dat.fs)
