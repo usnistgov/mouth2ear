@@ -85,7 +85,7 @@ if mode=='v' || mode=='u'
 %1 indicates activity, 0 otherwise)
 active_wf=find_activity_wf(y_speech,fir_coeff_63);
 %Compensate the activity waveform for tau_0
-[junk,comp_active_wf]=fxd_delay_comp(x_speech,active_wf,tau_0);
+[~,comp_active_wf]=fxd_delay_comp(x_speech,active_wf,tau_0);
 %--------------------------Delay Tracking------------------------------
 DCAVS=delay_tracking(comp_x_speech,comp_y_speech,comp_active_wf,150,40,200);
 %--------------------------Median Filtering----------------------------
@@ -163,7 +163,7 @@ for i=1:length(trans)
 active(trans(i):min(trans(i)+tau,n))=1;
 end
 %Test for both activity and non-zeroness to prevent log(0)
-x=x( find( 0<x & active ));
+x=x(  0<x & active );
 asl=20*mean(log10(x))-81;
 %==========================================================================
 function [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y)
@@ -320,7 +320,7 @@ end
 end
 end
 %==========================================================================
-function DCAVS=delay_tracking(x,y,active_wf,winlen,winstep,range);
+function DCAVS=delay_tracking(x,y,active_wf,winlen,winstep,range)
 %Usage: DCAVS=delay_tracking(x,y,active_wf,winlen,winstep,range);
 %This function does delay tracking (delay in speech signal y relative to x)
 %winlen is the length of window used for the delay estimation alg (in ms)
@@ -398,7 +398,7 @@ DCAVS(i,4)=1;
 end
 end
 %==========================================================================
-function SDVout=extend_val_res(SDVin);
+function SDVout=extend_val_res(SDVin)
 %Usage: SDVout=extend_val_res(SDVin)
 %This function extrapolates valid results to cover areas where there are
 %none. SDVin and SDVout are Delay history matrices in the fs=8000 domain:
@@ -635,7 +635,7 @@ samples=min(length(source)-sstart+1,length(distorted)-dstart+1);
 source=source(sstart:sstart+samples-1);
 distorted=distorted(dstart:dstart+samples-1);
 %==========================================================================
-function D=fxd_fine_dly_est(x,y);
+function D=fxd_fine_dly_est(x,y)
 %Usage: D=fxd_fine_dly_est(x,y);
 %This function performs an FFT-based cross correlation on the rectified
 %speech signals and then processes the results to find a delay estimate
@@ -673,11 +673,11 @@ sxc=filter(fir_coeff',1,xc); %More Transparent
 %smoothed version of cross-correlation function with filter delay
 %removed
 sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
-[dud,index]=max(sxc);
+[~,index]=max(sxc);
 D=index-range-1; %Calculate delay estimate
 end
 %==========================================================================
-function [lse_f,lse_v]=LSE(s,d,Df,Dv,maxsp);
+function [lse_f,lse_v]=LSE(s,d,Df,Dv,maxsp)
 %Usage: [lse_f,lse_v]=LSE(s,d,Df,Dv,maxsp)
 %This function calculates log-spectra error for fixed and variable delay
 %estimates.
@@ -806,7 +806,7 @@ lse_f=0;
 lse_v=0;
 end
 %==========================================================================
-function SDV=median_filter(DCAVS,twinlen,winstep,activity_th,cor_th);
+function SDV=median_filter(DCAVS,twinlen,winstep,activity_th,cor_th)
 %Usage: SDV=median_filter(DCAVS,twinlen,winstep,activity_th,cor_th);
 %This function does the median filtering on the results in the DCAVS
 %matrix. The DCAVS matrix is defined in the delay_tracking function.
@@ -856,7 +856,7 @@ fhtwinlen=min(htwinlen,nsmp);
 start=i-fhtwinlen; %First sample in current window
 stop=i+fhtwinlen; %Last sample in current window
 %If there is a least one good sample in the window
-if sum(good(start:stop))>=1;
+if sum(good(start:stop))>=1
 %Form list of absolute indices of good samples
 goodlist=start+find(good(start:stop))-1;
 %Perform median filtering on the good samples
@@ -1015,7 +1015,7 @@ SDVin=[SDVin,seglens,zeros(nsegs,1)];
 %Find location and type of the shortest segment with status 0 in SDVin
 [ptr,seg_type]=find_smallest_seg(SDVin);
 %If there is such a segment
-if ptr~=0;
+if ptr~=0
 %Extract its length
 current_seg_len=SDVin(ptr,4);
 else
@@ -1116,7 +1116,7 @@ end
 %Find location and type of the shortest segment with status 0 in SDVin
 [ptr seg_type]=find_smallest_seg(SDVin);
 %If there is such a segment
-if ptr~=0;
+if ptr~=0
 %Extract its length
 current_seg_len=SDVin(ptr,4);
 else
