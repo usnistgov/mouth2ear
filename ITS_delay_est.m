@@ -68,18 +68,18 @@ if length(comp_x_speech)<1185
 mode='t';
 end
 %------------Do further mode determination as necessary/possible-----------
-if mode=='u' & rho_0<.96
+if mode=='u' && rho_0<.96
 mode='v';
 end
 %-----Fine delay estimation for the fixed and unknown delay cases----------
-if mode=='f' | mode=='u'
+if mode=='f' || mode=='u'
 %Find fine delay
 fxd_fine_delay=fxd_fine_dly_est(comp_x_speech,comp_y_speech);
 %Find total delay
 D_fxd=tau_0+fxd_fine_delay;
 end
 %-------Additional stages for the variable and unknown delay cases---------
-if mode=='v' | mode=='u'
+if mode=='v' || mode=='u'
 %---------------------Speech Activity Detection------------------------
 %Identify active speech samples (active_wf is same size as y_speech,
 %1 indicates activity, 0 otherwise)
@@ -240,7 +240,7 @@ stop=SDVin(i,1);
 delay=SDVin(i,2);
 %Attempt refinement only if there is at least 10 ms of active speech
 %in the segment and segment has a valid delay estimate
-if 80 <= sum(active_wf(start:stop)) & SDVin(i,3)==1
+if 80 <= sum(active_wf(start:stop)) && SDVin(i,3)==1
 %If segment length is at least 200 ms, use fft-based correlation
 if 1600 <= (stop-start+1)
 %Find delay compensated starting sample in x_speech
@@ -259,7 +259,7 @@ end
 sstop=min(stop-delay,length(x_speech));
 %If there is at least 10 ms in both the x_speech segment and
 %the y_speech segment after these adjustments
-if (80 <= sstop-sstart+1) & (80 <= stop-start+1)
+if (80 <= sstop-sstart+1) && (80 <= stop-start+1)
 %Perform FFT-based cross correlation on appropriate
 %portions of x_speech and y_speech
 [un_corr,denom]=fft_xc(x_speech(sstart:sstop), ...
@@ -268,7 +268,7 @@ y_speech(start:stop),-range,range);
 [peak,loc]=max(un_corr);
 %If correlation value meets or exceeds threshold, or the
 %segment is longer than 1 second
-if (cor_th <= peak/denom) | (8000 < stop-start+1)
+if (cor_th <= peak/denom) || (8000 < stop-start+1)
 %Apply the refinement
 SDVout(i,2)=delay+(loc-range-1);
 end
@@ -376,10 +376,10 @@ DCAVS(i,3)=sum(active_wf(start:stop))/winlen;
 %Assume delay estimation is doable unless one of tests that
 %follows fails
 doable=1;
-if start-range < 1 | min(nx,ny) < stop+range
+if start-range < 1 || min(nx,ny) < stop+range
 %Not enough samples to do delay estimation
 doable=0;
-elseif std(y(start:stop))==0 | std(x(start-range:stop+range))==0
+elseif std(y(start:stop))==0 || std(x(start-range:stop+range))==0
 %No variation in samples
 doable=0;
 end
@@ -475,7 +475,7 @@ y=y-m;
 xc=real(ifft(fft([x;zeros(corrlen,1)]).*fft([flipud(y);zeros(corrlen,1)])));
 xc=flipud(xc); %reverse the column vector, top to bottom
 %Test to see if requested values of delay are available
-if corrlen+min_d+1<1 | 2*corrlen < corrlen+max_d+1
+if corrlen+min_d+1<1 || 2*corrlen < corrlen+max_d+1
 error('Not enough input samples to calculate requested delay values.')
 end
 %Extract requested values of delay
@@ -602,11 +602,11 @@ lv=SDVLS(ptr-1,3);
 %Check validity of segment to right of current segment
 rv=SDVLS(ptr+1,3);
 %Use these two validities to identify appropriate segment type
-if lv==1 & rv==0
+if lv==1 && rv==0
 seg_type='RT';
-elseif lv==0 & rv==1
+elseif lv==0 && rv==1
 seg_type='LT';
-elseif lv==0 & rv==0
+elseif lv==0 && rv==0
 seg_type='IS';
 %Both neighbors are valid, so current segment is either a blip
 %or a step
@@ -1029,7 +1029,7 @@ while current_seg_len<=max([len_t len_b len_s])
 %Find number of segments in current version of SDVin
 n=size(SDVin,1);
 %If current segment is a left tail and conforms with tail threshold
-if seg_type=='LT' & current_seg_len <= len_t
+if seg_type=='LT' && current_seg_len <= len_t
 %Join current segment to right neighbor segment
 %to create new combined segment
 SDVin=SDVin(setdiff(1:n,ptr),:);
@@ -1041,7 +1041,7 @@ SDVin(ptr,5)=0;
 %Store the length of the new combined segment
 SDVin(ptr,4)=SDVin(ptr,4)+current_seg_len;
 %If current segment is a right tail and conforms with tail threshold
-elseif seg_type=='RT' & current_seg_len <= len_t
+elseif seg_type=='RT' && current_seg_len <= len_t
 %Join current segment to left neighbor segment
 %to create new combined segment
 current_seg_end=SDVin(ptr,1);
@@ -1053,7 +1053,7 @@ SDVin(ptr-1,5)=0;
 %Store the length of the new combined segment
 SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len;
 %If current segment is a blip and conforms with blip threshold
-elseif seg_type=='BI' & current_seg_len <= len_b
+elseif seg_type=='BI' && current_seg_len <= len_b
 %Join current segment and left neighbor to right neighbor segment
 %to create new combined segment
 left_neb_len=SDVin(ptr-1,4);
@@ -1064,7 +1064,7 @@ SDVin(ptr-1,5)=0;
 %Store the length of the new combined segment
 SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len+left_neb_len;
 %If current segment is a step and conforms with step threshold
-elseif seg_type=='SP' & current_seg_len <= len_s
+elseif seg_type=='SP' && current_seg_len <= len_s
 %Join current segment to left or right neighbor or leave it
 %as is. Choice of these 3 actions depends on correlation results
 %-----------------------Preparations-------------------------------
