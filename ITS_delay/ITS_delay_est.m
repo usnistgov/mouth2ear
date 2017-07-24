@@ -151,7 +151,7 @@ x=abs(x);
 %calculate filter coefficient from time constant
 g=exp(-1/(fs*.03));
 %perform 2nd order IIR filtering
-x=IIRfilter((1-g)^2,[1 -2*g g*g]',x);
+x=filter((1-g)^2,[1 -2*g g*g]',x);
 at=max(x)*(10^(-dBth/20)); %calculate activity threshold
 if at==0
 error('Input vector has no signal')
@@ -177,8 +177,8 @@ function [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y)
 fir_coeff=find_fir_coeffs(400,1/133.33); %calculate filter coeffs
 rx=abs(x); %rectify
 ry=abs(y);
-ex=IIRfilter(fir_coeff',1,abs(x)); %63 Hz LPF, order 400 FIR
-ey=IIRfilter(fir_coeff',1,abs(y));
+ex=filter(fir_coeff',1,abs(x)); %63 Hz LPF, order 400 FIR
+ey=filter(fir_coeff',1,abs(y));
 %There is no need to remove filter delay since it is the same in each
 %signal
 ex=ex(1:64:end); %Subsample by 64
@@ -339,12 +339,12 @@ function DCAVS=delay_tracking(x,y,active_wf,winlen,winstep,range);
 %64 samples. Response is -51 dB at 250 Hz.
 fir_coeffs=find_fir_coeffs(128,1/32);
 %Rectify and filter
-x=IIRfilter(fir_coeffs',1,[abs(x);zeros(64,1)]);
+x=filter(fir_coeffs',1,[abs(x);zeros(64,1)]);
 %Remove filter delay and subsample by 16
 x=x(65:16:end);
 nx=length(x);
 %Rectify and filter
-y=IIRfilter(fir_coeffs',1,[abs(y);zeros(64,1)]);
+y=filter(fir_coeffs',1,[abs(y);zeros(64,1)]);
 %Remove filter delay and subsample by 16
 y=y(65:16:end);
 %Subsample activity waveform
@@ -496,7 +496,7 @@ th=35; %Threshold for activity detection in dB below peak
 tau=800; %Number of samples to extend each active segment in each direction
 nx=length(x);
 %FIR filter rectified speech
-x=IIRfilter(fir_coeff',1,[abs(x);zeros(200,1)]);
+x=filter(fir_coeff',1,[abs(x);zeros(200,1)]);
 x=x(201:end); %Remove filter delay
 %Find samples that are above threshold,1 means active, 0 means not active
 active_x = (x >= 10^(th/20));
@@ -659,7 +659,7 @@ elseif .67<maxrho %For medium correlations, some smoothing helps
 m=64;
 flen=3*m;
 fir_coeff=find_fir_coeffs(flen,1/m); %Filter lengths are even
-sxc=IIRfilter(fir_coeff',1,xc);
+sxc=filter(fir_coeff',1,xc);
 %smoothed version of cross-correlation function with filter delay
 %removed
 sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
@@ -669,54 +669,12 @@ else %For lower correlations, more smoothing helps
 m=128;
 flen=3*m;
 fir_coeff=find_fir_coeffs(flen,1/m); % filter lengths are even
-sxc=IIRfilter(fir_coeff',1,xc); %More Transparent
+sxc=filter(fir_coeff',1,xc); %More Transparent
 %smoothed version of cross-correlation function with filter delay
 %removed
 sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
 [dud,index]=max(sxc);
 D=index-range-1; %Calculate delay estimate
-end
-%==========================================================================
-function y=IIRfilter(b,a,x)
-%Usage: y=IIRfilter(b,a,x)
-%This function implements an IIR filter in direct form:
-%a(1)*y(n) = b(1)*x(n) + b(2)*x(n-1) + ... + b(nb+1)*x(n-nb)
-% - a(2)*y(n-1) - ... - a(na+1)*y(n-na)
-%x and y are column vectors and have the same length
-%a and b are column vectors of filter coefficients as defined above
-%For FIR filtering, set a=1.
-%Note that use of the built-in Matlab function “filter” will result
-%in much faster execution
-%Normalize b coefficients and reverse their order top to bottom
-b=flipud(b/a(1));
-%Normalize a coefficients, remove a(1) and reverse the order of
-%the remaining coefficients, top to bottom
-a=flipud(a(2:end)/a(1));
-%Check vector lengths
-na=length(a);
-nb=length(b);
-n=length(x);
-%If no "a" coefficients remain, this is the FIR case
-if na==0
-%Initialize x and y
-x=[zeros(nb-1,1);x];
-y=zeros(n,1);
-%Loop over all samples in y
-for i=1:n
-y(i)=x(i:i+nb-1)'*b;
-end
-%If "a" coefficients remain, this is the IIR case
-else
-%Initialize x and y
-m=max(na,nb);
-x=[zeros(m,1);x];
-y=zeros(n+m,1);
-%Loop over all relevant samples in y
-for i=m+1:m+n
-y(i)=x(i-nb+1:i)'*b - y(i-na:i-1)'*a;
-end
-%Extract relevant portion of y
-y=y(m+1:end);
 end
 %==========================================================================
 function [lse_f,lse_v]=LSE(s,d,Df,Dv,maxsp);
