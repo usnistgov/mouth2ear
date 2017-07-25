@@ -175,8 +175,6 @@ function [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y)
 %rho_0 is the corresponding correlation value
 %fir_coeff is a set of 401 FIR filter coefficients for a 63 Hz LPF
 fir_coeff=find_fir_coeffs(400,1/133.33); %calculate filter coeffs
-rx=abs(x); %rectify
-ry=abs(y);
 ex=filter(fir_coeff',1,abs(x)); %63 Hz LPF, order 400 FIR
 ey=filter(fir_coeff',1,abs(y));
 %There is no need to remove filter delay since it is the same in each
@@ -556,8 +554,7 @@ function [ptr,seg_type]=find_smallest_seg(SDVLS)
 %'SP' step, segment and both neighbors are valid and all 3 have different
 % delay values
 %'xx' is returned when ptr=0, i.e. there is no result to report.
-%Initialize ptr
-ptr=0;
+
 %Find number of segments
 nsegs=(size(SDVLS,1));
 %Create list of all segments with status=0
