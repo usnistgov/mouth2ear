@@ -1111,7 +1111,7 @@ else
 SDVin(ptr,5)=1;
 end
 %Find location and type of the shortest segment with status 0 in SDVin
-[ptr seg_type]=find_smallest_seg(SDVin);
+[ptr,seg_type]=find_smallest_seg(SDVin);
 %If there is such a segment
 if ptr~=0
 %Extract its length
