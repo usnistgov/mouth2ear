@@ -566,7 +566,7 @@ seg_type='xx';
 %There is one or more segments with status=0
 else
 %Find the shortest such segment
-[dud,loc]=min(SDVLS(goodlist,4));
+[~,loc]=min(SDVLS(goodlist,4));
 %Set ptr accordingly
 ptr=goodlist(loc);
 %If segment is invalid, mark it as such and function is finished
@@ -660,7 +660,7 @@ sxc=filter(fir_coeff',1,xc);
 %smoothed version of cross-correlation function with filter delay
 %removed
 sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
-[dud,index]=max(sxc);
+[~,index]=max(sxc);
 D=index-range-1; %Calculate delay estimate
 else %For lower correlations, more smoothing helps
 m=128;
@@ -1077,7 +1077,7 @@ rcorr=single_corr(x_speech,y_speech,start,stop,R_dly);
 %Correlation at delay of current segment
 ccorr=single_corr(x_speech,y_speech,start,stop,C_dly);
 %Which of these 3 correlations is largest?
-[dud,loc]=max([lcorr rcorr ccorr]);
+[~,loc]=max([lcorr rcorr ccorr]);
 %If correlation at delay of left neighbor is largest
 if loc==1
 %Join current segment to left neighbor segment
