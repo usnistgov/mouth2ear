@@ -518,7 +518,7 @@ h=0.54-0.46*cos(2*pi*(0:n-1)/(n-1));
 t=(-order*cutoff/2:cutoff:order*cutoff/2);
 %Calculate sin(pi*x)/(pi*x) (sinc function) for time domain indices
 %sin(pi*0)/(pi*0) is defined to be 1
-good=find(t~=0);
+good=t~=0;
 sinxox=ones(1,order+1);
 sinxox(good)=sin(pi*t(good))./(pi*t(good));
 %Filter coefficients are product of window and sinc function
