@@ -365,7 +365,7 @@ DCAVS=zeros(nwins,5);
 %Find locations of centers of windows (sample number in subsampled domain)
 first=(winlen+1)/2;
 last=first+winstep*(nwins-1);
-DCAVS(:,5)=[first:winstep:last]';
+DCAVS(:,5)=(first:winstep:last)';
 for i=1:nwins %Loop over all windows
 start=1+(i-1)*winstep; %First sample in window
 stop=start+winlen-1; %Last sample in window
@@ -513,9 +513,9 @@ function b=find_fir_coeffs(order,cutoff)
 %of length order+1 that holds the filter coefficients
 %Create column vector that holds Hamming window of length order+1
 n=order+1;
-h=0.54-0.46*cos(2*pi*[0:n-1]/(n-1));
+h=0.54-0.46*cos(2*pi*(0:n-1)/(n-1));
 %Create column vector of time-domain indices
-t=[-order*cutoff/2:cutoff:order*cutoff/2];
+t=(-order*cutoff/2:cutoff:order*cutoff/2);
 %Calculate sin(pi*x)/(pi*x) (sinc function) for time domain indices
 %sin(pi*0)/(pi*0) is defined to be 1
 good=find(t~=0);
@@ -728,7 +728,7 @@ center=round((stop+start)/2);
 hn=floor((stop-center-320-lsewin/2)/maxsp);
 %Calculate the window location(s)
 if hn>=1
-locs=center+[-hn:1:hn]'*maxsp;
+locs=center+(-hn:1:hn)'*maxsp;
 else
 locs=center;
 end
@@ -768,7 +768,7 @@ Sf(:,i)=s(slocs_fxd(i)-L:slocs_fxd(i)+R);
 Sv(:,i)=s(slocs_var(i)-L:slocs_var(i)+R);
 end
 %Generate column vector with periodic Hanning window, length is lsewin
-win=.5*(1-cos(2*pi*[0:lsewin-1]'/lsewin));
+win=.5*(1-cos(2*pi*(0:lsewin-1)'/lsewin));
 %Repeat this window in each column of the matrix Win.
 %(Win is lsewin by nlocs.)
 Win=repmat(win,1,nlocs);
