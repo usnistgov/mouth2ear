@@ -41,11 +41,11 @@ function Delay_est=ITS_delay_est(x_speech,y_speech,mode)
 %-----------------------------Speech Input---------------------------------
 %Transpose x_speech to form a column vector if necessary
 if size(x_speech,2)>1
-x_speech=x_speech';
+    x_speech=x_speech';
 end
 %Transpose y_speech to form a column vector if necessary
 if size(y_speech,2)>1
-y_speech=y_speech';
+    y_speech=y_speech';
 end
 %--------------------------Level Normalization-----------------------------
 %Measure active speech level
@@ -64,73 +64,75 @@ y_speech=y_speech*10^(-(asl_y+26)/20);
 %are not sufficent for delay estimation. (They may contain unrelated
 %signals, no signal, or may simply be too short)
 if length(comp_x_speech)<1185
-%Algorithm must terminate
-mode='t';
+    %Algorithm must terminate
+    mode='t';
 end
 %------------Do further mode determination as necessary/possible-----------
 if mode=='u' && rho_0<.96
-mode='v';
+    mode='v';
 end
 %-----Fine delay estimation for the fixed and unknown delay cases----------
 if mode=='f' || mode=='u'
-%Find fine delay
-fxd_fine_delay=fxd_fine_dly_est(comp_x_speech,comp_y_speech);
-%Find total delay
-D_fxd=tau_0+fxd_fine_delay;
+    %Find fine delay
+    fxd_fine_delay=fxd_fine_dly_est(comp_x_speech,comp_y_speech);
+    %Find total delay
+    D_fxd=tau_0+fxd_fine_delay;
 end
 %-------Additional stages for the variable and unknown delay cases---------
 if mode=='v' || mode=='u'
-%---------------------Speech Activity Detection------------------------
-%Identify active speech samples (active_wf is same size as y_speech,
-%1 indicates activity, 0 otherwise)
-active_wf=find_activity_wf(y_speech,fir_coeff_63);
-%Compensate the activity waveform for tau_0
-[~,comp_active_wf]=fxd_delay_comp(x_speech,active_wf,tau_0);
-%--------------------------Delay Tracking------------------------------
-DCAVS=delay_tracking(comp_x_speech,comp_y_speech,comp_active_wf,150,40,200);
-%--------------------------Median Filtering----------------------------
-SDV=median_filter(DCAVS,500,40,.1,.8);
-%---------------------Combine Results with tau_0-----------------------
-SDV(:,2)=SDV(:,2)+tau_0; %Add in tau_0 to delay estimates
-if 0<tau_0 %If tau_0 is a positive quantity
-%then adjust locations of delay segments as well
-SDV(:,1)=SDV(:,1)+tau_0;
-end
-%Adjust final location to exactly match end of y_speech
-SDV(end,1)=length(y_speech);
-%----------------------------Delay Refinement--------------------------
-SDV=delay_refine(SDV,x_speech,y_speech,active_wf,72,.7);
-%---------------Remove Redundant Entries in SDV matrix-----------------
-%If delay and validity do not change from segment n to n+1, then
-%segment n is redundant
-keepers=[find( (diff(SDV(:,2))~=0) | (diff(SDV(:,3))~=0));size(SDV,1)];
-SDV=SDV(keepers,:);
-%Adjust final location to exactly end y_speech
-SDV(end,1)=length(y_speech);
-%-----------------Round Delay Estimates to Nearest Integer-------------
-SDV(:,2)=round(SDV(:,2));
-%-----------------------Short Segment Correction------------------------
-if size(SDV,1)>1
-SDV=short_seg_cor(SDV,x_speech,y_speech,160,280,80);
-end
+    %---------------------Speech Activity Detection------------------------
+    %Identify active speech samples (active_wf is same size as y_speech,
+    %1 indicates activity, 0 otherwise)
+    active_wf=find_activity_wf(y_speech,fir_coeff_63);
+    %Compensate the activity waveform for tau_0
+    [~,comp_active_wf]=fxd_delay_comp(x_speech,active_wf,tau_0);
+    %--------------------------Delay Tracking------------------------------
+    DCAVS=delay_tracking(comp_x_speech,comp_y_speech,comp_active_wf,150,40,200);
+    %--------------------------Median Filtering----------------------------
+    SDV=median_filter(DCAVS,500,40,.1,.8);
+    %---------------------Combine Results with tau_0-----------------------
+    SDV(:,2)=SDV(:,2)+tau_0; %Add in tau_0 to delay estimates
+    
+    if 0<tau_0 %If tau_0 is a positive quantity
+        %then adjust locations of delay segments as well
+        SDV(:,1)=SDV(:,1)+tau_0;
+    end
+    %Adjust final location to exactly match end of y_speech
+    SDV(end,1)=length(y_speech);
+    %----------------------------Delay Refinement--------------------------
+    SDV=delay_refine(SDV,x_speech,y_speech,active_wf,72,.7);
+    %---------------Remove Redundant Entries in SDV matrix-----------------
+    %If delay and validity do not change from segment n to n+1, then
+    %segment n is redundant
+    keepers=[find( (diff(SDV(:,2))~=0) | (diff(SDV(:,3))~=0));size(SDV,1)];
+    SDV=SDV(keepers,:);
+    %Adjust final location to exactly end y_speech
+    SDV(end,1)=length(y_speech);
+    %-----------------Round Delay Estimates to Nearest Integer-------------
+    SDV(:,2)=round(SDV(:,2));
+    %-----------------------Short Segment Correction------------------------
+    if size(SDV,1)>1
+        SDV=short_seg_cor(SDV,x_speech,y_speech,160,280,80);
+    end
 end
 %--------------------------Apply LSE if Necessary--------------------------
 if mode=='u'
-[lse_f,lse_v]=LSE(x_speech,y_speech,D_fxd,SDV,16);
-if lse_f <= lse_v
-mode='f';
-else
-mode='v';
-end
+    [lse_f,lse_v]=LSE(x_speech,y_speech,D_fxd,SDV,16);
+    
+    if lse_f <= lse_v
+        mode='f';
+    else
+        mode='v';
+    end
 end
 %---Select Output, Extrapolate Variable Delay Estimate if Necessary--------
 if mode=='v'
-Delay_est=extend_val_res(SDV); %Extrapolate variable delay estimate
+    Delay_est=extend_val_res(SDV); %Extrapolate variable delay estimate
 elseif mode=='f'
-Delay_est=[length(y_speech) D_fxd];%Reformat fixed delay estimate
+    Delay_est=[length(y_speech) D_fxd];%Reformat fixed delay estimate
 else %Mode is 't' for terminate
-%The output [0 0] indicates no delay estimation was possible
-Delay_est=[0 0];
+    %The output [0 0] indicates no delay estimation was possible
+    Delay_est=[0 0];
 end
 %==========================================================================
 function asl=active_speech_level(x)
@@ -153,15 +155,18 @@ g=exp(-1/(fs*.03));
 %perform 2nd order IIR filtering
 x=filter((1-g)^2,[1 -2*g g*g]',x);
 at=max(x)*(10^(-dBth/20)); %calculate activity threshold
+
 if at==0
-error('Input vector has no signal')
+    error('Input vector has no signal')
 end
 active=x>at; %find active samples
 %Extend each active interval tau samples forward in time
 trans=find(abs(diff(active)));
+
 for i=1:length(trans)
-active(trans(i):min(trans(i)+tau,n))=1;
+    active(trans(i):min(trans(i)+tau,n))=1;
 end
+
 %Test for both activity and non-zeroness to prevent log(0)
 x=x(  0<x & active );
 asl=20*mean(log10(x))-81;
@@ -226,96 +231,96 @@ SDVout=SDVin;
 nsegs=size(SDVin,1);
 %Loop over all segments
 for i=1:nsegs
-%Find first sample of current segment (first segment is special case)
-if i==1
-start=1;
-else
-start=SDVin(i-1,1)+1;
-end
-%Extract last sample of current segment
-stop=SDVin(i,1);
-%Extract delay of current segment
-delay=SDVin(i,2);
-%Attempt refinement only if there is at least 10 ms of active speech
-%in the segment and segment has a valid delay estimate
-if 80 <= sum(active_wf(start:stop)) && SDVin(i,3)==1
-%If segment length is at least 200 ms, use fft-based correlation
-if 1600 <= (stop-start+1)
-%Find delay compensated starting sample in x_speech
-sstart=start-delay;
-%If it is before the start of x_speech, it will be necessary to
-%modify the starting place in both x_speech and y_speech
-if sstart<1
-%Number of samples involved in the modifications
-trim=1-sstart;
-%First sample of x_speech for this segement
-sstart=sstart+trim;
-%First sample of y_speech for this segement
-start=start+trim;
-end
-%Find delay compensated ending sample in x_speech
-sstop=min(stop-delay,length(x_speech));
-%If there is at least 10 ms in both the x_speech segment and
-%the y_speech segment after these adjustments
-if (80 <= sstop-sstart+1) && (80 <= stop-start+1)
-%Perform FFT-based cross correlation on appropriate
-%portions of x_speech and y_speech
-[un_corr,denom]=fft_xc(x_speech(sstart:sstop), ...
-y_speech(start:stop),-range,range);
-%Locate peak in unnormalized correlation
-[peak,loc]=max(un_corr);
-%If correlation value meets or exceeds threshold, or the
-%segment is longer than 1 second
-if (cor_th <= peak/denom) || (8000 < stop-start+1)
-%Apply the refinement
-SDVout(i,2)=delay+(loc-range-1);
-end
-end
-%Segment is less than 200 ms long, use direct-form correlation
-else
-%Find starting sample in x_speech, compensated for
-%delay and search range
-sstart=start-delay-range;
-%If it is before the start of x_speech, it will be necessary to
-%modify the starting place in both x_speech and y_speech
-if sstart<1
-%Number of samples involved in the modifications
-trim=1-sstart;
-%First sample of x_speech for this segement
-sstart=sstart+trim;
-%First sample of y_speech for this segement
-start=start+trim;
-end
-%Find ending sample in x_speech, compensated for
-%delay and search range
-sstop=stop-delay+range;
-%If it is beyond the end of x_speech, it will be necessary to
-%modify the ending place in both x_speech and y_speech
-if length(x_speech)<sstop
-%Number of samples involved in the modifications
-trim=sstop-length(x_speech);
-%Last sample of x_speech for this segement
-sstop=sstop-trim;
-%Last sample of y_speech for this segement
-stop=stop-trim;
-end
-%If there is at least 10 ms in the y_speech segment after
-%these adjustments
-if 80 < stop-start+1
-%Perform direct-form cross correlation on appropriate
-%portions of x_speech and y_speech
-[un_corr,denom]=non_fft_xc_all(x_speech(sstart:sstop), ...
-y_speech(start:stop));
-%Locate peak in unnormalized correlation
-[peak,loc]=max(un_corr);
-%If correlation value meets or exceeds threshold
-if cor_th <= peak/denom
-%Apply the refinement
-SDVout(i,2)=delay+(range-loc+1);
-end
-end
-end
-end
+    %Find first sample of current segment (first segment is special case)
+    if i==1
+        start=1;
+    else
+        start=SDVin(i-1,1)+1;
+    end
+    %Extract last sample of current segment
+    stop=SDVin(i,1);
+    %Extract delay of current segment
+    delay=SDVin(i,2);
+    %Attempt refinement only if there is at least 10 ms of active speech
+    %in the segment and segment has a valid delay estimate
+    if 80 <= sum(active_wf(start:stop)) && SDVin(i,3)==1
+        %If segment length is at least 200 ms, use fft-based correlation
+        if 1600 <= (stop-start+1)
+            %Find delay compensated starting sample in x_speech
+            sstart=start-delay;
+            %If it is before the start of x_speech, it will be necessary to
+            %modify the starting place in both x_speech and y_speech
+            if sstart<1
+                %Number of samples involved in the modifications
+                trim=1-sstart;
+                %First sample of x_speech for this segement
+                sstart=sstart+trim;
+                %First sample of y_speech for this segement
+                start=start+trim;
+            end
+            %Find delay compensated ending sample in x_speech
+            sstop=min(stop-delay,length(x_speech));
+            %If there is at least 10 ms in both the x_speech segment and
+            %the y_speech segment after these adjustments
+            if (80 <= sstop-sstart+1) && (80 <= stop-start+1)
+                %Perform FFT-based cross correlation on appropriate
+                %portions of x_speech and y_speech
+                [un_corr,denom]=fft_xc(x_speech(sstart:sstop), ...
+                y_speech(start:stop),-range,range);
+                %Locate peak in unnormalized correlation
+                [peak,loc]=max(un_corr);
+                %If correlation value meets or exceeds threshold, or the
+                %segment is longer than 1 second
+                if (cor_th <= peak/denom) || (8000 < stop-start+1)
+                    %Apply the refinement
+                    SDVout(i,2)=delay+(loc-range-1);
+                end
+            end
+            %Segment is less than 200 ms long, use direct-form correlation
+        else
+            %Find starting sample in x_speech, compensated for
+            %delay and search range
+            sstart=start-delay-range;
+            %If it is before the start of x_speech, it will be necessary to
+            %modify the starting place in both x_speech and y_speech
+            if sstart<1
+                %Number of samples involved in the modifications
+                trim=1-sstart;
+                %First sample of x_speech for this segement
+                sstart=sstart+trim;
+                %First sample of y_speech for this segement
+                start=start+trim;
+            end
+            %Find ending sample in x_speech, compensated for
+            %delay and search range
+            sstop=stop-delay+range;
+            %If it is beyond the end of x_speech, it will be necessary to
+            %modify the ending place in both x_speech and y_speech
+            if length(x_speech)<sstop
+                %Number of samples involved in the modifications
+                trim=sstop-length(x_speech);
+                %Last sample of x_speech for this segement
+                sstop=sstop-trim;
+                %Last sample of y_speech for this segement
+                stop=stop-trim;
+            end
+            %If there is at least 10 ms in the y_speech segment after
+            %these adjustments
+            if 80 < stop-start+1
+                %Perform direct-form cross correlation on appropriate
+                %portions of x_speech and y_speech
+                [un_corr,denom]=non_fft_xc_all(x_speech(sstart:sstop), ...
+                y_speech(start:stop));
+                %Locate peak in unnormalized correlation
+                [peak,loc]=max(un_corr);
+                %If correlation value meets or exceeds threshold
+                if cor_th <= peak/denom
+                    %Apply the refinement
+                    SDVout(i,2)=delay+(range-loc+1);
+                end
+            end
+        end
+    end
 end
 %==========================================================================
 function DCAVS=delay_tracking(x,y,active_wf,winlen,winstep,range)
@@ -351,9 +356,9 @@ active_wf=active_wf(1:16:end);
 ny=length(y);
 len_diff=length(active_wf)-ny;
 if 0<len_diff
-active_wf=active_wf(1:ny); %Trim final samples
+    active_wf=active_wf(1:ny); %Trim final samples
 elseif len_diff<0
-active_wf=[active_wf;zeros(len_diff,1)]; %Zero pad
+    active_wf=[active_wf;zeros(len_diff,1)]; %Zero pad
 end
 %Convert parameters from ms to samples (in the subsampled domain)
 winlen=round(winlen/2);
@@ -367,33 +372,34 @@ first=(winlen+1)/2;
 last=first+winstep*(nwins-1);
 DCAVS(:,5)=(first:winstep:last)';
 for i=1:nwins %Loop over all windows
-start=1+(i-1)*winstep; %First sample in window
-stop=start+winlen-1; %Last sample in window
-%Find activity level in window
-DCAVS(i,3)=sum(active_wf(start:stop))/winlen;
-%Assume delay estimation is doable unless one of tests that
-%follows fails
-doable=1;
-if start-range < 1 || min(nx,ny) < stop+range
-%Not enough samples to do delay estimation
-doable=0;
-elseif std(y(start:stop))==0 || std(x(start-range:stop+range))==0
-%No variation in samples
-doable=0;
-end
-if doable
-%Perform direct-form cross correlation
-[xc,denom]=non_fft_xc(x(start-range:stop+range), ...
-y(start-range:stop+range),-range,range);
-%Identify peak
-[maxrho,index]=max(xc);
-%Calculate corresponding delay in samples
-DCAVS(i,1)=(index-range-1);
-%Calculate corresponding correlation value
-DCAVS(i,2)=maxrho/denom;
-%Mark that window as having a valid delay estimate
-DCAVS(i,4)=1;
-end
+    start=1+(i-1)*winstep; %First sample in window
+    stop=start+winlen-1; %Last sample in window
+    %Find activity level in window
+    DCAVS(i,3)=sum(active_wf(start:stop))/winlen;
+    %Assume delay estimation is doable unless one of tests that
+    %follows fails
+    doable=1;
+    if start-range < 1 || min(nx,ny) < stop+range
+        %Not enough samples to do delay estimation
+        doable=0;
+    elseif std(y(start:stop))==0 || std(x(start-range:stop+range))==0
+        %No variation in samples
+        doable=0;
+    end
+    
+    if doable
+        %Perform direct-form cross correlation
+        [xc,denom]=non_fft_xc(x(start-range:stop+range), ...
+        y(start-range:stop+range),-range,range);
+        %Identify peak
+        [maxrho,index]=max(xc);
+        %Calculate corresponding delay in samples
+        DCAVS(i,1)=(index-range-1);
+        %Calculate corresponding correlation value
+        DCAVS(i,2)=maxrho/denom;
+        %Mark that window as having a valid delay estimate
+        DCAVS(i,4)=1;
+    end
 end
 %==========================================================================
 function SDVout=extend_val_res(SDVin)
@@ -415,32 +421,32 @@ nsegs=size(SDVin,1);
 SDVout=SDVin;
 %If there is more than one segment, then loop over all segments
 if 1< nsegs
-for i=1:nsegs
-%If the current segment is not valid
-if SDVout(i,3)==0
-%Leading invalid segment case
-if i==1
-SDVout(1,2)=SDVout(2,2);
-%Trailing invalid segment case
-elseif i==nsegs
-SDVout(nsegs,2)=SDVout(nsegs-1,2);
-%Interior invalid segment case
+    for i=1:nsegs
+        %If the current segment is not valid
+        if SDVout(i,3)==0
+            %Leading invalid segment case
+            if i==1
+                SDVout(1,2)=SDVout(2,2);
+                %Trailing invalid segment case
+            elseif i==nsegs
+                SDVout(nsegs,2)=SDVout(nsegs-1,2);
+                %Interior invalid segment case
+            else
+                %Half the width of the invalid segment
+                hw=round((SDVout(i,1)-SDVout(i-1,1))/2);
+                %Extend previous segment to cover first
+                SDVout(i-1,1)=SDVout(i-1,1)+hw;
+                %Copy delay of following segment to cover second half
+                SDVout(i,2)=SDVout(i+1,2);
+            end
+        end
+    end
+    %Find segments associated with changes in delay
+    keepers=[(find(diff(SDVout(:,2))~=0));nsegs];
+    %Retain only those segments
+    SDVout=SDVout(keepers,[1 2]);
 else
-%Half the width of the invalid segment
-hw=round((SDVout(i,1)-SDVout(i-1,1))/2);
-%Extend previous segment to cover first
-SDVout(i-1,1)=SDVout(i-1,1)+hw;
-%Copy delay of following segment to cover second half
-SDVout(i,2)=SDVout(i+1,2);
-end
-end
-end
-%Find segments associated with changes in delay
-keepers=[(find(diff(SDVout(:,2))~=0));nsegs];
-%Retain only those segments
-SDVout=SDVout(keepers,[1 2]);
-else
-SDVout=SDVout(1,[1 2]);
+    SDVout=SDVout(1,[1 2]);
 end
 %==========================================================================
 function [un_corr,denom]=fft_xc(x,y,min_d,max_d)
@@ -474,7 +480,7 @@ xc=real(ifft(fft([x;zeros(corrlen,1)]).*fft([flipud(y);zeros(corrlen,1)])));
 xc=flipud(xc); %reverse the column vector, top to bottom
 %Test to see if requested values of delay are available
 if corrlen+min_d+1<1 || 2*corrlen < corrlen+max_d+1
-error('Not enough input samples to calculate requested delay values.')
+    error('Not enough input samples to calculate requested delay values.')
 end
 %Extract requested values of delay
 un_corr=xc(corrlen+min_d+1:corrlen+max_d+1);
@@ -501,8 +507,8 @@ active_x = (x >= 10^(th/20));
 %Extend all active regions by tau samples in each direction
 trans=find(abs(diff(active_x))); %List of transition points
 for j=1:length(trans) %Loop over all transitions
-%Extend activity in each direction
-active_x(max(trans(j)-tau,1):min(trans(j)+tau,nx))=1;
+    %Extend activity in each direction
+    active_x(max(trans(j)-tau,1):min(trans(j)+tau,nx))=1;
 end
 %==========================================================================
 function b=find_fir_coeffs(order,cutoff)
@@ -561,62 +567,66 @@ nsegs=(size(SDVLS,1));
 goodlist=find(SDVLS(:,5)==0);
 %If no such segment, function is done
 if isempty(goodlist)
-ptr=0;
-seg_type='xx';
-%There is one or more segments with status=0
+    ptr=0;
+    seg_type='xx';
+    %There is one or more segments with status=0
 else
-%Find the shortest such segment
-[~,loc]=min(SDVLS(goodlist,4));
-%Set ptr accordingly
-ptr=goodlist(loc);
-%If segment is invalid, mark it as such and function is finished
-if SDVLS(ptr,3)==0
-seg_type='IV';
-%Special case for first segment
-elseif ptr==1
-%If segment to right is valid
-if SDVLS(ptr+1,3)==1
-%First segment is a left tail
-seg_type='LT';
-else
-%Otherwise first segment is isolated
-seg_type='IS';
-end
-%Special case for last segment
-elseif ptr==nsegs
-%If segment to left is valid
-if SDVLS(ptr-1,3)==1
-%Last segment is a right tail
-seg_type='RT';
-else
-%Otherwise last segment is isolated
-seg_type='IS';
-end
-%All remaining segments have two neighbors
-else
-%Check validity of segment to left of current segment
-lv=SDVLS(ptr-1,3);
-%Check validity of segment to right of current segment
-rv=SDVLS(ptr+1,3);
-%Use these two validities to identify appropriate segment type
-if lv==1 && rv==0
-seg_type='RT';
-elseif lv==0 && rv==1
-seg_type='LT';
-elseif lv==0 && rv==0
-seg_type='IS';
-%Both neighbors are valid, so current segment is either a blip
-%or a step
-else
-%If neighbors have the same delay, current segment is a blip
-if SDVLS(ptr-1,2)==SDVLS(ptr+1,2)
-seg_type='BI';
-%Otherwise current segment is a step
-else
-seg_type='SP';
-end
-end
-end
+    %Find the shortest such segment
+    [~,loc]=min(SDVLS(goodlist,4));
+    %Set ptr accordingly
+    ptr=goodlist(loc);
+    %If segment is invalid, mark it as such and function is finished
+    if SDVLS(ptr,3)==0
+        seg_type='IV';
+    
+    %Special case for first segment
+    elseif ptr==1
+        %If segment to right is valid
+        if SDVLS(ptr+1,3)==1
+            %First segment is a left tail
+            seg_type='LT';
+        else
+            %Otherwise first segment is isolated
+            seg_type='IS';
+        end
+        
+    %Special case for last segment
+    elseif ptr==nsegs
+        %If segment to left is valid
+        if SDVLS(ptr-1,3)==1
+            %Last segment is a right tail
+            seg_type='RT';
+        else
+            %Otherwise last segment is isolated
+            seg_type='IS';
+        end
+        
+    %All remaining segments have two neighbors
+    else
+        %Check validity of segment to left of current segment
+        lv=SDVLS(ptr-1,3);
+        %Check validity of segment to right of current segment
+        rv=SDVLS(ptr+1,3);
+        %Use these two validities to identify appropriate segment type
+        if lv==1 && rv==0
+            seg_type='RT';
+        elseif lv==0 && rv==1
+            seg_type='LT';
+        elseif lv==0 && rv==0
+            seg_type='IS';
+        %Both neighbors are valid, so current segment is either a blip
+        %or a step
+        else
+            %If neighbors have the same delay, current segment is a blip
+            if SDVLS(ptr-1,2)==SDVLS(ptr+1,2)
+                seg_type='BI';
+            
+            %Otherwise current segment is a step
+            else
+                seg_type='SP';
+            end
+        end
+    end
 end
 %==========================================================================
 function [source,distorted]=fxd_delay_comp(source,distorted,delay)
@@ -651,27 +661,27 @@ txc=xc(headlen+1:headlen+1+2*range);
 [maxrho,index]=max(txc);
 maxrho=maxrho/denom;
 if .73<maxrho %For high correlations, no smoothing is required
-D=index-1-range; %Calculate delay estimate
+    D=index-1-range; %Calculate delay estimate
 elseif .67<maxrho %For medium correlations, some smoothing helps
-m=64;
-flen=3*m;
-fir_coeff=find_fir_coeffs(flen,1/m); %Filter lengths are even
-sxc=filter(fir_coeff',1,xc);
-%smoothed version of cross-correlation function with filter delay
-%removed
-sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
-[~,index]=max(sxc);
-D=index-range-1; %Calculate delay estimate
+    m=64;
+    flen=3*m;
+    fir_coeff=find_fir_coeffs(flen,1/m); %Filter lengths are even
+    sxc=filter(fir_coeff',1,xc);
+    %smoothed version of cross-correlation function with filter delay
+    %removed
+    sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
+    [~,index]=max(sxc);
+    D=index-range-1; %Calculate delay estimate
 else %For lower correlations, more smoothing helps
-m=128;
-flen=3*m;
-fir_coeff=find_fir_coeffs(flen,1/m); % filter lengths are even
-sxc=filter(fir_coeff',1,xc); %More Transparent
-%smoothed version of cross-correlation function with filter delay
-%removed
-sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
-[~,index]=max(sxc);
-D=index-range-1; %Calculate delay estimate
+    m=128;
+    flen=3*m;
+    fir_coeff=find_fir_coeffs(flen,1/m); % filter lengths are even
+    sxc=filter(fir_coeff',1,xc); %More Transparent
+    %smoothed version of cross-correlation function with filter delay
+    %removed
+    sxc=sxc(headlen+(flen/2)+1:headlen+(flen/2)+1+2*range);
+    [~,index]=max(sxc);
+    D=index-range-1; %Calculate delay estimate
 end
 %==========================================================================
 function [lse_f,lse_v]=LSE(s,d,Df,Dv,maxsp)
@@ -710,33 +720,33 @@ dlocs=[];
 slocs_var=[];
 %Loop over all segments
 for i=1:nsegs
-%If it is the first segment in Dv
-if goodlist(i)==1
-%Starting sample number must be 1
-start=1;
-else
-%Otherwise it is 1 more than last sample of previous segment
-start=Dv(goodlist(i)-1,1)+1;
-end
-%Find last sample of segment
-stop=Dv(goodlist(i),1);
-%Find delay of the segment
-segdel=Dv(goodlist(i),2);
-%Find center of segment
-center=round((stop+start)/2);
-%Total number of LSE windows that will fit on this segment is 2*hn+1
-hn=floor((stop-center-320-lsewin/2)/maxsp);
-%Calculate the window location(s)
-if hn>=1
-locs=center+(-hn:1:hn)'*maxsp;
-else
-locs=center;
-end
-%Append locations to the list of LSE window center locations in d
-dlocs=[dlocs;locs];
-%Append locations to the list of LSE window center locations in s,
-%compensate for segment delay
-slocs_var=[slocs_var;locs-segdel];
+    %If it is the first segment in Dv
+    if goodlist(i)==1
+        %Starting sample number must be 1
+        start=1;
+    else
+        %Otherwise it is 1 more than last sample of previous segment
+        start=Dv(goodlist(i)-1,1)+1;
+    end
+    %Find last sample of segment
+    stop=Dv(goodlist(i),1);
+    %Find delay of the segment
+    segdel=Dv(goodlist(i),2);
+    %Find center of segment
+    center=round((stop+start)/2);
+    %Total number of LSE windows that will fit on this segment is 2*hn+1
+    hn=floor((stop-center-320-lsewin/2)/maxsp);
+    %Calculate the window location(s)
+    if hn>=1
+        locs=center+(-hn:1:hn)'*maxsp;
+    else
+        locs=center;
+    end
+    %Append locations to the list of LSE window center locations in d
+    dlocs=[dlocs;locs];
+    %Append locations to the list of LSE window center locations in s,
+    %compensate for segment delay
+    slocs_var=[slocs_var;locs-segdel];
 end
 %Create list of corresponding centers of LSE windows in s,
 %according to the fixed delay estimate
@@ -757,50 +767,50 @@ slocs_fxd=slocs_fxd(goodlocs);
 nlocs=length(dlocs);
 %If there are locations for LSE calculations
 if 0<nlocs
-%Build matrices of speech samples from the desired locations
-%Each column contains speech samples for a given LSE window
-D=zeros(lsewin,nlocs);
-Sv=zeros(lsewin,nlocs);
-Sf=zeros(lsewin,nlocs);
-for i=1:nlocs
-D(:,i)=d(dlocs(i)-L:dlocs(i)+R);
-Sf(:,i)=s(slocs_fxd(i)-L:slocs_fxd(i)+R);
-Sv(:,i)=s(slocs_var(i)-L:slocs_var(i)+R);
-end
-%Generate column vector with periodic Hanning window, length is lsewin
-win=.5*(1-cos(2*pi*(0:lsewin-1)'/lsewin));
-%Repeat this window in each column of the matrix Win.
-%(Win is lsewin by nlocs.)
-Win=repmat(win,1,nlocs);
-%Multiply by window and peform FFT on each column of each speech matrix
-D=fft(D.*Win);
-Sf=fft(Sf.*Win);
-Sv=fft(Sv.*Win);
-%Extract magnitude of unique half of FFT result
-D=abs(D(1:(lsewin/2)+1,:));
-Sf=abs(Sf(1:(lsewin/2)+1,:));
-Sv=abs(Sv(1:(lsewin/2)+1,:));
-%Limit results below at 1 to prevent log(0). This is below the 10 dB
-%clamping threshold used below, so these clamped samples will not be
-%used
-D=max(D,1);
-Sf=max(Sf,1);
-Sv=max(Sv,1);
-%Take log and clamp results below at 10 dB. Speech peaks will
-%typically be around 100 dB, so this limits dynamic range to about 90
-%dB and prevents low level segments from inappropriately dominating the
-%LSE results
-D=max(10,20*log10(D) );
-Sf=max(10,20*log10(Sf) );
-Sv=max(10,20*log10(Sv) );
-%Calculated LSE: inner mean is across frequency, outer mean is across
-%LSE windows (i.e. across time)
-lse_f=mean(mean(abs(D-Sf)));
-lse_v=mean(mean(abs(D-Sv)));
-%LSE calculations are not possible
+    %Build matrices of speech samples from the desired locations
+    %Each column contains speech samples for a given LSE window
+    D=zeros(lsewin,nlocs);
+    Sv=zeros(lsewin,nlocs);
+    Sf=zeros(lsewin,nlocs);
+    for i=1:nlocs
+        D(:,i)=d(dlocs(i)-L:dlocs(i)+R);
+        Sf(:,i)=s(slocs_fxd(i)-L:slocs_fxd(i)+R);
+        Sv(:,i)=s(slocs_var(i)-L:slocs_var(i)+R);
+    end
+    %Generate column vector with periodic Hanning window, length is lsewin
+    win=.5*(1-cos(2*pi*(0:lsewin-1)'/lsewin));
+    %Repeat this window in each column of the matrix Win.
+    %(Win is lsewin by nlocs.)
+    Win=repmat(win,1,nlocs);
+    %Multiply by window and peform FFT on each column of each speech matrix
+    D=fft(D.*Win);
+    Sf=fft(Sf.*Win);
+    Sv=fft(Sv.*Win);
+    %Extract magnitude of unique half of FFT result
+    D=abs(D(1:(lsewin/2)+1,:));
+    Sf=abs(Sf(1:(lsewin/2)+1,:));
+    Sv=abs(Sv(1:(lsewin/2)+1,:));
+    %Limit results below at 1 to prevent log(0). This is below the 10 dB
+    %clamping threshold used below, so these clamped samples will not be
+    %used
+    D=max(D,1);
+    Sf=max(Sf,1);
+    Sv=max(Sv,1);
+    %Take log and clamp results below at 10 dB. Speech peaks will
+    %typically be around 100 dB, so this limits dynamic range to about 90
+    %dB and prevents low level segments from inappropriately dominating the
+    %LSE results
+    D=max(10,20*log10(D) );
+    Sf=max(10,20*log10(Sf) );
+    Sv=max(10,20*log10(Sv) );
+    %Calculated LSE: inner mean is across frequency, outer mean is across
+    %LSE windows (i.e. across time)
+    lse_f=mean(mean(abs(D-Sf)));
+    lse_v=mean(mean(abs(D-Sv)));
+    %LSE calculations are not possible
 else
-lse_f=0;
-lse_v=0;
+    lse_f=0;
+    lse_v=0;
 end
 %==========================================================================
 function SDV=median_filter(DCAVS,twinlen,winstep,activity_th,cor_th)
@@ -845,37 +855,37 @@ htwinlen=round(twinlen/(2*winstep));
 good=(cor_th<=DCAVS(:,2) & activity_th<=DCAVS(:,3) & DCAVS(:,4));
 %Loop over all samples
 for i=1:nwins
-%Check number of samples between sample and last sample
-nsmp=min(i-1,nwins-i);
-%Find final half-width of median filtering window (cannot exceed the
-%number of remaining samples)
-fhtwinlen=min(htwinlen,nsmp);
-start=i-fhtwinlen; %First sample in current window
-stop=i+fhtwinlen; %Last sample in current window
-%If there is a least one good sample in the window
-if sum(good(start:stop))>=1
-%Form list of absolute indices of good samples
-goodlist=start+find(good(start:stop))-1;
-%Perform median filtering on the good samples
-%Note on median function: When presented with an even number of
-%samples, this median function returns the average of the two
-%central samples. e.g. median([1 2 3 4])=2.5
-T(i,1)=median(DCAVS(goodlist,1));
-%Mark that a valid result has been calculated
-T(i,2)=1;
-end
+    %Check number of samples between sample and last sample
+    nsmp=min(i-1,nwins-i);
+    %Find final half-width of median filtering window (cannot exceed the
+    %number of remaining samples)
+    fhtwinlen=min(htwinlen,nsmp);
+    start=i-fhtwinlen; %First sample in current window
+    stop=i+fhtwinlen; %Last sample in current window
+    %If there is a least one good sample in the window
+    if sum(good(start:stop))>=1
+        %Form list of absolute indices of good samples
+        goodlist=start+find(good(start:stop))-1;
+        %Perform median filtering on the good samples
+        %Note on median function: When presented with an even number of
+        %samples, this median function returns the average of the two
+        %central samples. e.g. median([1 2 3 4])=2.5
+        T(i,1)=median(DCAVS(goodlist,1));
+        %Mark that a valid result has been calculated
+        T(i,2)=1;
+    end
 end
 %Find how many valid results have been calculated
 nvalres=sum(T(:,2));
 %If no valid results have been calculated, report zero delay everywhere
 if nvalres==0
-SDV=[DCAVS(end,5),0,0];
+    SDV=[DCAVS(end,5),0,0];
 else
-%List only results that describe a change in delay or a change in
-%validity, plus the final result
-keepers=[find( (diff(T(:,1))~=0) | (diff(T(:,2))~=0) );nwins];
-%Keep only those results
-SDV=T(keepers,[3 1 2]);
+    %List only results that describe a change in delay or a change in
+    %validity, plus the final result
+    keepers=[find( (diff(T(:,1))~=0) | (diff(T(:,2))~=0) );nwins];
+    %Keep only those results
+    SDV=T(keepers,[3 1 2]);
 end
 %Convert final results from fs=500 samples/sec domain to the
 %fs=8000 samples/sec domain
@@ -913,13 +923,13 @@ ny=length(y);
 %Find segment of y that can be used
 ystart=max(1,max_d+1); %ystart is first sample of y to use
 if ny - min_d <= nx
-ystop=ny; %ystop is last sample of y to use
+    ystop=ny; %ystop is last sample of y to use
 else
-ystop=nx+min_d;
+    ystop=nx+min_d;
 end
 %Generate error if there is no useable segment of y
 if ystop<ystart
-error('Not enough input samples to calculate all delay values.')
+    error('Not enough input samples to calculate all delay values.')
 end
 %Extract segment of y
 temp_y=y(ystart:ystop);
@@ -927,21 +937,21 @@ temp_y=y(ystart:ystop);
 m=ystop-ystart+1;
 %Loop over all shifts
 for i=1:nshifts
-%Update current delay value
-cd=min_d+i-1;
-xstart=ystart-cd;
-%Extract proper segment of x
-temp_x=x(xstart:xstart+m-1);
-%Form partial denominator of correlation so it can be tested
-%to prevent divide by zero
-denom=temp_x'*temp_x;
-if denom>0
-%Correlation
-xcs(i)=(temp_x'*temp_y)/sqrt(denom);
-else
-%When segment of x has no signal, correlation is zero
-xcs(i)=0;
-end
+    %Update current delay value
+    cd=min_d+i-1;
+    xstart=ystart-cd;
+    %Extract proper segment of x
+    temp_x=x(xstart:xstart+m-1);
+    %Form partial denominator of correlation so it can be tested
+    %to prevent divide by zero
+    denom=temp_x'*temp_x;
+    if denom>0
+        %Correlation
+        xcs(i)=(temp_x'*temp_y)/sqrt(denom);
+    else
+        %When segment of x has no signal, correlation is zero
+        xcs(i)=0;
+    end
 end
 %Find the fixed portion of the denominator
 denom=sqrt(temp_y'*temp_y);
@@ -962,17 +972,18 @@ nshifts=nx-ny+1;
 un_corr=zeros(nshifts,1);
 %Loop over all possible shifts
 for i=1:nshifts
-temp_x=x(i:i+ny-1);
-%Form partial denominator of correlation so it can be tested
-%to prevent divide by zero
-denom=temp_x'*temp_x;
-if denom>0
-%Correlation
-un_corr(i)=(temp_x'*y)/sqrt(denom);
-else
-%When segment of x has no signal, correlation is zero
-un_corr(i)=0;
-end
+    temp_x=x(i:i+ny-1);
+    %Form partial denominator of correlation so it can be tested
+    %to prevent divide by zero
+    denom=temp_x'*temp_x;
+    
+    if denom>0
+        %Correlation
+        un_corr(i)=(temp_x'*y)/sqrt(denom);
+    else
+        %When segment of x has no signal, correlation is zero
+        un_corr(i)=0;
+    end
 end
 %Find fixed portion of denominator
 denom=sqrt(y'*y);
@@ -1011,117 +1022,124 @@ seglens=diff([0;SDVin(:,1)]);
 SDVin=[SDVin,seglens,zeros(nsegs,1)];
 %Find location and type of the shortest segment with status 0 in SDVin
 [ptr,seg_type]=find_smallest_seg(SDVin);
+
 %If there is such a segment
 if ptr~=0
-%Extract its length
-current_seg_len=SDVin(ptr,4);
+    %Extract its length
+    current_seg_len=SDVin(ptr,4);
 else
-%Otherwise create a fictitious segment length that is long enough
-%to prevent entering the "while loop" that follows
-current_seg_len=max([len_t len_b len_s])+1;
+    %Otherwise create a fictitious segment length that is long enough
+    %to prevent entering the "while loop" that follows
+    current_seg_len=max([len_t len_b len_s])+1;
 end
+
 %While the shortest segment qualifies for consideration under at least
 %one of the three length thresholds
 while current_seg_len<=max([len_t len_b len_s])
-%Find number of segments in current version of SDVin
-n=size(SDVin,1);
-%If current segment is a left tail and conforms with tail threshold
-if seg_type=='LT' && current_seg_len <= len_t
-%Join current segment to right neighbor segment
-%to create new combined segment
-SDVin=SDVin(setdiff(1:n,ptr),:);
-%(Setdiff is the set difference function. As called above, it
-%returns a length n-1 vector containing 1,2,...ptr-1, ptr+1, ...n)
-%Set status on the new combined segment to 0 so it receives
-%further consideration
-SDVin(ptr,5)=0;
-%Store the length of the new combined segment
-SDVin(ptr,4)=SDVin(ptr,4)+current_seg_len;
-%If current segment is a right tail and conforms with tail threshold
-elseif seg_type=='RT' && current_seg_len <= len_t
-%Join current segment to left neighbor segment
-%to create new combined segment
-current_seg_end=SDVin(ptr,1);
-SDVin=SDVin(setdiff(1:n,ptr),:);
-SDVin(ptr-1,1)=current_seg_end;
-%Set status on the new combined segment to 0 so it receives
-%further consideration
-SDVin(ptr-1,5)=0;
-%Store the length of the new combined segment
-SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len;
-%If current segment is a blip and conforms with blip threshold
-elseif seg_type=='BI' && current_seg_len <= len_b
-%Join current segment and left neighbor to right neighbor segment
-%to create new combined segment
-left_neb_len=SDVin(ptr-1,4);
-SDVin=SDVin(setdiff(1:n,[ptr-1 ptr]),:);
-%Set status on the new combined segment to 0 so it receives
-%further consideration
-SDVin(ptr-1,5)=0;
-%Store the length of the new combined segment
-SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len+left_neb_len;
-%If current segment is a step and conforms with step threshold
-elseif seg_type=='SP' && current_seg_len <= len_s
-%Join current segment to left or right neighbor or leave it
-%as is. Choice of these 3 actions depends on correlation results
-%-----------------------Preparations-------------------------------
-start=SDVin(ptr-1,1)+1;%First sample of current segment
-stop=SDVin(ptr,1); %Last sample of current segment
-L_dly=SDVin(ptr-1,2); %Delay of segment left of current segment
-C_dly=SDVin(ptr,2); %Delay of current segment
-R_dly=SDVin(ptr+1,2); %Delay of segment right of current segment
-%Correlation at delay of left neighbor
-lcorr=single_corr(x_speech,y_speech,start,stop,L_dly);
-%Correlation at delay of right neighbor
-rcorr=single_corr(x_speech,y_speech,start,stop,R_dly);
-%Correlation at delay of current segment
-ccorr=single_corr(x_speech,y_speech,start,stop,C_dly);
-%Which of these 3 correlations is largest?
-[~,loc]=max([lcorr rcorr ccorr]);
-%If correlation at delay of left neighbor is largest
-if loc==1
-%Join current segment to left neighbor segment
-%to create new combined segment
-current_seg_end=SDVin(ptr,1);
-SDVin=SDVin(setdiff(1:n,ptr),:);
-SDVin(ptr-1,1)=current_seg_end;
-%Set status on the new combined segment to 0 so it receives
-%further consideration
-SDVin(ptr-1,5)=0;
-%Store the length of the new combined segment
-SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len;
-%If correlation at delay of right neighbor is largest
-elseif loc==2
-%Join current segment to right neighbor segment
-%to create new combined segment
-SDVin=SDVin(setdiff(1:n,ptr),:);
-%Set status on the new combined segment to 0 so it receives
-%further consideration
-SDVin(ptr,5)=0;
-%Store the length of the new combined segment
-SDVin(ptr,4)=SDVin(ptr,4)+current_seg_len;
-else
-%Don't change the step, but change its status to 1 for no
-%further consideration
-SDVin(ptr,5)=1;
-end
-%For all other segment types, this function makes no changes.
-else
-%Change status to 1 for no further consideration
-SDVin(ptr,5)=1;
-end
-%Find location and type of the shortest segment with status 0 in SDVin
-[ptr,seg_type]=find_smallest_seg(SDVin);
-%If there is such a segment
-if ptr~=0
-%Extract its length
-current_seg_len=SDVin(ptr,4);
-else
-%Otherwise create a fictitious segment length that is long enough
-%to terminate the "while loop"
-current_seg_len=max([len_t len_b len_s])+1;
-end
-%End of while loop
+    %Find number of segments in current version of SDVin
+    n=size(SDVin,1);
+    
+    %If current segment is a left tail and conforms with tail threshold
+    if seg_type=='LT' && current_seg_len <= len_t
+        %Join current segment to right neighbor segment
+        %to create new combined segment
+        SDVin=SDVin(setdiff(1:n,ptr),:);
+        %(Setdiff is the set difference function. As called above, it
+        %returns a length n-1 vector containing 1,2,...ptr-1, ptr+1, ...n)
+        %Set status on the new combined segment to 0 so it receives
+        %further consideration
+        SDVin(ptr,5)=0;
+        %Store the length of the new combined segment
+        SDVin(ptr,4)=SDVin(ptr,4)+current_seg_len;
+        
+    %If current segment is a right tail and conforms with tail threshold
+    elseif seg_type=='RT' && current_seg_len <= len_t
+        %Join current segment to left neighbor segment
+        %to create new combined segment
+        current_seg_end=SDVin(ptr,1);
+        SDVin=SDVin(setdiff(1:n,ptr),:);
+        SDVin(ptr-1,1)=current_seg_end;
+        %Set status on the new combined segment to 0 so it receives
+        %further consideration
+        SDVin(ptr-1,5)=0;
+        %Store the length of the new combined segment
+        SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len;
+        
+    %If current segment is a blip and conforms with blip threshold
+    elseif seg_type=='BI' && current_seg_len <= len_b
+        %Join current segment and left neighbor to right neighbor segment
+        %to create new combined segment
+        left_neb_len=SDVin(ptr-1,4);
+        SDVin=SDVin(setdiff(1:n,[ptr-1 ptr]),:);
+        %Set status on the new combined segment to 0 so it receives
+        %further consideration
+        SDVin(ptr-1,5)=0;
+        %Store the length of the new combined segment
+        SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len+left_neb_len;
+        
+    %If current segment is a step and conforms with step threshold
+    elseif seg_type=='SP' && current_seg_len <= len_s
+        %Join current segment to left or right neighbor or leave it
+        %as is. Choice of these 3 actions depends on correlation results
+        %-----------------------Preparations-------------------------------
+        start=SDVin(ptr-1,1)+1;%First sample of current segment
+        stop=SDVin(ptr,1); %Last sample of current segment
+        L_dly=SDVin(ptr-1,2); %Delay of segment left of current segment
+        C_dly=SDVin(ptr,2); %Delay of current segment
+        R_dly=SDVin(ptr+1,2); %Delay of segment right of current segment
+        %Correlation at delay of left neighbor
+        lcorr=single_corr(x_speech,y_speech,start,stop,L_dly);
+        %Correlation at delay of right neighbor
+        rcorr=single_corr(x_speech,y_speech,start,stop,R_dly);
+        %Correlation at delay of current segment
+        ccorr=single_corr(x_speech,y_speech,start,stop,C_dly);
+        %Which of these 3 correlations is largest?
+        [~,loc]=max([lcorr rcorr ccorr]);
+        
+        %If correlation at delay of left neighbor is largest
+        if loc==1
+            %Join current segment to left neighbor segment
+            %to create new combined segment
+            current_seg_end=SDVin(ptr,1);
+            SDVin=SDVin(setdiff(1:n,ptr),:);
+            SDVin(ptr-1,1)=current_seg_end;
+            %Set status on the new combined segment to 0 so it receives
+            %further consideration
+            SDVin(ptr-1,5)=0;
+            %Store the length of the new combined segment
+            SDVin(ptr-1,4)=SDVin(ptr-1,4)+current_seg_len;
+        %If correlation at delay of right neighbor is largest
+        elseif loc==2
+            %Join current segment to right neighbor segment
+            %to create new combined segment
+            SDVin=SDVin(setdiff(1:n,ptr),:);
+            %Set status on the new combined segment to 0 so it receives
+            %further consideration
+            SDVin(ptr,5)=0;
+            %Store the length of the new combined segment
+            SDVin(ptr,4)=SDVin(ptr,4)+current_seg_len;
+        else
+            %Don't change the step, but change its status to 1 for no
+            %further consideration
+            SDVin(ptr,5)=1;
+        end
+    %For all other segment types, this function makes no changes.
+    else
+        %Change status to 1 for no further consideration
+        SDVin(ptr,5)=1;
+    end
+    %Find location and type of the shortest segment with status 0 in SDVin
+    [ptr,seg_type]=find_smallest_seg(SDVin);
+    %If there is such a segment
+    if ptr~=0
+        %Extract its length
+        current_seg_len=SDVin(ptr,4);
+    else
+        %Otherwise create a fictitious segment length that is long enough
+        %to terminate the "while loop"
+        current_seg_len=max([len_t len_b len_s])+1;
+    end
+    %End of while loop
 end
 %SDVout contains just the first 3 columns of SDVin
 SDVout=SDVin(:,1:3);
@@ -1147,9 +1165,9 @@ sstart=start-delay;
 lefttrim=0;
 %If that sample does not exist
 if sstart<1
-%It is necessary to shift the start of the correlation window
-lefttrim=1-sstart;
-sstart=1;
+    %It is necessary to shift the start of the correlation window
+    lefttrim=1-sstart;
+    sstart=1;
 end
 %Last sample of x_speech that will be used
 sstop=stop-delay;
@@ -1157,9 +1175,9 @@ ns=length(x_speech);
 righttrim=0;
 %If that sample does not exist
 if sstop>ns
-%It is necessary to shift the end of the correlation window
-righttrim=sstop-ns;
-sstop=ns;
+    %It is necessary to shift the end of the correlation window
+    righttrim=sstop-ns;
+    sstop=ns;
 end
 %Extract speech from correlation window and rectify
 x=abs(x_speech(sstart:sstop));
