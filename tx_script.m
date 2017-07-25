@@ -56,8 +56,27 @@ tx_dat_fold='tx-data';
 %get a string to represent the current date in the filename
 dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
 
+%open test type file
+test_type_f=fopen('test-type.txt');
+
+%check if open was successful
+if(test_type_f<0)
+    test_type='';
+else
+    %get line from file
+    test_type=fgetl(test_type_f);
+    %check for error
+    if(~ischar(test_type))
+        error('Could not read test type from file');
+    end
+    %print out test type
+    fprintf('Test type : %s\n',test_type);
+    %preappend underscore and trim whitespace
+    test_type=['_',strtrim(test_type)];
+end
+
 %generate base file name to use for all files
-base_filename=sprintf('Tx_capture_%s',dtn);
+base_filename=sprintf('Tx_capture%s_%s',test_type,dtn);
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.mat',base_filename,runs)));
@@ -130,7 +149,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -188,7 +207,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     %print out that the data was saved
     fprintf('Data file saved in "%s"\n',[base_filename '_all.mat']);

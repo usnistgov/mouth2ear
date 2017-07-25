@@ -119,8 +119,17 @@ end
 %decode timecode from recive waveform
 [rx_time,rx_fsamp]=time_decode(rx_dat(:,2),rx_fs);
 
+%check if test type is present in tx file
+if(isfield(tx_dat,'test_type'))
+    %if it exists, get it
+    test_type=tx_dat.test_type;
+else
+    %if not use empty string
+    test_type='';
+end
+
 %get the first timecode from the rx side as a string
-base_filename=['Capture_',char(datetime(rx_time(1),'Format','dd-MMM-yyyy_HH-mm-ss'))];
+base_filename=sprintf('Capture%s_%s',test_type,char(datetime(rx_time(1),'Format','dd-MMM-yyyy_HH-mm-ss')));
 
 %check to see that sample rates match
 if(rx_fs~=tx_dat.fs)
