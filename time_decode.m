@@ -1,7 +1,21 @@
-function [dates,fsamp,frames,fbits]=time_decode(tca,fs)
+function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
+
+    %create new input parser
+    p=inputParser();
+
+    %add timecode audio argument
+    addRequired(p,'tca',@(l)validateattributes(l,{'numeric'},{'real','vector'}));
+    %add sample rate argument
+    addRequired(p,'fs',@(l)validateattributes(l,{'numeric'},{'positive','real','scalar'}));
+
+    %set parameter names to be case sensitive
+    p.CaseSensitive= true;
+
+    %parse inputs
+    parse(p,tca,fs,varargin{:});
 
     %calculate the envelope
-    env=envelope(tca,40,'analytic');
+    env=envelope(p.Results.tca,40,'analytic');
 
     %threshold level for envelope
     env_th_lev=0.4;
@@ -30,14 +44,14 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs)
     f_edg=f_edg(f_edg>start & f_edg<endtc);
 
     %calculate period
-    T=diff(r_edg)/fs;
+    T=diff(r_edg)/p.Results.fs;
 
     %figure;
-    %t=(1:length(env_th))*1e3/fs;
-    %plot(r_edg(1:end-1)*1e3/fs,T*1e3,t,env_th*10);
+    %t=(1:length(env_th))*1e3/p.Results.fs;
+    %plot(r_edg(1:end-1)*1e3/p.Results.fs,T*1e3,t,env_th*10);
 
     %calculate the pulse width there is one more rising edge than falling edge
-    pw=(f_edg-r_edg(1:end-1))/fs;
+    pw=(f_edg-r_edg(1:end-1))/p.Results.fs;
 
     bits=pw_to_bits(pw,10e-3);
     
@@ -48,7 +62,7 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs)
     bits(invalid)=-2;
 
     %figure;
-    %plot(r_edg(1:end-1)*1e3/fs,bits,r_edg(1:end-1)*1e3/fs,pw*1e3);
+    %plot(r_edg(1:end-1)*1e3/p.Results.fs,bits,r_edg(1:end-1)*1e3/p.Results.fs,pw*1e3);
 
     %index within a frame -1 means invalid frame
     frame_idx=-1;
