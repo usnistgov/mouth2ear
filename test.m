@@ -44,32 +44,8 @@ Sr=min(N,max_size);
 %calculate the number of runs that will be required
 runs=ceil(N/Sr);
 
-%get hash of current commit
-[res,hash]=system('git rev-parse HEAD');
-
-%check for error
-if(res)
-    hash='';
-else
-    hash=strtrim(hash);
-end
-
-%get if there are local mods
-[dty,~]=system('git diff-index --quiet HEAD --');
-
-%check if there were local mods
-if(dty)
-    %get diff of local mods
-    [~,patch]=system('git diff HEAD');
-else
-    patch='';
-end
-
-%make structure for git status
-git_stat=struct('Hash',hash,'Dirty',dty','Patch',patch);
-
-%clear temp variables
-clear patch stat output dty hash res
+%get git status
+git_status=gitStatus();
 
 %make plots direcotry
 [~,~,~]=mkdir('plots');
