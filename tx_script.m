@@ -47,6 +47,9 @@ Sr=min(N,max_size);
 %calculate the number of runs that will be required
 runs=ceil(N/Sr);
 
+%get git status
+git_status=gitStatus();
+
 %folder name for tx data
 tx_dat_fold='tx-data';
 
@@ -149,7 +152,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -207,7 +210,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
     
     %print out that the data was saved
     fprintf('Data file saved in "%s"\n',[base_filename '_all.mat']);

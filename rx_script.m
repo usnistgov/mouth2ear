@@ -13,6 +13,9 @@ fprintf('Using "%s" for audio test\n',dev_name);
 
 %get buffer size
 bsz=RecObj. SamplesPerFrame;
+
+%get git status
+git_status=gitStatus();
     
 %folder name for tx data
 rx_dat_fold='rx-data';
@@ -73,6 +76,12 @@ else
     fprintf('There were no buffer over runs\n');
 end
 
+%generate name for info file
+info_name=sprintf('Rx_info_%s.mat',dtn);
+
+%save extra info in .mat file
+save(fullfile(rx_dat_fold,info_name),'dev_name','git_status','overRun','fs');
+
 %release the audio object
 release(RecObj);
 
@@ -80,4 +89,7 @@ release(RecObj);
 release(RecWriter);
 
 %print completion message
-fprintf('Data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
+fprintf('Audio data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
+fprintf('Info saved to:\n\t''%s''\n',fullfile(rx_dat_fold,info_name));
+
+
