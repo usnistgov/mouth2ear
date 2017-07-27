@@ -44,6 +44,32 @@ Sr=min(N,max_size);
 %calculate the number of runs that will be required
 runs=ceil(N/Sr);
 
+%get hash of current commit
+[res,hash]=system('git rev-parse HEAD');
+
+%check for error
+if(res)
+    hash='';
+else
+    hash=strtrim(hash);
+end
+
+%get if there are local mods
+[dty,~]=system('git diff-index --quiet HEAD --');
+
+%check if there were local mods
+if(dty)
+    %get diff of local mods
+    [~,patch]=system('git diff HEAD');
+else
+    patch='';
+end
+
+%make structure for git status
+git_stat=struct('Hash',hash,'Dirty',dty','Patch',patch);
+
+%clear temp variables
+clear patch stat output dty hash res
 
 %make plots direcotry
 [~,~,~]=mkdir('plots');
@@ -155,7 +181,7 @@ for kk=1:runs
 
     end
     %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
+    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_stat','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
     
     if(kk<runs)
         %clear saved variables
@@ -202,7 +228,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'test_type','y','recordings','st_dly','dev_name','underRun','overRun','dly_its','fs','-v7.3');
+    save(fullfile('data',[base_filename '_all.mat']),'git_stat','test_type','y','recordings','st_dly','dev_name','underRun','overRun','dly_its','fs','-v7.3');
     
 end
 
