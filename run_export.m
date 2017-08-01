@@ -1,21 +1,28 @@
-function run_export( in_name,out_name,run )
+function run_export( in_name,out_name,varargin)
 %RUN_EXPORT export a run to an audio file
 %   RUN_EXPORT is used to generate an audio file for use with
 %   sliding_delay_estimates.m
 
+%create new input parser
+p=inputParser();
 
-if(~exist('run','var') || isempty(run))
-    %use the first run
-    all_runs=true;
-else
-    all_runs=false;
-end
+%add audio object argument
+addRequired(p,'in_name',@(l)validateattributes(l,{'char'},{'vector'}));
+%add output audio argument
+addRequired(p,'out_name',@(l)validateattributes(l,{'char'},{'vector'}));
+%add number of runs argument
+addOptional(p,'runs',-1,@(l)validateattributes(l,{'numeric'},{'scalar','positive'}));
+%add padding time parameter 
+addParameter(p,'Pad',0,@(l)validateattributes(l,{'numeric'},{'scalar','nonnegative'}));
 
-%add 2s of padding between runs
-pad=2;
+%set parameter names to be case sensitive
+p.CaseSensitive= true;
+
+%parse inputs
+parse(p,in_name,out_name,varargin{:});
 
 %load in data
-dat=load(in_name,'recordings','y','fs');
+dat=load(p.Results.in_name,'recordings','y','fs');
     
 %check if sample rate exists
 if(~exist('dat.fs','var'))
@@ -27,21 +34,21 @@ else
 end
 
 %check if we are using only one run
-if(~all_runs)
+if(p.Results.runs>0)
     %get run
-    x=dat.recordings{run};
+    x=dat.recordings{p.Results.runs};
     y=dat.y;
 else
     %get lengths of recordings
     lens=cellfun(@length,dat.recordings);
     %add padding
-    lens=lens+pad*fs;
+    lens=lens+p.Results.Pad*fs;
     %calculate ineicies of end of array
     end_i=cumsum(lens);
     %calculate indicies of start of array
     start_i=end_i-lens+1;
     %subtract padding from end
-    end_i=end_i-pad*fs;
+    end_i=end_i-p.Results.Pad*fs;
     %preallocate x
     x=zeros(sum(lens),1);
     %preallocate y
@@ -66,7 +73,7 @@ c(1:length(y),1)=y;
 c(1:length(x),2)=x;
 
 %write file
-audiowrite(out_name,c,fs);
+audiowrite(p.Results.out_name,c,fs);
 
 end
 
