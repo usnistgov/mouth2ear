@@ -20,6 +20,12 @@ tx_dat_fold='tx-data';
 %folder name for rx data
 rx_dat_fold='rx-data';
 
+%folder name for plots
+plots_fold='plots';
+
+%make data direcotry
+[~,~,~]=mkdir(plots_fold);
+
 %folder name for processing data
 proc_dat_fold='proc-data';
 
@@ -105,7 +111,7 @@ else
     %check if rx_folder given
     if(isempty(rx_fold))
         %add folder to filename
-        rx_name=fullfile(rx_dat_fold,p.results.rx_name);
+        rx_name=fullfile(rx_dat_fold,p.Results.rx_name);
     else
         %use name as given
         rx_name=p.results.rx_name;
@@ -221,7 +227,7 @@ histogram(dly_its_mean,300,'Normalization','probability');
 title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 
 %print plot to .png
-print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
+print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
 
 %save everything
 save(fullfile(proc_dat_fold,[base_filename '.mat']));
