@@ -30,7 +30,7 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
     fs=p.Results.apr.SampleRate;
 
     %calculate the number of loops needed
-    runs=ceil(length(x+p.Results.OverPlay*fs)/bsz);
+    runs=ceil((length(x)+p.Results.OverPlay*fs)/bsz);
     
     %initialize recive audio buffer
     y=zeros((runs-1)*bsz,size(x,2));
