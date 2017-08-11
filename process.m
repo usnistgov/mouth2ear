@@ -114,7 +114,7 @@ else
         rx_name=fullfile(rx_dat_fold,p.Results.rx_name);
     else
         %use name as given
-        rx_name=p.results.rx_name;
+        rx_name=p.Results.rx_name;
     end
 end
     
