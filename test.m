@@ -75,6 +75,9 @@ else
     test_type=['_',strtrim(test_type)];
 end
 
+%open radio interface
+ri=radioInterface('COM1');
+
 %generate base file name to use for all files
 base_filename=sprintf('capture%s_%s',test_type,dtn);
 
@@ -98,9 +101,15 @@ for kk=1:runs
 
     for k=1:Sr
 
+        %push the push to talk button
+        ri.ptt(true);
+        
         %play and record audio data
         [dat,underRun(k),overRun(k)]=play_record(aPR,y);
 
+        %un-push the push to talk button
+        ri.ptt(false);
+        
         %add a pause after play_record to remove run to run dependencys
         pause(3.1);
         
@@ -167,6 +176,9 @@ for kk=1:runs
         pause(10);
     end
 end
+
+%close radio interface
+delete(ri);
 
 %check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
