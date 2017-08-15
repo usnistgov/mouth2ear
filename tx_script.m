@@ -72,10 +72,25 @@ else
     if(~ischar(test_type))
         error('Could not read test type from file');
     end
-    %print out test type
-    fprintf('Test type : %s\n',test_type);
-    %preappend underscore and trim whitespace
-    test_type=['_',strtrim(test_type)];
+    %check for leading '#'
+    if(test_type(1)=='#')
+        %prompt the user for test type
+        test_type=inputdlg('Please enter a test type string','Test Type',[1,50],{test_type(2:end)});
+        %check if anything was returned
+        if(isempty(test_type))
+            test_type='';
+        else
+            %get test type from cell array
+            test_type=test_type{1};
+        end
+    end
+    %check if a test type was given
+    if(~isempty(test_type))
+        %print out test type
+        fprintf('Test type : %s\n',test_type);
+        %preappend underscore and trim whitespace
+        test_type=['_',strtrim(test_type)];
+    end
 end
 
 %generate base file name to use for all files
