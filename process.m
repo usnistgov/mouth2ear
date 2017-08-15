@@ -59,8 +59,14 @@ if(isempty(p.Results.rx_name))
         %give error
         error('Tx filename "%s" is not in the propper form. Can not determine Rx filename',p.Results.tx_name);
     end
+    %check if we have a test type
+    if(length(tx_parts)==7)
+        tx_datestr=[tx_parts{3} '_' tx_parts{4}];
+    elseif(length(tx_parts)==8)
+        tx_datestr=[tx_parts{4} '_' tx_parts{5}];
+    end
     %attempt to get date from tx filename
-    tx_date=datetime([tx_parts{3} '_' tx_parts{4}],'InputFormat','dd-MMM-yyyy_HH-mm-ss');
+    tx_date=datetime(tx_datestr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
     
     %list files in the recive folder
     names=cellstr(ls(fullfile('rx-data','Rx_capture_*')));
