@@ -24,7 +24,7 @@ classdef radioInterface < handle
         function ptt(obj,state)      
 % PTT change the push to talk status of the radio interface
 %
-% ptt(state) if state is true then the PTT is set to transmit. if state is
+% PTT(state) if state is true then the PTT is set to transmit. if state is
 % false then the radio is set to not transmit
             
             
