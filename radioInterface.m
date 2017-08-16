@@ -13,12 +13,56 @@ classdef radioInterface < handle
 % obj = RADIOINTERFACE('port')
 %   Create a RADIOINTERFACE object using the specified serial port
             
+            if(nargin < 1)
+                %get all serial port names
+                ports=seriallist();
+                %flag to denote if a device has been found
+                found=0;
+                %turn off warnings
+                ws=warning('off');
+                %loop through all ports
+                for k=1:length(ports)
+                    try
+                        %get serial port object
+                        obj.sobj=serial(ports{k});                          %#ok this needs to be in a loop
+                        %set terminator to CR/LF
+                        obj.sobj.Terminator='CR/LF';
+                        %set timeout to 0.5s
+                        obj.sobj.Timeout=0.5;
+                        %open port
+                        fopen(obj.sobj);
+                        %get devtype
+                        dt=obj.devtype();
+                        %check if devtype is good
+                        if(startsWith(dt,'MCV radio interface'))
+                            found=1;
+                            break;
+                        else
+                            %close serial port
+                            fclose(obj.sobj);
+                        end
+                    catch
+                    end
+                end
+                %restore warning state
+                warning(ws);
+                
+                %check if a port was found
+                if(~found)
+                    %give error
+                    error('No radio interface found');
+                end
+            else
             
-            %get serial port
-            obj.sobj=serial(port);
-            
-            %open serial port
-            fopen(obj.sobj);
+                %get serial port
+                obj.sobj=serial(port);
+                
+                %set terminator to CR/LF
+                obj.sobj.Terminator='CR/LF';
+                
+                %open serial port
+                fopen(obj.sobj);
+            end
         end
         %function to key or un-key the radio
         function ptt(obj,state)      
@@ -47,6 +91,26 @@ classdef radioInterface < handle
             else
                 fprintf(obj.sobj,'%s\n','LED OFF');
             end 
+        end
+        
+        function [dt]=devtype(obj)
+% DEVTYPE get the devicetype string from the radio interface
+%
+% dt=DEVTYPE() where dt is the devicetype string
+            
+            %check if there are bytes in the buffer
+            if(obj.sobj.BytesAvailable>0)
+                %read all bytes in buffer
+                fread(obj.sobj,obj.sobj.BytesAvailable);
+            end
+            %send devtype command
+            fprintf(obj.sobj,'%s\n','devtype');
+            %get a line for the echo
+            fgetl(obj.sobj);
+            %get a blank line
+            fgetl(obj.sobj);
+            %get devtype line
+            dt=fgetl(obj.sobj);
         end
         
         %delete method
