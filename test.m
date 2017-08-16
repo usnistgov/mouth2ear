@@ -272,3 +272,19 @@ title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 %print plot to .png
 print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
 
+%New figure for time plot
+figure;
+
+%create matrix of ITS_delay data
+its_mat=cell2mat(dly_its);
+
+%get engineering units
+[its_mat_e,~,its_mat_u]=engunits(its_mat,'time');
+
+%plot delay dat
+plot(its_mat_e(:))
+
+%axis lables
+xlabel('Measurement number');
+ylabel(['Delay [' its_mat_u ']']);
+
