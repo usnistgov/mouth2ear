@@ -280,3 +280,6 @@ plot(its_mat_e(:))
 xlabel('Measurement number');
 ylabel(['Delay [' its_mat_u ']']);
 
+beep;
+pause(1);
+beep;
