@@ -99,7 +99,7 @@ else
 end
 
 %open radio interface
-ri=radioInterface('COM1');
+ri=radioInterface();
 
 %generate base file name to use for all files
 base_filename=sprintf('capture%s_%s',test_type,dtn);
