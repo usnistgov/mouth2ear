@@ -36,6 +36,19 @@ classdef radioInterface < handle
             end
         end
         
+        function led(obj,num,state)
+% LED turn on or off LED's on the radio interface board
+%
+% LED(num,state) changes the state of the LED given by num. If state is
+% true turn the LED on if state is false turn the LED off
+            
+            if(state)
+                fprintf(obj.sobj,'%s\n','LED ON');
+            else
+                fprintf(obj.sobj,'%s\n','LED OFF');
+            end 
+        end
+        
         %delete method
         function delete(obj)
             %check if serial port is open

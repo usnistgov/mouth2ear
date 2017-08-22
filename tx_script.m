@@ -102,6 +102,9 @@ base_filename=sprintf('Tx_capture%s_%s',test_type,dtn);
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.mat',base_filename,runs)));
 
+%turn on LED when test starts
+ri.led(1,true);
+
 for kk=1:runs
 
     %if this is the last run, adjust the run size
@@ -203,6 +206,9 @@ if(any(underRun))
 else
     fprintf('There were no buffer under runs\n');
 end
+
+%turn off LED when test stops
+ri.led(1,false);
 
 %close radio interface
 delete(ri);
