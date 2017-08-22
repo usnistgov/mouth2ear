@@ -122,6 +122,11 @@ for kk=1:runs
         %push the push to talk button
         ri.ptt(true);
         
+        %pause to let the radio key up
+        % 0.65 - access time limit UHF
+        % 0.68 - access time limit VHF
+        pause(0.68);
+        
         %play and record audio data
         [dat,underRun(k),overRun(k)]=play_record(aPR,y);
 
