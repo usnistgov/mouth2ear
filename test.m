@@ -65,6 +65,8 @@ if(test_type_f<0)
 else
     %get line from file
     test_type=fgetl(test_type_f);
+    %close test-type.txt file
+    fclose(test_type_f);
     %check for error
     if(~ischar(test_type))
         error('Could not read test type from file');
@@ -79,6 +81,12 @@ else
         else
             %get test type from cell array
             test_type=test_type{1};
+            %reopend and delete contents
+            test_type_f = fopen('test-type.txt', 'w');
+            %write new test type to file
+            fprintf(test_type_f, ['#', test_type]);
+            %close test-type.txt file
+            fclose(test_type_f);
         end
     end
     %check if a test type was given
