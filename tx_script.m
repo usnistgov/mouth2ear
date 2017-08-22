@@ -39,7 +39,7 @@ dev_name=choose_device(aPR);
 fprintf('Using "%s" for audio test\n',dev_name);
 
 %number of trials
-N=50;
+N=100;
 
 %run size
 Sr=min(N,max_size);
