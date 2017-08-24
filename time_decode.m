@@ -7,6 +7,8 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     addRequired(p,'tca',@(l)validateattributes(l,{'numeric'},{'real','vector'}));
     %add sample rate argument
     addRequired(p,'fs',@(l)validateattributes(l,{'numeric'},{'positive','real','scalar'}));
+    %add timecode tollerence option
+    addParameter(p,'TcTol',0.05,@(l)validateattributes(l,{'numeric'},{'positive','real','scalar','<=',0.5}));
 
     %set parameter names to be case sensitive
     p.CaseSensitive= true;
@@ -18,7 +20,7 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     env=envelope(p.Results.tca,40,'analytic');
 
     %use kmeans to threshold the envalope
-    env_th=kmeans(env,2)-1;
+    env_th=kmeans_mcv(env,2)-1;
 
     %find edges assume that signal starts high so that we see the first real
     %rising edge
@@ -50,10 +52,12 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     %calculate the pulse width there is one more rising edge than falling edge
     pw=(f_edg-r_edg(1:end-1))/p.Results.fs;
 
-    bits=pw_to_bits(pw,10e-3);
+    bits=pw_to_bits(pw,10e-3,p.Results.TcTol);
+    
+    Tbit=10e-3;
     
     %find invalid periods
-    invalid=T<9.5e-3 | T>10.5e-3;
+    invalid=T<(Tbit*(1-p.Results.TcTol)) | T>(Tbit*(1+p.Results.TcTol));
     
     %mark bits with invalid periods as invalid
     bits(invalid)=-2;
@@ -174,13 +178,35 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     
 end
 
-function bits=pw_to_bits(pw,Tb)
-    %valid pulse width for a one
-    valid1 =pw>0.45*Tb & pw<0.55*Tb;
-    %valid pulse width for a zero
-    valid0 =pw>0.15*Tb & pw<0.25*Tb;
-    %valid marker pulse width
-    validmk=pw>0.75*Tb & pw<0.85*Tb;
+function [t1,t2]=fix_overlap(t1,t2)
+    %check if thresholds overlap    
+    if(t1>t2)
+        %set thresholds to average
+        t1=mean([t1,t2]);
+        t2=t1+eps;
+    end
+end
+
+function [valid]=is_valid_pw(val,th)
+    valid=val>th(1) & val<th(2);
+end
+
+function bits=pw_to_bits(pw,Tb,tol)
+    %thresholds for ones
+    Th1=0.5*Tb+Tb*[-tol,tol];
+    %thresholds for zeros
+    Th0=0.2*Tb+Tb*[-tol,tol];
+    %thresholds for marker
+    Thm=0.8*Tb+Tb*[-tol,tol];
+    %make sure thresholds don't overlap
+    [Th0(2),Th1(1)]=fix_overlap(Th0(2),Th1(1));
+    [Th1(2),Thm(1)]=fix_overlap(Th1(2),Thm(1));
+    %check for valid pulse width for a one
+    valid1 =is_valid_pw(pw,Th1);
+    %check for valid pulse width for a zero
+    valid0 =is_valid_pw(pw,Th0);
+    %check for valid marker pulse width
+    validmk=is_valid_pw(pw,Thm);
     
     %return 0 for zero 1 for one 2 for mark and -1 for invalid
     bits=valid1+validmk*2 - (~(validmk | valid1 | valid0 ));
