@@ -18,7 +18,7 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     env=envelope(p.Results.tca,40,'analytic');
 
     %use kmeans to threshold the envalope
-    env_th=kmeans(env,2)-1;
+    env_th=kmeans_mcv(env,2)-1;
 
     %find edges assume that signal starts high so that we see the first real
     %rising edge
