@@ -264,22 +264,6 @@ if(runs>1)
 end
 
 
-%New figure for time plot
-figure;
-
-%create matrix of ITS_delay data
-its_mat=cell2mat(dly_its);
-
-%get engineering units
-[its_mat_e,~,its_mat_u]=engunits(its_mat,'time');
-
-%plot delay dat
-plot(its_mat_e(:))
-
-%axis lables
-xlabel('Measurement number');
-ylabel(['Delay [' its_mat_u ']']);
-
 beep;
 pause(1);
 beep;
