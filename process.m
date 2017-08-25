@@ -7,6 +7,8 @@ p=inputParser();
 addRequired(p,'tx_name',@(l)validateattributes(l,{'char'},{'vector'}));
 %add output audio argument
 addOptional(p,'rx_name',[],@(l)validateattributes(l,{'char'},{'vector'}));
+%add timecode tollerence option
+addParameter(p,'TcTol',0.2,@(l)validateattributes(l,{'numeric'},{'positive','real','scalar','<=',0.5}));
 
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
@@ -129,7 +131,7 @@ end
 [rx_dat,rx_fs]=audioread(rx_name);
 
 %decode timecode from recive waveform
-[rx_time,rx_fsamp]=time_decode(rx_dat(:,2),rx_fs);
+[rx_time,rx_fsamp]=time_decode(rx_dat(:,2),rx_fs,'TcTol',p.Results.TcTol);
 
 %check if test type is present in tx file
 if(isfield(tx_dat,'test_type'))
@@ -159,7 +161,7 @@ good=zeros(1,length(tx_dat.recordings),'logical');
 %loop through all transmit recordings
 for k=1:length(tx_dat.recordings)
     %decode timecode
-    [tx_tc{k},tx_frs]=time_decode(tx_dat.recordings{k},tx_dat.fs);
+    [tx_tc{k},tx_frs]=time_decode(tx_dat.recordings{k},tx_dat.fs,'TcTol',p.Results.TcTol);
     
     %array for index of matching timecodes
     tc_match=zeros(size(tx_tc{k}));
