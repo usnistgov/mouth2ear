@@ -235,6 +235,14 @@ title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 %print plot to .png
 print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
 
+figure
+fulldat = cell2mat(dly_its);
+[nWindows,~] = size(fulldat);
+timedata = fulldat(:);
+xV = (1:length(timedata))/nWindows;
+plot(xV, timedata)
+xlabel('Trial Number')
+ylabel('Delay (s)')
 %save everything
 % save(fullfile(proc_dat_fold,[base_filename '.mat']));
 
