@@ -65,4 +65,4 @@ while(numIter<iterTol && convFlag)
     % update iteration count
     numIter = numIter + 1;
 end
-disp(['Kmeans converged in ' num2str(numIter) ' iterations'])
+% disp(['Kmeans converged in ' num2str(numIter) ' iterations'])
