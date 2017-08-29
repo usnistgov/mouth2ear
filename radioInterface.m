@@ -5,6 +5,10 @@ classdef radioInterface < handle
         sobj
     end
     
+   properties (Dependent)
+      pttState
+   end
+    
     methods
         %constructor, must be passed a serial port name
         function obj = radioInterface(port)
@@ -116,6 +120,35 @@ classdef radioInterface < handle
             fgetl(obj.sobj);
             %get devtype line
             dt=fgetl(obj.sobj);
+        end
+        
+        function value = get.pttState(obj)
+            %check if there is data in the serial port buffer
+            if(obj.sobj.BytesAvailable)
+                %read all data from serial port buffer
+                fread(obj.sobj,obj.sobj.BytesAvailable);
+            end
+            %send ptt command with no arguments
+            fprintf(obj.sobj,'%s\n','ptt');
+            %get echoed line
+            fgetl(obj.sobj);
+            %get response line
+            resp=fgetl(obj.sobj);
+            %get state from response
+            state=textscan(resp,'PTT status : %s');
+            %check that state was parsed correctly
+            if(all(size(state)==[1 1]))
+                switch(state{1}{1})
+                    case 'on'
+                        value=true;
+                    case 'off'
+                        value=false;
+                    otherwise
+                        value=NaN;
+                end
+            else
+                value=NaN;
+            end
         end
         
         %delete method
