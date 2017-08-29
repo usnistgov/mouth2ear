@@ -40,6 +40,8 @@ classdef radioInterface < handle
                         else
                             %close serial port
                             fclose(obj.sobj);
+                            %delete serial port
+                            delete(obj.sobj);
                         end
                     catch
                     end
