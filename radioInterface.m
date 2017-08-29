@@ -88,11 +88,14 @@ classdef radioInterface < handle
 % LED(num,state) changes the state of the LED given by num. If state is
 % true turn the LED on if state is false turn the LED off
             
+            %determine LED state string
             if(state)
-                fprintf(obj.sobj,'%s\n','LED ON');
+                ststr='on';
             else
-                fprintf(obj.sobj,'%s\n','LED OFF');
+                ststr='off';
             end 
+            %send command
+            fprintf(obj.sobj,'%s\n',sprintf('LED %i %s\n',num,ststr));
         end
         
         function [dt]=devtype(obj)
