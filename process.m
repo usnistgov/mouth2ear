@@ -1,4 +1,4 @@
-function process(tx_name,varargin)
+function [dly_its, rx_rec] = process(tx_name,varargin)
 
 %create new input parser
 p=inputParser();
