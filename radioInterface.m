@@ -144,6 +144,30 @@ classdef radioInterface < handle
             end
         end
         
+        function [ext,int]=temp(obj)
+            %flush input from buffer
+            flushinput(obj.sobj)
+            
+            %send temp command
+            fprintf(obj.sobj,'%s\n','temp');
+            %get a line for the echo
+            fgetl(obj.sobj);
+            
+            %get internal temp line
+            intl=fgetl(obj.sobj);
+            %get external temp line
+            extl=fgetl(obj.sobj);
+            
+            %parse internal temperature
+            int=sscanf(intl,'int = %f C');
+            %parse external temp value
+            extr=sscanf(extl,'ext = %d');
+            %B value of thermistor
+            B=3470;
+            %compute external temperature
+            ext=B/log(10e3/((2^12-1)/extr-1)/(10e3*exp(-B/(273.15+25))))-273.15;
+        end
+        
         %delete method
         function delete(obj)
             %check if serial port is open
