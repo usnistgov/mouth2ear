@@ -116,8 +116,6 @@ classdef radioInterface < handle
             fprintf(obj.sobj,'%s\n','devtype');
             %get a line for the echo
             fgetl(obj.sobj);
-            %get a blank line
-            fgetl(obj.sobj);
             %get devtype line
             dt=fgetl(obj.sobj);
         end
