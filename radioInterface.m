@@ -107,11 +107,9 @@ classdef radioInterface < handle
 %
 % dt=DEVTYPE() where dt is the devicetype string
             
-            %check if there are bytes in the buffer
-            if(obj.sobj.BytesAvailable>0)
-                %read all bytes in buffer
-                fread(obj.sobj,obj.sobj.BytesAvailable);
-            end
+            %flush input from buffer
+            flushinput(obj.sobj);
+            
             %send devtype command
             fprintf(obj.sobj,'%s\n','devtype');
             %get a line for the echo
@@ -121,11 +119,8 @@ classdef radioInterface < handle
         end
         
         function value = get.pttState(obj)
-            %check if there is data in the serial port buffer
-            if(obj.sobj.BytesAvailable)
-                %read all data from serial port buffer
-                fread(obj.sobj,obj.sobj.BytesAvailable);
-            end
+            %flush input from buffer
+            flushinput(obj.sobj)
             %send ptt command with no arguments
             fprintf(obj.sobj,'%s\n','ptt');
             %get echoed line
