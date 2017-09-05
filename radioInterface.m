@@ -172,10 +172,13 @@ classdef radioInterface < handle
         function delete(obj)
             %check if serial port is open
             if(isvalid(obj.sobj))
-                %closeout command, turn off LEDS and ptt
-                fprintf(obj.sobj,'%s\n','closeout');
-                %close serial port
-                fclose(obj.sobj);
+                %check if port is open
+                if(strcmp(obj.sobj.status,'open'))
+                    %closeout command, turn off LEDS and ptt
+                    fprintf(obj.sobj,'%s\n','closeout');
+                    %close serial port
+                    fclose(obj.sobj);
+                end
                 %delete serial object
                 delete(obj.sobj);
             end
