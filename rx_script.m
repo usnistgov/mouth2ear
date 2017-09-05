@@ -91,5 +91,5 @@ release(RecWriter);
 %print completion message
 fprintf('Audio data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
 fprintf('Info saved to:\n\t''%s''\n',fullfile(rx_dat_fold,info_name));
-
+beep
 
