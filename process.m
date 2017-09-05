@@ -51,7 +51,15 @@ end
 
 %load data from transmit side
 tx_dat=load(tx_name);
-
+% Define index for non-empty recordings from tx_dat
+ix = cellfun(@(x) ~isempty(x), tx_dat.recordings);
+% Check for empty recordings from tx_dat
+if(sum(ix)/length(ix) ~= 1)
+    % Remove empty recordings from tx_dat
+    tx_dat.recordings = tx_dat.recordings(ix);
+    tx_dat.overRun = tx_dat.overRun(ix);
+    tx_dat.underRun = tx_dat.underRun(ix);
+end
 %check if rx filename given
 if(isempty(p.Results.rx_name))
     %split tx filename
