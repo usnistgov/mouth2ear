@@ -4,7 +4,7 @@ function [dly_its]=test(varargin)
 p=inputParser();
 
 %add optional filename parameter
-addOptional(p,'testfile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
 %add number of trials parameter
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add radio port parameter
@@ -15,7 +15,7 @@ parse(p,varargin{:});
 
 
 %read audio file
-[y,fs]=audioread(p.Results.testfile);
+[y,fs]=audioread(p.Results.AudioFile);
 
 %check fs and resample if nessicessary
 if(fs<44.1e3)
