@@ -7,7 +7,8 @@ p=inputParser();
 addOptional(p,'testfile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
 %add number of trials parameter
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
-
+%add radio port parameter
+addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scalartext'}));
 
 %parse inputs
 parse(p,varargin{:});
@@ -111,7 +112,7 @@ else
 end
 
 %open radio interface
-ri=radioInterface();
+ri=radioInterface(p.Results.RadioPort);
 
 %generate base file name to use for all files
 base_filename=sprintf('capture%s_%s',test_type,dtn);
