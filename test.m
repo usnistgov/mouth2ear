@@ -45,7 +45,7 @@ Sr=min(N,max_size);
 runs=ceil(N/Sr);
 
 %get git status
-git_status=gitStatus();
+git_status=gitStatus();                                                     %#ok git_status is saved in .m file
 
 %make plots direcotry
 [~,~,~]=mkdir('plots');
@@ -143,9 +143,6 @@ for kk=1:runs
         
         %add a pause after play_record to remove run to run dependencys
         pause(3.1);
-        
-        %get maximum values
-        mx=max(dat);
 
         if(mod(k,10)==0)
             fprintf('Run %i of %i complete :\n',k,N);
@@ -217,7 +214,6 @@ delete(ri);
 %check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
     %preallocate arrays
-    st_idx=zeros(1,N);
     st_dly=zeros(1,N);
     underRun=zeros(1,N);
     overRun=zeros(1,N);
