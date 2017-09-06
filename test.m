@@ -1,6 +1,20 @@
 function [dly_its]=test(varargin)
+
+%create new input parser
+p=inputParser();
+
+%add optional filename parameter
+addOptional(p,'testfile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+%add number of trials parameter
+addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+
+
+%parse inputs
+parse(p,varargin{:});
+
+
 %read audio file
-[y,fs]=audioread('test.wav');
+[y,fs]=audioread(p.Results.testfile);
 
 %check fs and resample if nessicessary
 if(fs<44.1e3)
@@ -36,14 +50,11 @@ dev_name=choose_device(aPR);
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
 
-%number of trials
-N=100;
-
 %run size
-Sr=min(N,max_size);
+Sr=min(p.Results.Trials,max_size);
 
 %calculate the number of runs that will be required
-runs=ceil(N/Sr);
+runs=ceil(p.Results.Trials/Sr);
 
 %get git status
 git_status=gitStatus();                                                     %#ok git_status is saved in .m file
@@ -115,7 +126,7 @@ for kk=1:runs
 
     %if this is the last run, adjust the run size
     if(kk==runs && kk>1)
-        Sr=N-Sr*(runs-1);
+        Sr=p.Results.Trials-Sr*(runs-1);
     end
     
     %preallocate arrays
@@ -146,7 +157,7 @@ for kk=1:runs
         pause(3.1);
 
         if(mod(k,10)==0)
-            fprintf('Run %i of %i complete :\n',k,N);
+            fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
             %calculate RMS
             rms=sqrt(mean(dat.^2));
             %calculate maximum
@@ -215,11 +226,11 @@ delete(ri);
 %check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
     %preallocate arrays
-    st_dly=zeros(1,N);
-    underRun=zeros(1,N);
-    overRun=zeros(1,N);
-    recordings=cell(1,N);
-    dly_its=cell(1,N);
+    st_dly=zeros(1,p.Results.Trials);
+    underRun=zeros(1,p.Results.Trials);
+    overRun=zeros(1,p.Results.Trials);
+    recordings=cell(1,p.Results.Trials);
+    dly_its=cell(1,p.Results.Trials);
 
     pos=1;
 
