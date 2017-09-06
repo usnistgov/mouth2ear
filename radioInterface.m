@@ -17,7 +17,7 @@ classdef radioInterface < handle
 % obj = RADIOINTERFACE('port')
 %   Create a RADIOINTERFACE object using the specified serial port
             
-            if(nargin < 1)
+            if(nargin < 1 || isempty(port))
                 %get all serial port names
                 ports=seriallist();
                 %flag to denote if a device has been found
