@@ -174,8 +174,11 @@ classdef radioInterface < handle
             if(isvalid(obj.sobj))
                 %check if port is open
                 if(strcmp(obj.sobj.status,'open'))
-                    %closeout command, turn off LEDS and ptt
-                    fprintf(obj.sobj,'%s\n','closeout');
+                    try
+                        %closeout command, turn off LEDS and ptt
+                        fprintf(obj.sobj,'%s\n','closeout');
+                    catch  %#ok just ignore errors so we can finish cleanup
+                    end
                     %close serial port
                     fclose(obj.sobj);
                 end
