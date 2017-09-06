@@ -1,3 +1,4 @@
+function [dly_its]=test(varargin)
 %read audio file
 [y,fs]=audioread('test.wav');
 
