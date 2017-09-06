@@ -47,7 +47,7 @@ classdef radioInterface < handle
                             %delete serial port
                             delete(obj.sobj);
                         end
-                    catch
+                    catch   %#ok something went wrong with this port skip to the next one
                     end
                 end
                 %restore warning state
