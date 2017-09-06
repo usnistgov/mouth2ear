@@ -123,99 +123,106 @@ fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s_x_of_%i.mat',
 %turn on LED when test starts
 ri.led(1,true);
 
-for kk=1:runs
+try
+    for kk=1:runs
 
-    %if this is the last run, adjust the run size
-    if(kk==runs && kk>1)
-        Sr=p.Results.Trials-Sr*(runs-1);
-    end
-    
-    %preallocate arrays
-    st_idx=zeros(1,Sr);
-    st_dly=zeros(1,Sr);
-    underRun=zeros(1,Sr);
-    overRun=zeros(1,Sr);
-    recordings=cell(1,Sr);
-    dly_its=cell(1,Sr);
-
-    for k=1:Sr
-
-        %push the push to talk button
-        ri.ptt(true);
-        
-        %pause to let the radio key up
-        % 0.65 - access time limit UHF
-        % 0.68 - access time limit VHF
-        pause(0.68);
-        
-        %play and record audio data
-        [dat,underRun(k),overRun(k)]=play_record(aPR,y);
-
-        %un-push the push to talk button
-        ri.ptt(false);
-        
-        %add a pause after play_record to remove run to run dependencys
-        pause(3.1);
-
-        if(mod(k,10)==0)
-            fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
-            %calculate RMS
-            rms=sqrt(mean(dat.^2));
-            %calculate maximum
-            [mx,mx_idx]=max(dat);
-            %print values
-            fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
-            %check if levels are low
-            if(rms<1e-3)
-                %print warning
-                warning('Low levels input levels detected. RMS = %g',rms);
-                %length of plot in sec
-                plen=0.01;
-                %generate range centered around maximum value
-                rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
-                if(length(rng)>length(dat))
-                    rng=1:length(dat);
-                end
-                %check that we didn't go off of the beginning of the array
-                if(rng(1)<1)
-                    %shift range
-                    rng=rng-rng(1)+1;
-                end
-                %check that we didn't go off of the end of the array
-                if(rng(end)>length(dat))
-                    %shift range
-                    rng=rng+(length(dat)-rng(end));
-                end
-                %new figure for plot
-                figure;
-                %generate time axis
-                t_r=((1:length(dat))-1)*1/fs;
-                %plot graph
-                plot(t_r(rng),dat(rng));
-                %force drawing
-                drawnow;
-            end
+        %if this is the last run, adjust the run size
+        if(kk==runs && kk>1)
+            Sr=p.Results.Trials-Sr*(runs-1);
         end
 
-        st_idx(:,k)=finddelay(y',dat);
+        %preallocate arrays
+        st_idx=zeros(1,Sr);
+        st_dly=zeros(1,Sr);
+        underRun=zeros(1,Sr);
+        overRun=zeros(1,Sr);
+        recordings=cell(1,Sr);
+        dly_its=cell(1,Sr);
 
-        st_dly(:,k)=1/fs*st_idx(k);
+        for k=1:Sr
 
-        dly_its{k}=1e-3*ITS_delay_wrapper(dat,y',fs);
-        %save data
-        recordings{k}=dat;
+            %push the push to talk button
+            ri.ptt(true);
 
+            %pause to let the radio key up
+            % 0.65 - access time limit UHF
+            % 0.68 - access time limit VHF
+            pause(0.68);
+
+            %play and record audio data
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+
+            %un-push the push to talk button
+            ri.ptt(false);
+
+            %add a pause after play_record to remove run to run dependencys
+            pause(3.1);
+
+            if(mod(k,10)==0)
+                fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
+                %calculate RMS
+                rms=sqrt(mean(dat.^2));
+                %calculate maximum
+                [mx,mx_idx]=max(dat);
+                %print values
+                fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+                %check if levels are low
+                if(rms<1e-3)
+                    %print warning
+                    warning('Low levels input levels detected. RMS = %g',rms);
+                    %length of plot in sec
+                    plen=0.01;
+                    %generate range centered around maximum value
+                    rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+                    if(length(rng)>length(dat))
+                        rng=1:length(dat);
+                    end
+                    %check that we didn't go off of the beginning of the array
+                    if(rng(1)<1)
+                        %shift range
+                        rng=rng-rng(1)+1;
+                    end
+                    %check that we didn't go off of the end of the array
+                    if(rng(end)>length(dat))
+                        %shift range
+                        rng=rng+(length(dat)-rng(end));
+                    end
+                    %new figure for plot
+                    figure;
+                    %generate time axis
+                    t_r=((1:length(dat))-1)*1/fs;
+                    %plot graph
+                    plot(t_r(rng),dat(rng));
+                    %force drawing
+                    drawnow;
+                end
+            end
+
+            st_idx(:,k)=finddelay(y',dat);
+
+            st_dly(:,k)=1/fs*st_idx(k);
+
+            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y',fs);
+            %save data
+            recordings{k}=dat;
+
+        end
+        %save datafile
+        save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
+
+        if(kk<runs)
+            %clear saved variables
+            clear recordings st_dly underRun overRun
+
+            %pause for 10s to let writing complete
+            pause(10);
+        end
     end
-    %save datafile
-    save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
-    
-    if(kk<runs)
-        %clear saved variables
-        clear recordings st_dly underRun overRun
-    
-        %pause for 10s to let writing complete
-        pause(10);
-    end
+catch err
+    %save all data 
+    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','err','-v7.3');
+    %rethrow error
+    rethrow(err);
 end
 
 %turn off LED when test stops
