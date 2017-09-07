@@ -144,6 +144,19 @@ classdef radioInterface < handle
             end
         end
         
+        function delay =  ptt_delay(obj,delay)
+            %flush input from buffer
+            flushinput(obj.sobj)
+            %send ptt command with no arguments
+            fprintf(obj.sobj,'%s\n',sprintf('ptt delay %f',delay));
+            %get echoed line
+            fgetl(obj.sobj);
+            %get response line
+            resp=fgetl(obj.sobj);
+            %get actual delay
+            delay=sscanf(resp,'PTT in %f sec');
+        end
+        
         function [ext,int]=temp(obj)
             %flush input from buffer
             flushinput(obj.sobj)
