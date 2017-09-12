@@ -32,6 +32,10 @@ function name=choose_device(apr)
             fprintf('Could not find one matching "%s" using "%s" instead\n',dtype,ad{idx});
         end
     end
+
+    if(isempty(idx))
+        error('Could not find a sutable output device')
+    end
     
     %return name
     name=ad{idx};
