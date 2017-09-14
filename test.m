@@ -73,6 +73,10 @@ addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','non
 %parse inputs
 parse(p,varargin{:});
 
+%vars to save to files
+save_vars={'git_status','test_type','y','recordings','st_dly','dev_name',...
+           'underRun','overRun','dly_its','fs'};
+
 
 %read audio file
 [y,fs]=audioread(p.Results.AudioFile);
@@ -294,7 +298,7 @@ try
 
         end
         %save datafile
-        save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','-v7.3');
+        save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),save_vars{:},'-v7.3');
 
         if(kk<runs)
             %clear saved variables
@@ -306,7 +310,7 @@ try
     end
 catch err
     %save all data 
-    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','err','-v7.3');
+    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),save_vars{:},'err','-v7.3');
     %rethrow error
     rethrow(err);
 end
@@ -331,7 +335,7 @@ if(runs>1)
     for k=1:runs
 
         %get run data
-        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
+        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)),save_vars{:});
 
         %get run length
         run_length=length(run_dat.recordings);
@@ -352,7 +356,7 @@ if(runs>1)
     end
     
     %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','dly_its','fs','-v7.3');
+    save(fullfile('data',[base_filename '_all.mat']),save_vars{:},'-v7.3');
     
 end
 
