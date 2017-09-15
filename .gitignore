@@ -13,5 +13,9 @@ rx-data/
 #plots directory
 plots/
 
+#plot files
+*.png
+*.fig
+
 #test type file
 test-type.txt
