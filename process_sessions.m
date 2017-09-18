@@ -1,8 +1,6 @@
-close all
-clear all
-
-tx_path = 'C:\MCV\device-tst\tx-data';
-proc_path = 'C:\MCV\device-tst\proc-data';
+function fullData =  process_sessions(descr,datType, tx_path, saveDir, rerun)
+% tx_path = 'C:\MCV\device-tst\tx-data';
+saveDir = 'C:\MCV\device-tst\proc-data';
 
 % descr = 'US36-pullout-VHF-trunked';
 % descr = 'US36-pullout-UHF-trunked';
@@ -10,14 +8,14 @@ proc_path = 'C:\MCV\device-tst\proc-data';
 % descr = 'two-loc-2tc';
 % descr = '2loc-2tc-characterization';
 % descr = 'VHF-direct-NCAR';
-descr = '2loc-2tc-lab-VHF-Trunked';
+% descr = '2loc-2tc-lab-VHF-Trunked';
+% descr = '1loc-Lab-VHF-Trunked';
 
-datName = [proc_path '\' descr, '.mat'];
+datName = [saveDir '\' descr, '.mat'];
 
-rerun = 0;
 if(~exist(datName)||rerun)
     disp('Extracting data...')
-    data = loadData(tx_path, 'descriptor', descr, 'datType', '2loc', 'saveDir', 'proc-data');
+    data = loadData(tx_path, 'descriptor', descr, 'datType', datType, 'saveDir', saveDir);
 else
     load(datName)
 end
