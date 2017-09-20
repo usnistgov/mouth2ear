@@ -6,10 +6,11 @@ p=inputParser();
 %add audio object argument
 addRequired(p,'tx_name',@(l)validateattributes(l,{'char'},{'vector'}));
 %add output audio argument
-addOptional(p,'rx_name',[],@(l)validateattributes(l,{'char'},{'vector'}));
+addParameter(p,'rx_name',[],@(l)validateattributes(l,{'char'},{'vector'}));
 %add timecode tollerence option
 addParameter(p,'TcTol',0.2,@(l)validateattributes(l,{'numeric'},{'positive','real','scalar','<=',0.5}));
-
+%add window size and slide arguments
+addParameter(p,'winArgs', {4,2},@(l) cellfun(@(x) validateattributes(x,{'numeric'},{'positive','decreasing'}),l));
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
 
@@ -214,7 +215,7 @@ for k=1:length(tx_dat.recordings)
     rx_rec{k}=rx_dat(first:last,1);
     
     %calculate delay
-    dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs)*1e-3;
+    dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs,p.Results.winArgs{:})*1e-3;
 end
 
 
