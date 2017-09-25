@@ -9,6 +9,10 @@ addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add radio port parameter
 addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scalartext'}));
+%add background noise file parameter
+addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
+%add background noise volume parameter
+addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
 
 %parse inputs
 parse(p,varargin{:});
@@ -34,6 +38,21 @@ if(size(y,2)>1)
     warning('audio file has %i channels. discarding all but channel 1',size(y,2));
     %get first column
     y=y(:,1);
+end
+
+%check if a noise file was given
+if(~isempty(p.Results.BGNoiseFile))
+    %read background noise file
+    [nf,nfs]=audioread(p.Results.BGNoiseFile);
+    %check if sample rates match
+    if(nfs~=fs)
+        %resample if nessicessary
+        nf=resample(nf,fs/nfs,1);
+    end
+    %extend noise file to match y
+    nf=repmat(nf,ceil(length(y)/length(nf)),1);
+    %add noise file to sample
+    y=y+p.Results.BGNoiseVolume*nf(1:length(y));
 end
 
 %maximum size for a run
