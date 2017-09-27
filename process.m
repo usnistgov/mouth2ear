@@ -11,6 +11,9 @@ addParameter(p,'rx_name',[],@(l)validateattributes(l,{'char'},{'vector'}));
 addParameter(p,'TcTol',0.2,@(l)validateattributes(l,{'numeric'},{'positive','real','scalar','<=',0.5}));
 %add window size and slide arguments
 addParameter(p,'winArgs', {4,2},@(l) cellfun(@(x) validateattributes(x,{'numeric'},{'positive','decreasing'}),l));
+%add overplay parameter
+addParameter(p,'OverPlay',1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
+
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
 
@@ -160,6 +163,9 @@ if(rx_fs~=tx_dat.fs)
     error('Recive and transmit sample rates must match')
 end
 
+%calculate extra samples needed for rx waveform
+exra_samples=p.Results.OverPlay*rx_fs;
+
 %prealocate arrays
 dly_its=cell(1,length(tx_dat.recordings));
 mfdr=cell(1,length(tx_dat.recordings));
@@ -209,7 +215,7 @@ for k=1:length(tx_dat.recordings)
     first=mfr(1,2)-mfr(1,1)+1;
     
     %calculate last rx sample to use
-    last=mfr(end,2)+length(tx_dat.recordings{k})-mfr(end,1);
+    last=mfr(end,2)+length(tx_dat.recordings{k})-mfr(end,1)+exra_samples;
     
     %get rx recording data from big array
     rx_rec{k}=rx_dat(first:last,1);

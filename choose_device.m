@@ -17,6 +17,10 @@ function name=choose_device(apr)
         %use the last
         idx=idx(end);
     end
+
+    if(isempty(idx))
+        error('Could not find a sutable output device')
+    end
     
     %return name
     name=ad{idx};
