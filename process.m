@@ -218,42 +218,37 @@ for k=1:length(tx_dat.recordings)
     dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs,p.Results.winArgs{:})*1e-3;
 end
 
+% new figure
+figure
+% get data as matrix
+fulldat = cell2mat(dly_its);
+% Number of measurements in one trial
+[nWindows,~] = size(fulldat);
+% get data sequentially in time
+timedata = fulldat(:);
+% x-axis
+xV = (1:length(timedata))/nWindows;
+% Plot data vs time
+plot(xV, timedata)
+xlabel('Trial Number')
+ylabel('Delay (s)')
 
 %new figure
-figure;
+figure
+% Calculate delay mean
+dly_m = mean(timedata);
+% get engineering units
+[dly_m_e,~,dly_u] = engunits(dly_m,'time');
 
-%calculate mean delay for each run
-dly_its_mean=cellfun(@mean,dly_its(good));
-
-%calculate delay mean
-dly_m=mean(dly_its_mean);
-
-%get engineering units
-[dly_m_e,~,dly_u]=engunits(dly_m,'time');
-
-%calculate standard deviation
-st_dev=std(dly_its_mean);
-
-%get engineering units
-[st_dev_e,~,st_u]=engunits(st_dev,'time');
+% calculate standard deviation
+st_dev = std(timedata);
+% get engineering units
+[st_dev_e,~,st_u] = engunits(st_dev, 'time');
 
 %plot histogram
-histogram(dly_its_mean,300,'Normalization','probability');
-
+histogram(timedata)
 %add mean and standard deveation in title
 title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 
 %print plot to .png
-print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
-
-figure
-fulldat = cell2mat(dly_its);
-[nWindows,~] = size(fulldat);
-timedata = fulldat(:);
-xV = (1:length(timedata))/nWindows;
-plot(xV, timedata)
-xlabel('Trial Number')
-ylabel('Delay (s)')
-%save everything
-% save(fullfile(proc_dat_fold,[base_filename '.mat']));
-
+% print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
