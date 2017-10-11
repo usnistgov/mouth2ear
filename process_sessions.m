@@ -1,4 +1,4 @@
-function fullData =  process_sessions(descr,datType, tx_path, saveDir, rerun)
+function [fullData] =  process_sessions(descr,datType, tx_path, saveDir, rerun)
 % tx_path = 'C:\MCV\device-tst\tx-data';
 saveDir = 'C:\MCV\device-tst\proc-data';
 
@@ -15,10 +15,20 @@ datName = [saveDir '\' descr, '.mat'];
 
 if(~exist(datName)||rerun)
     disp('Extracting data...')
-    data = loadData(tx_path, 'descriptor', descr, 'datType', datType, 'saveDir', saveDir);
+    [data,rx_list] = loadData(tx_path, 'descriptor', descr, 'datType', datType, 'saveDir', saveDir);
+    % Save csv file with rx_files
+    rx_list_name = ['rx-files_' descr '.csv'];
+    fid = fopen([saveDir, '\', rx_list_name],'w');
+    for file = 1:length(rx_list)
+        fprintf(fid, '%s\n', rx_list{file});
+    end
+    fclose(fid);
+
 else
     load(datName)
 end
+
+
 
 [nFiles,~] = size(data);
 
