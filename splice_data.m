@@ -3,17 +3,20 @@ clear all
 procPath = 'C:\MCV\device-tst\proc-data';
 % Path to Save data
 proc_rx_Path = 'C:\MCV\device-tst\proc-data\2loc\processed_rx';
+% proc_rx_Path = 'P:\MCV\M2E Latency\Post-Processed Data\2loc\processed_rx';
 % if rx directory doen't exist, make it
     if(~exist(proc_rx_Path,'dir'))
         mkdir(proc_rx_Path)
     end
 
 proc_tx_Path = 'C:\MCV\device-tst\proc-data\2loc\processed_tx';
+% proc_tx_Path = 'P:\MCV\M2E Latency\Post-Processed Data\2loc\processed_tx';
 % if tx directory doen't exist, make it
     if(~exist(proc_tx_Path,'dir'))
         mkdir(proc_tx_Path)
     end
 csvPath = 'C:\MCV\device-tst\proc-data\2loc\delay_values';
+% csvPath = 'P:\MCV\M2E Latency\Post-Processed Data\2loc\delay_values';
 % if csv directory doen't exist, make it
     if(~exist(csvPath,'dir'))
         mkdir(csvPath)
