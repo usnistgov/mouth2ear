@@ -48,6 +48,11 @@ classdef radioInterface < handle
                             delete(obj.sobj);
                         end
                     catch   %#ok something went wrong with this port skip to the next one
+                        %check if port is open
+                        if(strcmp(obj.sobj.status,'open'))
+                            %close port and continue
+                            fclose(obj.sobj);
+                        end
                     end
                 end
                 %restore warning state
