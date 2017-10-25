@@ -85,9 +85,9 @@ classdef radioInterface < handle
             
             %check what the state is 
             if(state)
-                fprintf(obj.sobj,'%s\n','ptt on');
+                obj.command('ptt on');
             else
-                fprintf(obj.sobj,'%s\n','ptt off');
+                obj.command('ptt off');
             end
         end
         
@@ -104,7 +104,7 @@ classdef radioInterface < handle
                 ststr='off';
             end 
             %send command
-            fprintf(obj.sobj,'%s\n',sprintf('LED %i %s\n',num,ststr));
+            obj.command('LED %i %s',num,ststr);
         end
         
         function [dt]=devtype(obj)
@@ -116,9 +116,7 @@ classdef radioInterface < handle
             flushinput(obj.sobj);
             
             %send devtype command
-            fprintf(obj.sobj,'%s\n','devtype');
-            %get a line for the echo
-            fgetl(obj.sobj);
+            obj.command('devtype');
             %get devtype line
             dt=fgetl(obj.sobj);
         end
@@ -127,9 +125,7 @@ classdef radioInterface < handle
             %flush input from buffer
             flushinput(obj.sobj)
             %send ptt command with no arguments
-            fprintf(obj.sobj,'%s\n','ptt');
-            %get echoed line
-            fgetl(obj.sobj);
+            obj.command('ptt');
             %get response line
             resp=fgetl(obj.sobj);
             %get state from response
@@ -153,9 +149,7 @@ classdef radioInterface < handle
             %flush input from buffer
             flushinput(obj.sobj)
             %send ptt command with no arguments
-            fprintf(obj.sobj,'%s\n',sprintf('ptt delay %f',delay));
-            %get echoed line
-            fgetl(obj.sobj);
+            obj.command('ptt delay %f',delay);
             %get response line
             resp=fgetl(obj.sobj);
             %get actual delay
@@ -167,9 +161,7 @@ classdef radioInterface < handle
             flushinput(obj.sobj)
             
             %send temp command
-            fprintf(obj.sobj,'%s\n','temp');
-            %get a line for the echo
-            fgetl(obj.sobj);
+            obj.command('temp');
             
             %get internal temp line
             intl=fgetl(obj.sobj);
@@ -206,5 +198,55 @@ classdef radioInterface < handle
         end
     end
     
+    methods(Access='protected')
+        function command(obj,cmd,varargin)
+
+            %flush input buffer
+            flushinput(obj.sobj);
+
+            %trim extranious white space from command
+            cmd=strtrim(cmd);
+
+            %format command string
+            cmd_str=sprintf(cmd,varargin{:});
+
+            %send command
+            fprintf(obj.sobj,'%s\n',cmd_str);
+
+            %line buffer
+            l='';
+
+            %maximum number of itterations
+            mi=3;
+
+            %turn off warnings from fgetl
+            [wstate]=warning('off','MATLAB:serial:fgetl:unsuccessfulRead');
+
+            %catch errors to make sure warning states are reset correctly
+            try
+                %check comand sresponses for echo
+                while(~strcmp(l,cmd_str))
+                    %get response
+                    l=fgetl(obj.sobj);
+                    %trim whitespace from response
+                    l=strtrim(l);
+                    %subtract one from count
+                    mi=mi-1;
+                    %check if we should timeout
+                    if(mi<=0)
+                        %throw error
+                        error('Command response timeout');
+                    end
+                end
+            catch err
+                %reset warning state
+                warning(wstate);
+                %rethrow error
+                rethrow(err);
+            end
+            %reset warning state
+            warning(wstate);
+        end
+    end
 end
 
