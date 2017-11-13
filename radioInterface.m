@@ -5,6 +5,10 @@ classdef radioInterface < handle
         sobj
     end
     
+   properties (Dependent)
+      pttState
+   end
+    
     methods
         %constructor, must be passed a serial port name
         function obj = radioInterface(port)
@@ -13,7 +17,7 @@ classdef radioInterface < handle
 % obj = RADIOINTERFACE('port')
 %   Create a RADIOINTERFACE object using the specified serial port
             
-            if(nargin < 1)
+            if(nargin < 1 || isempty(port))
                 %get all serial port names
                 ports=seriallist();
                 %flag to denote if a device has been found
@@ -40,8 +44,15 @@ classdef radioInterface < handle
                         else
                             %close serial port
                             fclose(obj.sobj);
+                            %delete serial port
+                            delete(obj.sobj);
                         end
-                    catch
+                    catch   %#ok something went wrong with this port skip to the next one
+                        %check if port is open
+                        if(strcmp(obj.sobj.status,'open'))
+                            %close port and continue
+                            fclose(obj.sobj);
+                        end
                     end
                 end
                 %restore warning state
@@ -74,9 +85,9 @@ classdef radioInterface < handle
             
             %check what the state is 
             if(state)
-                fprintf(obj.sobj,'%s\n','ptt on');
+                obj.command('ptt on');
             else
-                fprintf(obj.sobj,'%s\n','ptt off');
+                obj.command('ptt off');
             end
         end
         
@@ -86,11 +97,14 @@ classdef radioInterface < handle
 % LED(num,state) changes the state of the LED given by num. If state is
 % true turn the LED on if state is false turn the LED off
             
+            %determine LED state string
             if(state)
-                fprintf(obj.sobj,'%s\n','LED ON');
+                ststr='on';
             else
-                fprintf(obj.sobj,'%s\n','LED OFF');
+                ststr='off';
             end 
+            %send command
+            obj.command('LED %i %s',num,ststr);
         end
         
         function [dt]=devtype(obj)
@@ -98,32 +112,141 @@ classdef radioInterface < handle
 %
 % dt=DEVTYPE() where dt is the devicetype string
             
-            %check if there are bytes in the buffer
-            if(obj.sobj.BytesAvailable>0)
-                %read all bytes in buffer
-                fread(obj.sobj,obj.sobj.BytesAvailable);
-            end
+            %flush input from buffer
+            flushinput(obj.sobj);
+            
             %send devtype command
-            fprintf(obj.sobj,'%s\n','devtype');
-            %get a line for the echo
-            fgetl(obj.sobj);
-            %get a blank line
-            fgetl(obj.sobj);
+            obj.command('devtype');
             %get devtype line
             dt=fgetl(obj.sobj);
+        end
+        
+        function value = get.pttState(obj)
+            %flush input from buffer
+            flushinput(obj.sobj)
+            %send ptt command with no arguments
+            obj.command('ptt');
+            %get response line
+            resp=fgetl(obj.sobj);
+            %get state from response
+            state=textscan(resp,'PTT status : %s');
+            %check that state was parsed correctly
+            if(all(size(state)==[1 1]))
+                switch(state{1}{1})
+                    case 'on'
+                        value=true;
+                    case 'off'
+                        value=false;
+                    otherwise
+                        value=NaN;
+                end
+            else
+                value=NaN;
+            end
+        end
+        
+        function delay =  ptt_delay(obj,delay)
+            %flush input from buffer
+            flushinput(obj.sobj)
+            %send ptt command with no arguments
+            obj.command('ptt delay %f',delay);
+            %get response line
+            resp=fgetl(obj.sobj);
+            %get actual delay
+            delay=sscanf(resp,'PTT in %f sec');
+        end
+        
+        function [ext,int]=temp(obj)
+            %flush input from buffer
+            flushinput(obj.sobj)
+            
+            %send temp command
+            obj.command('temp');
+            
+            %get internal temp line
+            intl=fgetl(obj.sobj);
+            %get external temp line
+            extl=fgetl(obj.sobj);
+            
+            %parse internal temperature
+            int=sscanf(intl,'int = %f C');
+            %parse external temp value
+            extr=sscanf(extl,'ext = %d');
+            %B value of thermistor
+            B=3470;
+            %compute external temperature
+            ext=B/log(10e3/((2^12-1)/extr-1)/(10e3*exp(-B/(273.15+25))))-273.15;
         end
         
         %delete method
         function delete(obj)
             %check if serial port is open
             if(isvalid(obj.sobj))
-                %close serial port
-                fclose(obj.sobj);
+                %check if port is open
+                if(strcmp(obj.sobj.status,'open'))
+                    try
+                        %closeout command, turn off LEDS and ptt
+                        fprintf(obj.sobj,'%s\n','closeout');
+                    catch  %#ok just ignore errors so we can finish cleanup
+                    end
+                    %close serial port
+                    fclose(obj.sobj);
+                end
                 %delete serial object
                 delete(obj.sobj);
             end
         end
     end
     
+    methods(Access='protected')
+        function command(obj,cmd,varargin)
+
+            %flush input buffer
+            flushinput(obj.sobj);
+
+            %trim extranious white space from command
+            cmd=strtrim(cmd);
+
+            %format command string
+            cmd_str=sprintf(cmd,varargin{:});
+
+            %send command
+            fprintf(obj.sobj,'%s\n',cmd_str);
+
+            %line buffer
+            l='';
+
+            %maximum number of itterations
+            mi=3;
+
+            %turn off warnings from fgetl
+            [wstate]=warning('off','MATLAB:serial:fgetl:unsuccessfulRead');
+
+            %catch errors to make sure warning states are reset correctly
+            try
+                %check comand sresponses for echo
+                while(~strcmp(l,cmd_str))
+                    %get response
+                    l=fgetl(obj.sobj);
+                    %trim whitespace from response
+                    l=strtrim(l);
+                    %subtract one from count
+                    mi=mi-1;
+                    %check if we should timeout
+                    if(mi<=0)
+                        %throw error
+                        error('Command response timeout');
+                    end
+                end
+            catch err
+                %reset warning state
+                warning(wstate);
+                %rethrow error
+                rethrow(err);
+            end
+            %reset warning state
+            warning(wstate);
+        end
+    end
 end
 

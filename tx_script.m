@@ -1,5 +1,25 @@
+function tx_script(varargin)
+
+%create new input parser
+p=inputParser();
+
+%add optional filename parameter
+addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+%add number of trials parameter
+addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+%add radio port parameter
+addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scalartext'}));
+%add background noise file parameter
+addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
+%add background noise volume parameter
+addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
+
+%parse inputs
+parse(p,varargin{:});
+
+
 %read audio file
-[y,fs]=audioread('test.wav');
+[y,fs]=audioread(p.Results.AudioFile);
 
 %check fs and resample if nessicessary
 if(fs<44.1e3)
@@ -20,6 +40,21 @@ if(size(y,2)>1)
     y=y(:,1);
 end
 
+%check if a noise file was given
+if(~isempty(p.Results.BGNoiseFile))
+    %read background noise file
+    [nf,nfs]=audioread(p.Results.BGNoiseFile);
+    %check if sample rates match
+    if(nfs~=fs)
+        %resample if nessicessary
+        nf=resample(nf,fs/nfs,1);
+    end
+    %extend noise file to match y
+    nf=repmat(nf,ceil(length(y)/length(nf)),1);
+    %add noise file to sample
+    y=y+p.Results.BGNoiseVolume*nf(1:length(y));
+end
+
 %maximum size for a run
 max_size=2e3;
 
@@ -38,17 +73,14 @@ dev_name=choose_device(aPR);
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
 
-%number of trials
-N=100;
-
 %run size
-Sr=min(N,max_size);
+Sr=min(p.Results.Trials,max_size);
 
 %calculate the number of runs that will be required
-runs=ceil(N/Sr);
+runs=ceil(p.Results.Trials/Sr);
 
 %get git status
-git_status=gitStatus();
+git_status=gitStatus();                                                     %#ok git_status is saved in .m file
 
 %folder name for tx data
 tx_dat_fold='tx-data';
@@ -102,7 +134,7 @@ else
 end
 
 %open radio interface
-ri=radioInterface();
+ri=radioInterface(p.Results.RadioPort);
 
 %generate base file name to use for all files
 base_filename=sprintf('Tx_capture%s_%s',test_type,dtn);
@@ -113,94 +145,101 @@ fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.
 %turn on LED when test starts
 ri.led(1,true);
 
-for kk=1:runs
+%turn on LED when test starts
+ri.led(1,true);
 
-    %if this is the last run, adjust the run size
-    if(kk==runs && kk>1)
-        Sr=N-Sr*(runs-1);
-    end
-    
-    %preallocate arrays
-    underRun=zeros(1,Sr);
-    overRun=zeros(1,Sr);
-    recordings=cell(1,Sr);
+try
+    for kk=1:runs
 
-    for k=1:Sr
-
-        %push the push to talk button
-        ri.ptt(true);
-        
-        %pause to let the radio key up
-        % 0.65 - access time limit UHF
-        % 0.68 - access time limit VHF
-        pause(0.68);
-        
-        %play and record audio data
-        [dat,underRun(k),overRun(k)]=play_record(aPR,y);
-
-        %un-push the push to talk button
-        ri.ptt(false);
-        
-        %add a pause after play_record to remove run to run dependencys
-        pause(3.1);
-        
-        %get maximum values
-        mx=max(dat);
-
-        if(mod(k,10)==0)
-            fprintf('Run %i of %i complete :\n',k,N);
-            %calculate RMS
-            rms=sqrt(mean(dat.^2));
-            %calculate maximum
-            [mx,mx_idx]=max(dat);
-            %print values
-            fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
-            %check if levels are low
-            if(rms<1e-3)
-                %print warning
-                warning('Low levels input levels detected. RMS = %g',rms);
-                %length of plot in sec
-                plen=0.01;
-                %generate range centered around maximum value
-                rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
-                if(length(rng)>length(dat))
-                    rng=1:length(dat);
-                end
-                %check that we didn't go off of the beginning of the array
-                if(rng(1)<1)
-                    %shift range
-                    rng=rng-rng(1)+1;
-                end
-                %check that we didn't go off of the end of the array
-                if(rng(end)>length(dat))
-                    %shift range
-                    rng=rng+(length(dat)-rng(end));
-                end
-                %new figure for plot
-                figure;
-                %generate time axis
-                t_r=((1:length(dat))-1)*1/fs;
-                %plot graph
-                plot(t_r(rng),dat(rng));
-                %force drawing
-                drawnow;
-            end
+        %if this is the last run, adjust the run size
+        if(kk==runs && kk>1)
+            Sr=p.Results.Trials-Sr*(runs-1);
         end
-        
-        %save data
-        recordings{k}=dat;
 
+        %preallocate arrays
+        underRun=zeros(1,Sr);
+        overRun=zeros(1,Sr);
+        recordings=cell(1,Sr);
+
+        for k=1:Sr
+
+            %push the push to talk button
+            ri.ptt(true);
+
+            %pause to let the radio key up
+            % 0.65 - access time limit UHF
+            % 0.68 - access time limit VHF
+            pause(0.68);
+
+            %play and record audio data
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+
+            %un-push the push to talk button
+            ri.ptt(false);
+
+            %add a pause after play_record to remove run to run dependencys
+            pause(3.1);
+
+            if(mod(k,10)==0)
+                fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
+                %calculate RMS
+                rms=sqrt(mean(dat.^2));
+                %calculate maximum
+                [mx,mx_idx]=max(dat);
+                %print values
+                fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+                %check if levels are low
+                if(rms<1e-3)
+                    %print warning
+                    warning('Low levels input levels detected. RMS = %g',rms);
+                    %length of plot in sec
+                    plen=0.01;
+                    %generate range centered around maximum value
+                    rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+                    if(length(rng)>length(dat))
+                        rng=1:length(dat);
+                    end
+                    %check that we didn't go off of the beginning of the array
+                    if(rng(1)<1)
+                        %shift range
+                        rng=rng-rng(1)+1;
+                    end
+                    %check that we didn't go off of the end of the array
+                    if(rng(end)>length(dat))
+                        %shift range
+                        rng=rng+(length(dat)-rng(end));
+                    end
+                    %new figure for plot
+                    figure;
+                    %generate time axis
+                    t_r=((1:length(dat))-1)*1/fs;
+                    %plot graph
+                    plot(t_r(rng),dat(rng));
+                    %force drawing
+                    drawnow;
+                end
+            end
+
+            %save data
+            recordings{k}=dat;
+
+        end
+        %save datafile
+        save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
+
+        if(kk<runs)
+            %clear saved variables
+            clear recordings underRun overRun
+
+            %pause for 10s to let writing complete
+            pause(10);
+        end
     end
-    %save datafile
-    save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
-    
-    if(kk<runs)
-        %clear saved variables
-        clear recordings underRun overRun
-    
-        %pause for 10s to let writing complete
-        pause(10);
-    end
+catch err
+    %save all data 
+    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','err','-v7.3');
+    %rethrow error
+    rethrow(err);
 end
 
 %print out completion message
@@ -229,9 +268,9 @@ delete(ri);
 %check if there was more than one run meaning that we should load in datafiles
 if(runs>1)
     %preallocate arrays
-    underRun=zeros(1,N);
-    overRun=zeros(1,N);
-    recordings=cell(1,N);
+    underRun=zeros(1,p.Results.Trials);
+    overRun=zeros(1,p.Results.Trials);
+    recordings=cell(1,p.Results.Trials);
     pos=1;
 
     for k=1:runs
