@@ -1,4 +1,65 @@
 function [dly_its, rx_rec,rx_name] = process(tx_name,varargin)
+%PROCESS process rx and tx files to get mouth to ear latency for a two
+%location test
+%
+%   PROCESS(tx_name) pdrocess a two location test with tx file named
+%   tx_name. if no folder is given PROCESS automatically searches in the
+%   tx-dat folder for the file. PROCESS searches for a matching rx file in
+%   the rx-data folder
+%
+%   PROCESS(tx_name,name,value) same as above but, specify test parameters
+%   using name value pairs. Posible test parameters are shown below:
+%
+%   NAME        TYPE            Description
+%
+%   rx_name     char vector     Name of rx file to use. This is used if the
+%                               rx file is in a nonstandard location or
+%                               with a nonstandard filename. 
+%   
+%   TcTol       double          Time code tollerence. This changes the
+%                               thresholds for what bit periods are
+%                               considered a one, zero and frame marker.
+%                               For example a TcTol value of 0.05 would
+%                               consider a bit period that is within +/- 5%
+%                               of the nominal value to be a valid bit. The
+%                               default value for TcTol is 0.2
+%
+%   WinArgs     cell array      Arguments for ITS_delay. The contents of
+%                               WinArgs are passed to ITS_delay and control
+%                               the window length and window overlap. The
+%                               default is {4,2} which gives a window
+%                               length of 4 seconds and a window overlap of
+%                               2 seconds
+%
+%   OverPlay    double          Over play is the amount of extra audio to
+%                               use from the rx file in seconds. The
+%                               default is 1 second
+%
+%See also tx_script, rx_script
+%
+
+%This software was developed by employees of the National Institute of
+%Standards and Technology (NIST), an agency of the Federal Government.
+%Pursuant to title 17 United States Code Section 105, works of NIST
+%employees are not subject to copyright protection in the United States and
+%are considered to be in the public domain. Permission to freely use, copy,
+%modify, and distribute this software and its documentation without fee is
+%hereby granted, provided that this notice and disclaimer of warranty
+%appears in all copies.
+%
+%THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
+%EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
+%WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
+%WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+%FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+%CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
+%FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
+%LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
+%OUT OF, RESULTING FROM, OR IN ANY WAY CONNECTED WITH THIS SOFTWARE,
+%WHETHER OR NOT BASED UPON WARRANTY, CONTRACT, TORT, OR OTHERWISE, WHETHER
+%OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
+%WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
+%USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
 %create new input parser
 p=inputParser();
