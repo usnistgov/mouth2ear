@@ -49,9 +49,6 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
     %add overplay parameter
     addParameter(p,'OverPlay',0.1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
 
-    %add window length argument
-    addOptional(p,'winLength',4,@(l)validateattributes(l,{'numeric'},{'scalar','positive'}));
-
     %set parameter names to be case sensitive
     p.CaseSensitive= true;
 
