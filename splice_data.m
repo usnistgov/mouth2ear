@@ -60,14 +60,14 @@ for i = 1:n_types
     %% Set up processed rx files
     disp(['Processing ' file_list{i}])
     % Load processed Rx data
-    load([procPath, '\' file_list{i} '-full.mat'])
+    load(fullfile(procPath,[file_list{i} '-full.mat']))
     % Size of processed data
     [m,~] = size(data);                                                    %#ok loaded from file
     for j = 1:m
         % Delay values for that session
         session_dat = data{j,2};
         % csv directory
-        csv_dir = [csv_Path '\' file_list{i}];
+        csv_dir = fullfile(csv_Path , file_list{i});
         if(~exist(csv_dir, 'dir'))
             mkdir(csv_dir)
         end
@@ -81,14 +81,14 @@ for i = 1:n_types
         % number of recordings
         [~,nRecs] = size(session_recs);
         % directory to store session wav files
-        wdir = [proc_rx_Path, '\', file_list{i}, '\session_', num2str(j)];
+        wdir = fullfile(proc_rx_Path, file_list{i}, ['session_', num2str(j)]);
         % if directory doen't exist, make it
         if(~exist(wdir,'dir'))
             mkdir(wdir)
         end
         for k = 1:nRecs
            % Name of wav file
-           wav_file = [wdir, '\rx', num2str(k), '.wav'];
+           wav_file = fullfile(wdir, ['rx', num2str(k), '.wav']);
            % Save recording as wav file
            audiowrite(wav_file, session_recs(:,k),fs);
         end
@@ -98,7 +98,7 @@ for i = 1:n_types
     if(strcmpi(test_loc_type,'2loc'))
         %% Set Up Processed tx files
         % Test type directory
-        tdir = [proc_tx_Path, '\', file_list{i}];
+        tdir = fullfile(proc_tx_Path, file_list{i});
         % if directory doesn't exist, make it
         if(~exist(tdir,'dir'))
             mkdir(tdir)
@@ -110,7 +110,7 @@ for i = 1:n_types
         % List of tx files
         tx_files = tx_names(f_ix);
         % Rx file dir
-        rdir = [tdir, '\rx_sessions'];
+        rdir = fullfile(tdir, 'rx_sessions');
         % if directory doesn't exist, make it
         if(~exist(rdir,'dir'))
             mkdir(rdir)
@@ -118,22 +118,22 @@ for i = 1:n_types
         
         for j = 1:length(tx_files)
             % session folder
-            sdir = [tdir, '\session_', num2str(j)];
+            sdir = fullfile(tdir, ['session_', num2str(j)]);
             if(~exist(sdir,'dir'))
                 mkdir(sdir)
             end
             % Load tx file
-            load([tx_path, '\', tx_files{j}])
+            load(fullfile(tx_path, tx_files{j}))
             for k=1:length(recordings)                                     %#ok loaded from file
-                wav_file = [sdir, '\tx', num2str(k), '.wav'];
+                wav_file = fullfile(sdir, ['tx', num2str(k), '.wav']);
                 audiowrite(wav_file,recordings{k}, fs);
             end
             
             % Identify corresponding rx file
-            rx_name = findRx([tx_path '\' tx_files{j}],rx_path);
+            rx_name = findRx(fullfile(tx_path , tx_files{j}),rx_path);
             copyfile(rx_name,rdir);
-            rx_name = strrep(rx_name,[rx_path '\'],'');
-            movefile([rdir '\' rx_name], [rdir, '\rx-session_', num2str(j), '.wav']);
+            rx_name = erase(rx_name,rx_path);
+            movefile(fullfile(rdir , rx_name), fullfile(rdir, ['rx-session_', num2str(j), '.wav']));
         end
     end
 end

@@ -116,7 +116,7 @@ end
 
 %% Save a mat file of extracted data
 if(saveDir)
-    saveF = [saveDir '\' datName];
+    saveF = fullfile(saveDir , datName);
 else
     saveF = datName;
 end
