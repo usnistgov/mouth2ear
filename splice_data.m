@@ -1,4 +1,90 @@
 function splice_data(Test_info)
+%SPLICE_DATA split test data into wav and csv files
+%
+%   SPLICE_DATA(Test_info)
+%
+%
+%   NAME                TYPE                Description
+%   
+%   Test_info          struct               Contains directory information
+%                                           regarding where current data is
+%                                           store and where newly formatted
+%                                           data should be stored
+%
+%   Depending on if the data was for a two location or single location test
+%   different fields are required of the struct Test_info
+%   --------------------------------------------------------------------
+%   One Location Data:
+%
+%   NAME                TYPE                Description
+%   Test_info.Type      char vector         Type of test, either '2loc' or
+%                                           '1loc'
+%
+%   Test_info.procPath  char vector         Path to where processed data
+%                                           from process_sessions()
+%                                           function are saved as .mat
+%                                           files
+%
+%  Test_info.procRxPath char vector         Path where spliced Rx wav files
+%                                           should be saved
+%
+%   Test_info.csvPath   char vector         Path where spliced csv files
+%                                           should be saved
+%
+%   Test_info.fileList  cell array          List of file names for which
+%                                           data needs to be split
+%   ---------------------------------------------------------------------
+%   Two Location Data:
+%
+%   NAME                TYPE                Description
+%   Test_info.Type      char vector         Type of test, either '2loc' or
+%                                           '1loc'
+%
+%   Test_info.procPath  char vector         Path where processed data
+%                                           from process_sessions()
+%                                           function are saved as .mat
+%                                           files
+%
+%   Test_info.txPath    char vector         Path where tx data from 
+%                                           tx_script saved 
+%
+%   Test_info.rxPath    char vector         Path where rx data from
+%                                           rx_script saved
+%
+%  Test_info.procRxPath char vector         Path where spliced Rx wav files
+%                                           should be saved.
+%
+%  Test_info.procTxPath char vector         Path where spliced Tx wav files
+%                                           should be saved
+%
+%   Test_info.csvPath   char vector         Path where spliced csv files
+%                                           should be saved
+%
+%   Test_info.fileList  cell array          List of file names for which
+%                                           data needs to be split
+
+%This software was developed by employees of the National Institute of
+%Standards and Technology (NIST), an agency of the Federal Government.
+%Pursuant to title 17 United States Code Section 105, works of NIST
+%employees are not subject to copyright protection in the United States and
+%are considered to be in the public domain. Permission to freely use, copy,
+%modify, and distribute this software and its documentation without fee is
+%hereby granted, provided that this notice and disclaimer of warranty
+%appears in all copies.
+%
+%THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
+%EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
+%WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
+%WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+%FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+%CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
+%FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
+%LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
+%OUT OF, RESULTING FROM, OR IN ANY WAY CONNECTED WITH THIS SOFTWARE,
+%WHETHER OR NOT BASED UPON WARRANTY, CONTRACT, TORT, OR OTHERWISE, WHETHER
+%OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
+%WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
+%USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
 test_loc_type = Test_info.Type;
 disp(['Processing ' test_loc_type])
