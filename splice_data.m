@@ -45,8 +45,6 @@ end
 if(~exist(csv_Path,'dir'))
     mkdir(csv_Path)
 end
-% processed data directory
-proc_dir = dir(procPath);
 
 % Number of file types
 n_types = length(file_list);
@@ -64,7 +62,7 @@ for i = 1:n_types
     % Load processed Rx data
     load([procPath, '\' file_list{i} '-full.mat'])
     % Size of processed data
-    [m,n] = size(data);
+    [m,~] = size(data);                                                    %#ok loaded from file
     for j = 1:m
         % Delay values for that session
         session_dat = data{j,2};
@@ -112,7 +110,7 @@ for i = 1:n_types
         % List of tx files
         tx_files = tx_names(f_ix);
         % Rx file dir
-        rdir = [tdir, '\rx_sessions']
+        rdir = [tdir, '\rx_sessions'];
         % if directory doesn't exist, make it
         if(~exist(rdir,'dir'))
             mkdir(rdir)
@@ -126,7 +124,7 @@ for i = 1:n_types
             end
             % Load tx file
             load([tx_path, '\', tx_files{j}])
-            for k=1:length(recordings)
+            for k=1:length(recordings)                                     %#ok loaded from file
                 wav_file = [sdir, '\tx', num2str(k), '.wav'];
                 audiowrite(wav_file,recordings{k}, fs);
             end

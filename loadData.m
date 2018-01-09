@@ -1,13 +1,15 @@
-function [data,rx_list] = loadData(Path, varargin)
+function [data,rx_list] = loadData(varargin)
+
 %% Parse inputs
 p = inputParser;
 default_datFile = 'na';
 default_descr = 'na';
 default_datType = 'na';
-default_saveDir = '';
-default_output = 'small';
+default_saveDir = pwd();
+default_path = pwd();
+
 % Path to pull data from
-addRequired(p,'Path');
+addParameter(p,'Path', default_path);
 % Option to include csv file that lists files to load and parse
 addParameter(p, 'datFile', default_datFile);
 % Option to identify files from descriptor in name
@@ -18,8 +20,10 @@ addParameter(p,'datType', default_datType);
 addParameter(p,'saveDir', default_saveDir);
 % Window Arguments for delays
 addParameter(p,'winArgs', {4,2}, @(l) cellfun(@(x) validateattributes(x,{'numeric'},{'positive','decreasing'}),l));
-parse(p,Path, varargin{:});
+parse(p,varargin{:});
 
+% Directory where measurement data stored
+Path = p.Results.Path;
 % CSV file of files to load from
 datFile = p.Results.datFile;
 % Text descriptor of files to load
@@ -68,7 +72,7 @@ elseif(~strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
         % second column: delay values
         data{i,2} = cell2mat(dly_its);
         % thrid column: recordings
-        data{i,3} = cleanRecs(recordings);
+        data{i,3} = cleanRecs(recordings);                                 %#ok read from load
     end
     datName = strrep(datFile, '.csv','-full.mat');
 elseif(strcmpi(datFile, 'na') && ~strcmpi(descr, 'na'))
@@ -107,7 +111,7 @@ elseif(strcmpi(datFile, 'na') && ~strcmpi(descr, 'na'))
     datName = [descr, '-full.mat'];
 else
     %% Both given
-    warning('never bothered to write case with both parameters...')
+    error('Supplied both descriptor and datFile')
 end
 
 %% Save a mat file of extracted data
@@ -133,7 +137,6 @@ function recMat = cleanRecs(recordings)
 
 % NOTE - recordings not guaranteed to be same length => all recordings
 % shorter than the longest recording padded with zeros at end
-m = length(recordings);
 maxLength = max(cellfun(@(y) length(y), recordings));
 % Number of trials in session
 nTrials = length(recordings);
