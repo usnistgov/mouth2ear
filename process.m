@@ -13,6 +13,8 @@ addParameter(p,'TcTol',0.2,@(l)validateattributes(l,{'numeric'},{'positive','rea
 addParameter(p,'winArgs', {4,2},@(l) cellfun(@(x) validateattributes(x,{'numeric'},{'positive','decreasing'}),l));
 %add overplay parameter
 addParameter(p,'OverPlay',1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
+% add rx folder parameter
+addParameter(p,'rx_folder', 'rx-data', @(l)validateattributes(l,{'char'},{'vector'}));
 
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
@@ -22,9 +24,6 @@ parse(p,tx_name,varargin{:});
 
 %folder name for tx data
 tx_dat_fold='tx-data';
-
-%folder name for rx data
-rx_dat_fold='rx-data';
 
 %folder name for plots
 plots_fold='plots';
@@ -83,7 +82,7 @@ if(isempty(p.Results.rx_name))
     tx_date=datetime(tx_datestr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
     
     %list files in the recive folder
-    names=cellstr(ls(fullfile('rx-data','Rx_capture_*')));
+    names=cellstr(ls(fullfile(p.Results.rx_folder,'Rx_capture_*')));
     
     %check that files were found
     if(isempty(names))
@@ -100,7 +99,7 @@ if(isempty(p.Results.rx_name))
         rx_date_start=datetime(dstr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
         
         %read info on the audio file
-        info=audioinfo(fullfile('rx-data',names{k}));
+        info=audioinfo(fullfile(p.Results.rx_folder,names{k}));
         
         %calculate the stop time
         rx_date_end=rx_date_start+seconds(info.Duration);
@@ -110,7 +109,7 @@ if(isempty(p.Results.rx_name))
             %flag as found
             found=1;
             %set rx filename
-            rx_name=fullfile(rx_dat_fold,names{k});
+            rx_name=fullfile(p.Results.rx_folder,names{k});
             %print out filename
             fprintf('Rx file found "%s"\n',rx_name);
             %exit the loop
@@ -131,7 +130,7 @@ else
     %check if rx_folder given
     if(isempty(rx_fold))
         %add folder to filename
-        rx_name=fullfile(rx_dat_fold,p.Results.rx_name);
+        rx_name=fullfile(p.Results.rx_folder,p.Results.rx_name);
     else
         %use name as given
         rx_name=p.Results.rx_name;

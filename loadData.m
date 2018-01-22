@@ -60,9 +60,12 @@ default_descr = 'na';
 default_datType = 'na';
 default_saveDir = pwd();
 default_path = pwd();
+default_rx_folder = 'rx-data';
 
 % Path to pull data from
 addParameter(p,'Path', default_path);
+% Path where rx data stored
+addParameter(p,'rx_folder', default_rx_folder);
 % Option to include csv file that lists files to load and parse
 addParameter(p, 'datFile', default_datFile);
 % Option to identify files from descriptor in name
@@ -117,15 +120,15 @@ elseif(~strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
             load(fNames{fIx(i)});
             rx_list{i} = fNames{fIx(i)};
         elseif(strcmpi(datType, '2loc'))
-            [dly_its,~,rx_name] = process(fNames{fIx(i)},'winArgs', p.Results.winArgs);
+            [dly_its,~,rx_name] = process(fNames{fIx(i)},'rx_folder',p.Results.rx_folder,'winArgs', p.Results.winArgs);
             rx_list{i} = rx_name;
         end
         % first column: file name
         data{i,1} = fNames{fIx(i)};
         % second column: delay values
         data{i,2} = cell2mat(dly_its);
-        % thrid column: recordings
-        data{i,3} = cleanRecs(recordings);                                 %#ok read from load
+        % third column: recordings
+        data{i,3} = cleanRecs(recordings);
     end
     datName = strrep(datFile, '.csv','-full.mat');
 elseif(strcmpi(datFile, 'na') && ~strcmpi(descr, 'na'))
@@ -148,7 +151,7 @@ elseif(strcmpi(datFile, 'na') && ~strcmpi(descr, 'na'))
             % Record file name 
             rx_list{i} = fList{i};
         elseif(strcmpi(datType, '2loc'))
-            [dly_its, recordings,rx_name] = process(fList{i}, 'winArgs', p.Results.winArgs);
+            [dly_its, recordings,rx_name] = process(fList{i}, 'rx_folder', p.Results.rx_folder, 'winArgs', p.Results.winArgs);
             % recording file name
             rx_list{i} = rx_name;
         else
@@ -169,7 +172,7 @@ end
 
 %% Save a mat file of extracted data
 if(saveDir)
-    saveF = fullfile(saveDir , datName);
+    saveF = [saveDir '\' datName];
 else
     saveF = datName;
 end
