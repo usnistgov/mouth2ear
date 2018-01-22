@@ -9,58 +9,59 @@ function splice_data(Test_info)
 %   Test_info          struct               Contains directory information
 %                                           regarding where current data is
 %                                           store and where newly formatted
-%                                           data should be stored
+%                                           data should be stored. See
+%                                           below for more info
 %
 %   Depending on if the data was for a two location or single location test
-%   different fields are required of the struct Test_info
+%   different fields are required of the struct Test_info as shown below:
 %   --------------------------------------------------------------------
 %   One Location Data:
 %
-%   NAME                TYPE                Description
-%   Test_info.Type      char vector         Type of test, either '2loc' or
+%   FIELD NAME          TYPE                Description
+%   Type                char vector         Type of test, either '2loc' or
 %                                           '1loc'
 %
-%   Test_info.procPath  char vector         Path to where processed data
+%   procPath            char vector         Path to where processed data
 %                                           from process_sessions()
 %                                           function are saved as .mat
 %                                           files
 %
-%  Test_info.procRxPath char vector         Path where spliced Rx wav files
+%   procRxPath          char vector         Path where spliced Rx wav files
 %                                           should be saved
 %
-%   Test_info.csvPath   char vector         Path where spliced csv files
+%   csvPath             char vector         Path where spliced csv files
 %                                           should be saved
 %
-%   Test_info.fileList  cell array          List of file names for which
+%   fileList  cell array          List of file names for which
 %                                           data needs to be split
 %   ---------------------------------------------------------------------
 %   Two Location Data:
 %
-%   NAME                TYPE                Description
-%   Test_info.Type      char vector         Type of test, either '2loc' or
+%   FIELD NAME          TYPE                Description
+%   Type                char vector         Type of test, either '2loc' or
 %                                           '1loc'
 %
-%   Test_info.procPath  char vector         Path where processed data
+%   procPath            char vector         Path where processed data
 %                                           from process_sessions()
 %                                           function are saved as .mat
 %                                           files
 %
-%   Test_info.txPath    char vector         Path where tx data from 
+%   txPath              char vector         Path where tx data from 
 %                                           tx_script saved 
 %
-%   Test_info.rxPath    char vector         Path where rx data from
+%   rxPath              char vector         Path where rx data from
 %                                           rx_script saved
 %
-%  Test_info.procRxPath char vector         Path where spliced Rx wav files
+%   procRxPath          char vector         Path where spliced Rx wav files
 %                                           should be saved.
 %
-%  Test_info.procTxPath char vector         Path where spliced Tx wav files
+%   procTxPath          char vector         Path where spliced Tx wav files
 %                                           should be saved
 %
-%   Test_info.csvPath   char vector         Path where spliced csv files
+%   csvPath             char vector         Path where spliced csv files
 %                                           should be saved
 %
-%   Test_info.fileList  cell array          List of file names for which
+%   fileList            cell array          List of file names for which
 %                                           data needs to be split
 
 %This software was developed by employees of the National Institute of
