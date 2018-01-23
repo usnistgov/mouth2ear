@@ -1,4 +1,55 @@
 function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
+%TIME_DECODE decode an IRIG-B timecode
+%
+%   [dates,fsamp]=TIME_DECODE(tca,fs) decodes timecode audio from tca into
+%   a datetime vector given by dates. fs is the audio sample rate for tca.
+%   fsamp is an array the same size as dates containing the audio sample
+%   number corosponding to each decoded timecode.
+%
+%   [dates,fsamp,frames]=TIME_DECODE(tca,fs) same as above but, also
+%   returns the decoded IRIG-B frames as a Nx9 matrix, where N is the
+%   length of the dates vector.
+%
+%   [dates,fsamp,frames,fbits]=TIME_DECODE(tca,fs) same as above but, also
+%   returns the decoded IRIG-B frame bits in a Nx100 matrix. The values in
+%   the matrix are -1, 0, 1, 2 for error, zero, one and frame marker bits
+%
+%   [__]=TIME_DECODE(__,name,value) specify decoding parameters with name
+%   value pairs. Possible parameters are shown below:
+%
+%   NAME        TYPE            Description
+%
+%   TcTol       double          Time code tollerence. This changes the
+%                               thresholds for what bit periods are
+%                               considered a one, zero and frame marker.
+%                               For example a TcTol value of 0.05 would
+%                               consider a bit period that is within +/- 5%
+%                               of the nominal value to be a valid bit. The
+%                               default value for TcTol is 0.2
+%
+
+%This software was developed by employees of the National Institute of
+%Standards and Technology (NIST), an agency of the Federal Government.
+%Pursuant to title 17 United States Code Section 105, works of NIST
+%employees are not subject to copyright protection in the United States and
+%are considered to be in the public domain. Permission to freely use, copy,
+%modify, and distribute this software and its documentation without fee is
+%hereby granted, provided that this notice and disclaimer of warranty
+%appears in all copies.
+%
+%THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
+%EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
+%WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
+%WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+%FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+%CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
+%FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
+%LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
+%OUT OF, RESULTING FROM, OR IN ANY WAY CONNECTED WITH THIS SOFTWARE,
+%WHETHER OR NOT BASED UPON WARRANTY, CONTRACT, TORT, OR OTHERWISE, WHETHER
+%OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
+%WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
+%USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
     %create new input parser
     p=inputParser();
