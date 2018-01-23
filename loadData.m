@@ -1,5 +1,9 @@
 function [data,rx_list] = loadData(varargin)
 %LOADDATA Process multiple sessions worth of measurement data
+%   [data, rx_list] = loadData(varargin) returns a cell array containing
+%   session names in column 1 and session delay values in column 2. rx_list
+%   is a cell array containing the names of the required received audio
+%   files for processing two location measurement data.
 %
 %   loadData(name,value) specify paramters as name value pairs. Possible
 %   name value pairs are shown below:
@@ -13,6 +17,9 @@ function [data,rx_list] = loadData(varargin)
 %                                           file names of the measurement
 %                                           data. Supply either datFile or
 %                                           descriptor, not both.
+%
+%   rx_folder           char vector         File path to where received
+%                                           audio data is stored
 %
 %   descriptor          char vector         String that is uniquely
 %                                           contained within the file names
