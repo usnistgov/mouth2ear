@@ -1,4 +1,6 @@
 function [rx_name] = findRx(tx_name)
+% Identify rx file associated with a given tx file
+
 %folder name for rx data
 rx_dat_fold='rx-data';
 

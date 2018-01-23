@@ -1,4 +1,6 @@
 function [dly_its, rx_rec,rx_name] = process(tx_name,varargin)
+% Align and calculate delay values for transmit and receive audio
+% associated with timecodes.
 
 %create new input parser
 p=inputParser();

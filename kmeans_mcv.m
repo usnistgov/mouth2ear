@@ -1,4 +1,6 @@
 function [ix, C] = kmeans_mcv(x, k, varargin)
+% Identify clusters within one dimensional data points
+%
 % Inputs: x - data
 %         k - number of centers
 %         iC - initialization guess for center locations. If not provided
