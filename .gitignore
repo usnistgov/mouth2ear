@@ -1,0 +1,28 @@
+
+#matlab temporary files
+*.asv
+
+#matlab data files
+*.mat
+
+#data directory
+data/
+
+#plots directory
+plots/
+
+#test type file
+test-type.txt
+
+# R autosaves
+.Rhistory
+
+# Plots
+*.png
+
+# Excel uncertainty
+*.xlsm
+*.xlsx
+
+# Data
+*.csv
