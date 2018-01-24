@@ -26,3 +26,4 @@ test-type.txt
 
 # Data
 *.csv
+.Rproj.user
