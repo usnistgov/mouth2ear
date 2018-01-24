@@ -14,7 +14,7 @@ lapply(
 )
 
 # Change working directory to source file directory
-# setwd(dirname(sys.frame(1)$ofile))
+setwd(dirname(sys.frame(1)$ofile))
 
 # Import functions from extra_functions.R
 source("extra_functions.R")
