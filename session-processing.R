@@ -1,6 +1,14 @@
-process.sessions <- function(varin){
+process.sessions <- function(all.setups,show.lags=F,show.plots=F){
   # process.sessions perform uncertainty analysis and report results for list of M2E latency tests
   #
+  #   process.sessions(varin) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
+  #   functions GUM and GUM.validate from the metRology package.
+  #
+  #   varin is a list containing two elements:
+  #   NAME          TYPE          DESCRIPTION
+  #   all.setups    list          List containing information for all tests. Further detailed below
+  #
+  #   show.lags     Boolean       Boolean informing whether or not autocorrelation
   # This software was developed by employees of the National Institute of
   # Standards and Technology (NIST), an agency of the Federal Government.
   # Pursuant to title 17 United States Code Section 105, works of NIST
@@ -24,11 +32,14 @@ process.sessions <- function(varin){
   # WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
   # USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
   
-  # variable containing setup information
-  all.setups <- varin$all.setups
-  
-  # variable to determine if autocorrelation lags should be plotted
-  show.lags <- varin$show.lags
+  # # variable containing setup information
+  # all.setups <- varin$all.setups
+  # 
+  # # variable to determine if autocorrelation lags should be printed
+  # show.lags <- varin$show.lags
+  # 
+  # # variable to detremine if autocorrelation plots should be plotted
+  # show.plots <- varin$show.plots
   
   # Initialize empty list to store delay values in
   setup.data <- list()
@@ -205,6 +216,13 @@ process.sessions <- function(varin){
     }
     # Store setup data
     setup.data[[gsub(" ", ".", setup$name)]] <- test.data
+    
+    if(show.plots){
+      print("In show.plots break")
+      pic.scale <- 3
+      png(filename = paste(setup$name, "autocorrelation.png"), height= pic.scale*800, width=1600*pic.scale)
+      multiplot(plotlist=plot.list, cols = 5)
+    }
   }
   
   

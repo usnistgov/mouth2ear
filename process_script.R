@@ -24,9 +24,6 @@ source("extra_functions.R")
 # Variables to keep at end of script
 keep.data <- c("all.setups","setup.data","test.GUM","df","test.autocorr","no.lag.oneloc","no.lag.twoloc")
 
-# Show Autocorrelation plots or not
-show.plots <- T
-
 # Initialize information for each set of tests
 
 oneLoc <- list(
@@ -86,15 +83,17 @@ twoLoc.field <- list(
 )
 
 # Determine if autocorrelation lags should be printed or not
-show.lags <- 0
+show.lags <- F
+
+# Show Autocorrelation plots or not
+show.plots <- T
 
 # Initialize list of all setups to run uncertainty analysis on
 all.setups <- list(oneLoc, twoLoc.lab,twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.lab)
 
-varin <- list(all.setups = all.setups, show.lags= show.lags)
-output <- process.sessions(varin)
+output <- process.sessions(all.setups = all.setups, show.lags= show.lags, show.plots=show.plots)
 
 df <- output$df
 
