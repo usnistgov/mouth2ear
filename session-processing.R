@@ -1,4 +1,12 @@
-process.sessions <- function(all.setups){
+process.sessions <- function(varin){
+  # process.sessions takes in a list of setups containing tests
+  
+  # variable containing setup information
+  all.setups <- varin$all.setups
+  
+  # variable to determine if autocorrelation lags should be plotted
+  show.lags <- varin$show.lags
+  
   # Initialize empty list to store delay values in
   setup.data <- list()
   # Initialize empty list to store GUM output in
@@ -10,9 +18,7 @@ process.sessions <- function(all.setups){
   # Measurement resolution
   meas.res <- 0.125e-3
   
-  # Flag for if any sessions had lag
-  no.lag.oneloc <- TRUE
-  no.lag.twoloc<-TRUE
+  
   for (setup in all.setups) {
     print(paste("-----------------", setup$name, "-----------------"))
     # Initialize list to store test data (stores each session individually)
@@ -52,16 +58,7 @@ process.sessions <- function(all.setups){
           trial.m[seq(from = 1,
                       to = length(trial.m),
                       by = setup$thinning[ix])]
-        # # Remove bad trials (If doing with thinning, make sure spacing between trials consistent)
-        # if(!is.na(setup$bad.Trials[ix])){
-        #
-        #
-        #   bt.sesh <- ceiling(setup$bad.Trials[ix]/length(trial.m))
-        #   if(bt.sesh == s.c){
-        #     bt.trial <- setup$bad.Trials %% length(trial.m)
-        #     trial.m[bt.trial]<- NA
-        #   }
-        # }
+
         
         # Store row means in session.data
         session.data[[gsub(".csv", "", session)]] <- trial.m
@@ -76,18 +73,13 @@ process.sessions <- function(all.setups){
         session.autocorr[[gsub(".csv","",session)]] <- autocorr
         
         # # Print lags
-        # print(paste("---- Lag:", autocorr$lag))
-        # print(paste("---- STD:", signif(sd(trial.m),3)))
+        if(show.lags){
+          print(paste("---- Lag:", autocorr$lag))
+        }
+        
         if(autocorr$lag>0){
           # print(paste("Bad lag", test))
           print(paste("---- Lag:", autocorr$lag))
-          if(grepl("1loc",test)){
-            # print("*******************FLAGGED*******************")
-            no.lag.oneloc<-FALSE
-          }
-          else{
-            no.lag.twoloc<-FALSE
-          }
         }
         
         # Initialize plot name
@@ -192,26 +184,6 @@ process.sessions <- function(all.setups){
     }
     # Store setup data
     setup.data[[gsub(" ", ".", setup$name)]] <- test.data
-    # if(show.plots){
-    #   if(no.lag.oneloc){
-    #     filename<-paste(setup$name,"ACF thinned well.png")
-    #   }
-    #   else{
-    #     filename<-paste(setup$name,"ACF_thinned_poor.png")
-    #   }
-    #   
-    #   if(no.lag.twoloc){
-    #     filename<-paste(setup$name,"ACF thinned well.png")
-    #   }
-    #   else{
-    #     filename<-paste(setup$name,"ACF_thinned_poor.png")
-    #   }
-    #   pic.scale<-3
-    #   png(filename = filename,height=pic.scale*800,width=1600*pic.scale)
-    #   # Create multiplot of all autocorrelation plots
-    #   multiplot(plotlist = plot.list, cols = 5)
-    #   dev.off()
-    # }
   }
   
   
@@ -220,79 +192,11 @@ process.sessions <- function(all.setups){
   colnames(df) <- names(unlist(test.GUM$`1loc-device-characterization`))
   rownames(df) <- names(test.GUM)
   
-  # print(df)
-  print(df[c("y","uc","nu.eff","k","U","valid")])
-  
-  cat("\n-----------Checking consistency between one and two location tests-----------\n")
-  # Compare between tests
-  test.types<-c("characterization","UHF-Direct","UHF-Trunked","VHF-Direct","VHF-Trunked")
-  for (test in test.types){
-    test.dat<- df[grepl(test,rownames(df)),] 
-    if(nrow(test.dat)>2){
-      # consistency <- list()
-      print(paste("--------", test, "--------"))
-      for(i in 1:(nrow(test.dat)-1)){
-        for(j in (i+1):nrow(test.dat)){
-          
-          # comp <- GUM(var.name=c("l1","l2"),
-          #             x.i=test.dat[c(i,j),"y"],
-          #             u.i=test.dat[c(i,j),"uc"],
-          #             nu.i=test.dat[c(i,j),"nu.eff"],
-          #             measurement.fnc="l1-l2")
-          # 
-          # consistency[[paste(i,j,sep="_")]] <- comp
-          
-          # Define CI i as A
-          a.1 <- test.dat[i,"y"] - test.dat[i,"U"]
-          a.2 <- test.dat[i,"y"] + test.dat[i,"U"]
-          
-          # Define CI j as B
-          b.1 <- test.dat[j,"y"] - test.dat[j,"U"]
-          b.2 <- test.dat[j,"y"] + test.dat[j,"U"]
-          
-          if( (a.1 < b.1 & b.1 < a.2)| (a.1 < b.2 & b.2 < a.2) | (b.1 < a.1 & a.1 < b.2) ){
-            # Endpoint of B contained in A or endpoint of A contained in B => overlap
-            cat(paste("Consistent:    ",rownames(test.dat[i,]), "&", rownames(test.dat[j,]), "\n"))
-          }
-          else{
-            cat(paste("NOT consistent:",rownames(test.dat[i,]), "&", rownames(test.dat[j,]), "\n"))
-          }
-        }
-      }
-    }
-    else{
-      consistency <- GUM(var.name=c("l1","l2"),
-                         x.i=test.dat[,"y"],
-                         u.i=test.dat[,"uc"],
-                         nu.i=test.dat[,"nu.eff"],
-                         measurement.fnc="l1-l2")
-      if(consistency$y-consistency$U<0 & consistency$y+consistency$U>0){
-        cat(paste(test,"is consistent\n"))
-      }
-      else{
-        cat(paste(test, "is NOT consistent \n"))
-      }
-    }
-  }
-  print("-------------Results-------------")
-  # for(i in 1:nrow(df)){
-  #   cat(paste(rownames(df[i,]), 1000*df[i,"y"], "\\pm", 1000*df[i,"U"], "\n"))
-  # }
-  
-  for(test in test.types){
-    test.dat<- df[grepl(test,rownames(df)),] 
-    cat(paste(test, "& $", signif(1000*test.dat[1,"y"],4), "\\pm", signif(1000*test.dat[1,"U"],2), "$ & $",
-              signif(1000*test.dat[2,"y"],4), "\\pm", signif(1000*test.dat[2,"U"],2), "$ & $", 
-              signif(1000*test.dat[3,"y"],4), "\\pm", signif(1000*test.dat[3,"U"],2), "$ \\\\ \\hline \n" ))
-  }
-  
+  # return data
   return(list(raw.data=setup.data,
               gum.data = test.GUM,
               df = df,
               autocorr.data = test.autocorr))
-  # Remove unnecessary data 
-  # rm(list = setdiff(ls(),keep.data))
-  # keep.data <- c("all.setups","setup.data","test.GUM","df","test.autocorr","no.lag.oneloc","no.lag.twoloc")
   
 }
 
