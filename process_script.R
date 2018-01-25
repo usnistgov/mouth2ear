@@ -14,7 +14,7 @@ lapply(
 )
 
 # Change working directory to source file directory
-# setwd(dirname(sys.frame(1)$ofile))
+setwd(dirname(sys.frame(1)$ofile))
 
 # Import process.sessions function from session-processing.R
 source("session-processing.R")
@@ -39,12 +39,6 @@ oneLoc <- list(
     "1loc-VHF-Direct-wired-p25-lab-Vol-11",
     "1loc-VHF-Trunked-wired-p25-lab-Vol-11"
   ),
-  bad.Trials = c(NA, # characterization
-                 NA, # uhf direct
-                 NA, # uhf trunked
-                 NA, # vhf direct
-                 NA # vhf trunked
-  ),
   thinning = c(3, # characterization
                4, # uhf direct
                4, # uhf trunked
@@ -62,12 +56,6 @@ twoLoc.lab <- list(
     "UHF-Trunked-p25-lab-wired-Vol-11", # uhf trunked lab
     "VHF-Direct-p25-lab-wired-Vol-11", # vhf direct lab
     "VHF-Trunked-p25-lab-wired-Vol-11" # vhf trunked lab
-  ),
-  bad.Trials = c(NA, # characterization
-                 NA, # lab uhf direct
-                 NA, # lab uhf trunked
-                 NA, # lab vhf direct
-                 NA # lab vhf trunked
   ),
   thinning = c(4, # characterization
                3, # lab uhf direct
@@ -87,12 +75,6 @@ twoLoc.field <- list(
     "UHF-Trunked-US36-G", #uhf trunked field
     "VHF-Direct-US36-G", # vhf direct field
     "VHF-Trunked-US36-G" # vhf trunked field
-  ),
-  bad.Trials = c(NA, # characterization
-                 NA, # field uhf direct
-                 NA, # field uhf trunked
-                 NA, # field vhf direct
-                 NA  # field vhf trunked
   ),
   thinning = c(4, # characterization
                5, # field uhf direct
