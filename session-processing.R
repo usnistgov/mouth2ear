@@ -54,13 +54,13 @@ process.sessions <- function(all.setups,show.lags=F){
   #
   # -------------------------Outputs------------------------------------------
   #   NAME          TYPE                  DESCRIPTION
-  #   raw.data      
+  #   thinned.data  list                  List with thinned data vectors for each session of each test of each test setup    
   #
-  #   gum.data
+  #   gum.data      list                  List with GUM output for each session of each test of each test setup
   #
-  #   df
+  #   df            data.frame            Dataframe with GUM() output for all tests
   #
-  #   autocorr.data
+  #   autocorr.data list                  List with autocorr.unc() output for each session of each test of each setup
   
 
   # Initialize empty list to store delay values in
@@ -239,7 +239,7 @@ process.sessions <- function(all.setups,show.lags=F){
   rownames(df) <- names(test.GUM)
   
   # return data
-  return(list(raw.data=setup.data,
+  return(list(thinned.data=setup.data,
               gum.data = test.GUM,
               df = df,
               autocorr.data = test.autocorr))
