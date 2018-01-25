@@ -1,4 +1,4 @@
-process.sessions <- function(all.setups,show.lags=F,show.plots=F){
+process.sessions <- function(all.setups,show.lags=F){
   # process.sessions perform uncertainty analysis and report results for list of M2E latency tests
   #
   #   process.sessions(varin) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
@@ -31,15 +31,7 @@ process.sessions <- function(all.setups,show.lags=F,show.plots=F){
   # OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
   # WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
   # USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
-  
-  # # variable containing setup information
-  # all.setups <- varin$all.setups
-  # 
-  # # variable to determine if autocorrelation lags should be printed
-  # show.lags <- varin$show.lags
-  # 
-  # # variable to detremine if autocorrelation plots should be plotted
-  # show.plots <- varin$show.plots
+
   
   # Initialize empty list to store delay values in
   setup.data <- list()
@@ -120,15 +112,6 @@ process.sessions <- function(all.setups,show.lags=F,show.plots=F){
         # Clean plot names
         plot.name <- gsub("session_", "", gsub("-"," ", gsub("p25-lab-", "", gsub(".csv", "", plot.name))))
         
-        
-        if (show.plots) {
-          # Create autocorrelation plot
-          fplot <- acf.adj(autocorr,
-                           plot.title = plot.name,
-                           show.plot = FALSE)
-          # Store plot information
-          plot.list[[plot.name]] <- fplot
-        }
 
       }
       # Store test data
@@ -217,12 +200,6 @@ process.sessions <- function(all.setups,show.lags=F,show.plots=F){
     # Store setup data
     setup.data[[gsub(" ", ".", setup$name)]] <- test.data
     
-    if(show.plots){
-      print("In show.plots break")
-      pic.scale <- 3
-      png(filename = paste(setup$name, "autocorrelation.png"), height= pic.scale*800, width=1600*pic.scale)
-      multiplot(plotlist=plot.list, cols = 5)
-    }
   }
   
   
