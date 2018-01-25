@@ -1,6 +1,22 @@
 acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
-  # # Similar to acf() function, also plots arbitrary bound lines 
-  # autocorr expected to be output from autocorr.unc
+  # Plots estimates of autocorrelation generated from autocorr.unc()
+  #
+  # Similar to R default acf() function, can also plot arbitrary bound lines. Useful when plotting the cut off lag proposed by Zhang in Calculation of the uncertainty of the mean of autocorrelated measurements (2006).
+  #
+  # -------------------------Inputs-------------------------------------------
+  #   NAME          TYPE                  DESCRIPTION
+  #   autocorr      list                  Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
+  #
+  #   plot.title    character             Title of the desired ACF plot
+  #
+  #   lag.max       Numeric               Maximum lag to be shown in ACF plot
+  #
+  #   show.plot     Boolean               Show plot in Rstudio window or not
+  #
+  # -------------------------Outputs-------------------------------------------
+  #   NAME          TYPE                  DESCRIPTION
+  #   fplot         ggplot                Plot object of ACF plot
+  
   
   if(is.null(lag.max)){
     # If lag.max not set, initiate it to a quarter of the size of the data
