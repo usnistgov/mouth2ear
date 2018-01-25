@@ -86,7 +86,7 @@ twoLoc.field <- list(
 show.lags <- F
 
 # Initialize list of all setups to run uncertainty analysis on
-all.setups <- list(oneLoc, twoLoc.lab,twoLoc.field)
+all.setups <- list(oneLoc, twoLoc.lab, twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.lab)
 
