@@ -1,14 +1,35 @@
 process.sessions <- function(all.setups,show.lags=F){
   # process.sessions perform uncertainty analysis and report results for list of M2E latency tests
   #
-  #   process.sessions(varin) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
+  #   process.sessions(all.setups) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
   #   functions GUM and GUM.validate from the metRology package.
   #
-  #   varin is a list containing two elements:
-  #   NAME          TYPE          DESCRIPTION
-  #   all.setups    list          List containing information for all tests. Further detailed below
+  #   process.sessions(all.setups, show.lags = T) prints the maximum lag for which significant autocorrelation is present for each session of each test.
   #
-  #   show.lags     Boolean       Boolean informing whether or not autocorrelation
+  # -------------------------Inputs-------------------------------------------
+  #   NAME          TYPE                  DESCRIPTION
+  #   all.setups    list                  List containing information for all tests. Further detailed below.
+  #
+  #   show.lags     Boolean               Boolean informing whether or not to print the maximum lag for which significant autocorrelation is present for each session of each test
+  #
+  # ----------Details on all.setups list elements:----------------------------
+  #
+  #   NAME          TYPE                  DESCRIPTION
+  #   name          character             Name of test setup (i.e. Single Location Cabled Tests)
+  #
+  #   path          character             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
+  #
+  #   tests         character vector      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode"))
+  #
+  #   thinning      numeric vector        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
+  #                                       by using every third data point to eliminate significant autocorrelation, Device X Trunked must be thinned by using every fifth data point, and Device Y Direct 
+  #                                       Mode must be thinned by using every second data point then thinning would be c(3,5,2).
+  #
+  # --------------------Package Dependencies----------------------------------
+  # The function relies on the following packages:
+  # ggplot2, grid, DEoptimR, MASS, metRology, numDeriv, robustbase
+  #
+  # --------------------------------------------------------------------------
   # This software was developed by employees of the National Institute of
   # Standards and Technology (NIST), an agency of the Federal Government.
   # Pursuant to title 17 United States Code Section 105, works of NIST

@@ -1,7 +1,7 @@
 # clear work space
 rm(list = ls())
 # Required packages
-packages <- c("ggplot2", "plotly", "grid", "DEoptimR", "MASS","metRology","numDeriv","robustbase")
+packages <- c("ggplot2", "grid", "DEoptimR", "MASS","metRology","numDeriv","robustbase")
 
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))
