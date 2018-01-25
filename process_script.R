@@ -85,15 +85,12 @@ twoLoc.field <- list(
 # Determine if autocorrelation lags should be printed or not
 show.lags <- F
 
-# Show Autocorrelation plots or not
-show.plots <- T
-
 # Initialize list of all setups to run uncertainty analysis on
 all.setups <- list(oneLoc, twoLoc.lab,twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.field)
 # all.setups<-list(oneLoc, twoLoc.lab)
 
-output <- process.sessions(all.setups = all.setups, show.lags= show.lags, show.plots=show.plots)
+output <- process.sessions(all.setups = all.setups, show.lags= show.lags)
 
 df <- output$df
 
