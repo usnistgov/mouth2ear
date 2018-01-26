@@ -60,11 +60,28 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
 }
 
 autocorr.unc <- function(y) {
-  # Calculate uncertainty corrected for correlation within the data
-  # Referenced equations from "Calculations of the uncertainty of mean of
-  # autocorrelated measurements"
+  # Determine if data autocorrelated and calculate corrected uncertainty autocorrelated data
+  #
+  # -------------------------Inputs-------------------------------------------
+  #   NAME          TYPE                  DESCRIPTION
+  #   y             numeric vector        Vector of data on which to calculate sample autocorrelation and uncertainty
+  #
+  # -------------------------Outputs------------------------------------------
+  #   NAME          TYPE                  DESCRIPTION
+  #   u             Numeric               Uncertainty corrected for autocorrelation if significant autocorrelation detected
+  #
+  #   lag           Numeric               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
+  #
+  #   rho           Numeric vector        Sample autocorrelation
+  #
+  #   sigma         Numeric Vector        Sample autocorrelation variance estimator
+  #
+  #   r             Numeric               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
+  #
+  #---------------- Referenced equations from---------------------------------
+  # Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. Metrologia 43(4):S276. URL https://stacks.iop.org/0026-1394/43/i=4/a=S15
   
-  # y is a vector of values on which to estimate the autocorrelation
+  
   
   # remove na values from y
   y <- y[!is.na(y)]
