@@ -19,7 +19,7 @@ setwd(dirname(sys.frame(1)$ofile))
 # Import process.sessions function from session-processing.R
 source("session-processing.R")
 # Import functions from extra_functions.R
-source("extra_functions.R")
+# source("extra_functions.R")
 
 # Variables to keep at end of script
 keep.data <- c("all.setups","setup.data","test.GUM","df","test.autocorr","no.lag.oneloc","no.lag.twoloc")
