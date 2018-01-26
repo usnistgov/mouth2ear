@@ -46,7 +46,7 @@ process.sessions <- function(all.setups,show.lags=F){
   #
   #   path          character             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
   #
-  #   tests         character vector      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode"))
+  #   tests         character vector      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode")). Must match the folder names that contain the session csv files for that test.
   #
   #   thinning      numeric vector        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
   #                                       by using every third data point to eliminate significant autocorrelation, Device X Trunked must be thinned by using every fifth data point, and Device Y Direct 

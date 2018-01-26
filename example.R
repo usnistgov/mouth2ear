@@ -24,8 +24,13 @@
 # --------------------Package Dependencies----------------------------------
 # The following functions rely on the following packages:
 # ggplot2, grid, DEoptimR, MASS, metRology, numDeriv, robustbase
+
+# Function for effectively clearing console
 clc <- function() cat(rep("\n",50))
+# Clear console
 clc()
+
+# Display example information
 print(paste("The following code calculates the M2E latency and associated uncertainty",
             "of the example measurements presented in MCV QoE Mouth-to-Ear Latency Measurement Methods.",
             "The NIST technical report is available at https://doi.org/10.6028/NIST.IR.XXXX.",
@@ -40,14 +45,17 @@ print(paste("The following code calculates the M2E latency and associated uncert
             "that propagation effects while communicating over the air are negligible to overall M2E latency."))
 readline(prompt = "Press Enter to clear the R environment and begin the example.")
 clc()
+
+
 # clear work space
-rm(list = ls())
+rm(list = setdiff(ls(),"clc"))
 # Required packages
 packages <- c("ggplot2", "grid", "DEoptimR", "MASS","metRology","numDeriv","robustbase")
-
+# Install any required packages user doesn't have
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))
 }
+# Add required packages to library
 lapply(
   packages,
   FUN = function(packages) {
@@ -55,23 +63,23 @@ lapply(
   }
 )
 
+# Query user for path to one location delay values
 oneLoc.path <- readline(prompt = "Paste Path to One Location Delay Values:")
+# Query user for path to two location delay values
 twoLoc.path <- readline(prompt = "Paste Path to Two Location Delay Values:")
 
 clc()
+
 # Change working directory to source file directory
 setwd(dirname(sys.frame(1)$ofile))
 
 # Import process.sessions function from session-processing.R
 source("session-processing.R")
-# Import functions from extra_functions.R
-# source("extra_functions.R")
 
 # Variables to keep at end of script
 keep.data <- c("all.setups","setup.data","test.GUM","df","test.autocorr","no.lag.oneloc","no.lag.twoloc")
 
 # Initialize information for each set of tests
-
 oneLoc <- list(
   name = "One Location Lab",
   path = oneLoc.path,
@@ -133,30 +141,33 @@ show.lags <- F
 
 # Initialize list of all setups to run uncertainty analysis on
 all.setups <- list(oneLoc, twoLoc.lab, twoLoc.field)
-# all.setups<-list(oneLoc, twoLoc.field)
-# all.setups<-list(oneLoc, twoLoc.lab)
 
+# Run M2E latency and uncertainty calculations
 output <- process.sessions(all.setups = all.setups, show.lags= show.lags)
 
+# M2E latency and uncertainty for all tests 
 df <- output$df
 
-# print(df)
+# Print select information on values and uncertainty for each test
+cat("\n-----------------Uncertainty Information------------------\n")
 print(df[c("y","uc","nu.eff","k","U","valid")])
 
 cat("\n-----------Checking consistency between one and two location tests-----------\n")
 # Compare between tests
 test.types<-c("characterization","UHF-Direct","UHF-Trunked","VHF-Direct","VHF-Trunked")
 for (test in test.types){
+  # Test information
   test.dat<- df[grepl(test,rownames(df)),] 
   print(paste("--------", test, "--------"))
+  # If more than two tests being compared
   if(nrow(test.dat)>2){
     for(i in 1:(nrow(test.dat)-1)){
       for(j in (i+1):nrow(test.dat)){
-        # Define CI i as A
+        # Define CI i as A = (a.1 - U, a.1 + U)
         a.1 <- test.dat[i,"y"] - test.dat[i,"U"]
         a.2 <- test.dat[i,"y"] + test.dat[i,"U"]
         
-        # Define CI j as B
+        # Define CI j as B = (b.1 - U, b.1 + U)
         b.1 <- test.dat[j,"y"] - test.dat[j,"U"]
         b.2 <- test.dat[j,"y"] + test.dat[j,"U"]
         
@@ -171,16 +182,21 @@ for (test in test.types){
     }
   }
   else if(nrow(test.dat) == 2){
-    consistency <- GUM(var.name=c("l1","l2"),
-                       x.i=test.dat[,"y"],
-                       u.i=test.dat[,"uc"],
-                       nu.i=test.dat[,"nu.eff"],
-                       measurement.fnc="l1-l2")
-    if(consistency$y-consistency$U<0 & consistency$y+consistency$U>0){
-      cat(paste(test,"is consistent\n"))
+    # Only two tests being compared
+    # Define CI i as A = (a.1 - U, a.1 + U)
+    a.1 <- test.dat[1,"y"] - test.dat[1,"U"]
+    a.2 <- test.dat[1,"y"] + test.dat[1,"U"]
+    
+    # Define CI j as B = (b.1 - U, b.1 + U)
+    b.1 <- test.dat[2,"y"] - test.dat[2,"U"]
+    b.2 <- test.dat[2,"y"] + test.dat[2,"U"]
+    
+    if( (a.1 < b.1 & b.1 < a.2)| (a.1 < b.2 & b.2 < a.2) | (b.1 < a.1 & a.1 < b.2) ){
+      # Endpoint of B contained in A or endpoint of A contained in B => overlap
+      cat(paste("Consistent:    ",rownames(test.dat[1,]), "&", rownames(test.dat[2,]), "\n"))
     }
     else{
-      cat(paste(test, "is NOT consistent \n"))
+      cat(paste("NOT consistent:",rownames(test.dat[1,]), "&", rownames(test.dat[2,]), "\n"))
     }
   }
 }
