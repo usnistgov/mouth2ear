@@ -62,7 +62,7 @@ process.sessions <- function(all.setups,show.lags=F){
   #'
   #'   autocorr.data list                  List with autocorr.unc() output for each session of each test of each setup
   
-
+  
   # Initialize empty list to store delay values in
   setup.data <- list()
   # Initialize empty list to store GUM output in
@@ -113,7 +113,7 @@ process.sessions <- function(all.setups,show.lags=F){
           trial.m[seq(from = 1,
                       to = length(trial.m),
                       by = setup$thinning[ix])]
-
+        
         
         # Store row means in session.data
         session.data[[gsub(".csv", "", session)]] <- trial.m
@@ -142,7 +142,7 @@ process.sessions <- function(all.setups,show.lags=F){
         # Clean plot names
         plot.name <- gsub("session_", "", gsub("-"," ", gsub("p25-lab-", "", gsub(".csv", "", plot.name))))
         
-
+        
       }
       # Store test data
       test.data[[test]] <- session.data
