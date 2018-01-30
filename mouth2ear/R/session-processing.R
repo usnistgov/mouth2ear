@@ -33,34 +33,28 @@ process.sessions <- function(all.setups,show.lags=F){
   #'   functions GUM and GUM.validate from the metRology package.
   #'
   #'   process.sessions(all.setups, show.lags = T) prints the maximum lag for which significant autocorrelation is present for each session of each test.
+  #'   
+  #' @param   \code{show.lags}     \emph{logical.}              Informs whether or not to print the maximum lag for which significant autocorrelation is present for each session of each test
+  #' @param   \code{all.setups}    \emph{list.}                  List containing information for all tests. Further detailed below.
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   all.setups    list                  List containing information for all tests. Further detailed below.
+  #'   \code{name}          \emph{character.}             Name of test setup (i.e. Single Location Cabled Tests)
   #'
-  #'   show.lags     Boolean               Boolean informing whether or not to print the maximum lag for which significant autocorrelation is present for each session of each test
+  #'   \code{path}          \emph{character.}             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
   #'
-  #' ----------Details on all.setups list elements:----------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   name          character             Name of test setup (i.e. Single Location Cabled Tests)
+  #'   \code{tests}         \emph{character vector.}      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode")). Must match the folder names that contain the session csv files for that test.
   #'
-  #'   path          character             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
-  #'
-  #'   tests         character vector      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode")). Must match the folder names that contain the session csv files for that test.
-  #'
-  #'   thinning      numeric vector        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
+  #'   \code{thinning}      \emph{numeric vector.}        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
   #'                                       by using every third data point to eliminate significant autocorrelation, Device X Trunked must be thinned by using every fifth data point, and Device Y Direct 
   #'                                       Mode must be thinned by using every second data point then thinning would be c(3,5,2).
+  #'                                       
+  #' @return  A list containing the following components: 
+  #' @return   \code{thinned.data}  \emph{list.}                  List with thinned data vectors for each session of each test of each test setup    
   #'
-  #' -------------------------Outputs------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   thinned.data  list                  List with thinned data vectors for each session of each test of each test setup    
+  #' @return   \code{gum.data}      \emph{list.}                  List with GUM output for each session of each test of each test setup
   #'
-  #'   gum.data      list                  List with GUM output for each session of each test of each test setup
+  #' @return   \code{df}            \emph{data.frame.}           Dataframe with GUM() output for all tests
   #'
-  #'   df            data.frame            Dataframe with GUM() output for all tests
-  #'
-  #'   autocorr.data list                  List with autocorr.unc() output for each session of each test of each setup
+  #' @return   \code{autocorr.data} \emph{list.}                  List with autocorr.unc() output for each session of each test of each setup
   
   
   # Initialize empty list to store delay values in
