@@ -56,12 +56,19 @@ process.sessions <- function(all.setups,show.lags=F){
   #'
   #' @return   \code{autocorr.data} \emph{list.}                  List with autocorr.unc() output for each session of each test of each setup
   #'
-  #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX. Note data must be stored on computer
-  #'  # Initialize lists for all test setups used
+  #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX.
+  #' 
+  #' # Full system path where 1loc data stored
+  #' oneLoc.path <- system.file("extdata","Delay_Values", "1loc", package="mouth2ear")
+  #' 
+  #' # Full system path where 2loc data stored
+  #' twoLoc.path <- system.file("extdata","Delay_Values", "2loc", package="mouth2ear")
+  #' 
+  #' # Initialize lists for all test setups used
   #' # One location lab test setup information
   #' oneLoc <- list(
   #' name = "One Location Lab",
-  #' path = oneLoc.path, # path where one location data stored
+  #' path = oneLoc.path,
   #' tests = c(
   #'   "1loc-device-characterization",
   #'   "1loc-UHF-Direct-wired-p25-lab-Vol-11",
@@ -313,19 +320,28 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
   #'
   #' Similar to R default acf() function, can also plot arbitrary bound lines. Useful when plotting the cut off lag proposed by Zhang in Calculation of the uncertainty of the mean of autocorrelated measurements (2006).
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   autocorr      list                  Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
+  #' @param    \code{autocorr}  \emph{list.}      Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
   #'
-  #'   plot.title    character             Title of the desired ACF plot
+  #' @param   \code{plot.title}    \emph{character.}             Title of the desired ACF plot
   #'
-  #'   lag.max       Numeric               Maximum lag to be shown in ACF plot
+  #' @param \code{lag.max}       \emph{Numeric.}               Maximum lag to be shown in ACF plot
   #'
-  #'   show.plot     Boolean               Show plot in Rstudio window or not
+  #' @param   \code{show.plot}     \emph{logical.}               Show plot in Rstudio window or not
   #'
-  #' -------------------------Outputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   fplot         ggplot                Plot object of ACF plot
+  #' @return   \code{fplot}         \emph{ggplot}                Plot object of ACF plot
+  #' 
+  #' @references Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #' 
+  #' @examples # Generate a set of 1000 numbers from the standard normal distribution
+  #' y <- rnorm(1000)
+  #' 
+  #' # Calculate the autocorrelation and adjusted uncertainty for y
+  #' autocorr <- autocorr.unc(y)
+  #' 
+  #' # Plot acf plot with adjusted bounds defined by autocorr.unc
+  #' fig <- acf.adj(autocorr)
+  #' 
+  #' @export
   
   
   if(is.null(lag.max)){
@@ -372,24 +388,23 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
 autocorr.unc <- function(y) {
   #' Determine if data autocorrelated and calculate corrected uncertainty autocorrelated data
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   y             numeric vector        Vector of data on which to calculate sample autocorrelation and uncertainty
   #'
-  #' -------------------------Outputs------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   u             Numeric               Uncertainty corrected for autocorrelation if significant autocorrelation detected
+  #' @param   \code{y}             \emph{numeric vector}        Vector of data on which to calculate sample autocorrelation and uncertainty
+  #' 
+  #' @return  A list with the following elements:
+  #' 
+  #' \code{u}             \emph{numeric.}               Uncertainty corrected for autocorrelation if significant autocorrelation detected
   #'
-  #'   lag           Numeric               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
+  #' \code{lag}           \emph{numeric.}               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
   #'
-  #'   rho           Numeric vector        Sample autocorrelation
+  #' \code{rho}           \emph{numeric vector.}        Sample autocorrelation
   #'
-  #'   sigma         Numeric Vector        Sample autocorrelation variance estimator
+  #' \code{sigma}         \emph{numeric Vector.}        Sample autocorrelation variance estimator
   #'
-  #'   r             Numeric               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
+  #' \code{r}             \emph{numeric.}               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
   #'
-  #'---------------- Referenced equations from---------------------------------
-  #' Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. Metrologia 43(4):S276. URL https://stacks.iop.org/0026-1394/43/i=4/a=S15
+  #'
+  #'@references Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
   
   
   

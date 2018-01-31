@@ -40,12 +40,19 @@ process.sessions(all.setups) performs uncertainty analysis on the input test dat
 process.sessions(all.setups, show.lags = T) prints the maximum lag for which significant autocorrelation is present for each session of each test.
 }
 \examples{
-Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX. Note data must be stored on computer
- # Initialize lists for all test setups used
+Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX.
+
+# Full system path where 1loc data stored
+oneLoc.path <- system.file("extdata","Delay_Values", "1loc", package="mouth2ear")
+
+# Full system path where 2loc data stored
+twoLoc.path <- system.file("extdata","Delay_Values", "2loc", package="mouth2ear")
+
+# Initialize lists for all test setups used
 # One location lab test setup information
 oneLoc <- list(
 name = "One Location Lab",
-path = oneLoc.path, # path where one location data stored
+path = oneLoc.path,
 tests = c(
   "1loc-device-characterization",
   "1loc-UHF-Direct-wired-p25-lab-Vol-11",

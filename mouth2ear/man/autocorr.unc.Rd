@@ -6,24 +6,25 @@
 \usage{
 autocorr.unc(y)
 }
-\description{
--------------------------Inputs-------------------------------------------
-  NAME          TYPE                  DESCRIPTION
-  y             numeric vector        Vector of data on which to calculate sample autocorrelation and uncertainty
+\arguments{
+\item{\code{y}}{\emph{numeric vector}        Vector of data on which to calculate sample autocorrelation and uncertainty}
 }
-\details{
--------------------------Outputs------------------------------------------
-  NAME          TYPE                  DESCRIPTION
-  u             Numeric               Uncertainty corrected for autocorrelation if significant autocorrelation detected
+\value{
+A list with the following elements:
 
-lag           Numeric               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
+\code{u}             \emph{numeric.}               Uncertainty corrected for autocorrelation if significant autocorrelation detected
 
-rho           Numeric vector        Sample autocorrelation
+\code{lag}           \emph{numeric.}               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
 
-sigma         Numeric Vector        Sample autocorrelation variance estimator
+\code{rho}           \emph{numeric vector.}        Sample autocorrelation
 
-r             Numeric               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
+\code{sigma}         \emph{numeric Vector.}        Sample autocorrelation variance estimator
 
----------------- Referenced equations from---------------------------------
-Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. Metrologia 43(4):S276. URL https://stacks.iop.org/0026-1394/43/i=4/a=S15
+\code{r}             \emph{numeric.}               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
+}
+\description{
+Determine if data autocorrelated and calculate corrected uncertainty autocorrelated data
+}
+\references{
+Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
 }

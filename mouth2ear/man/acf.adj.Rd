@@ -6,21 +6,32 @@
 \usage{
 acf.adj(autocorr, plot.title = "", lag.max = NULL, show.plot = TRUE)
 }
+\arguments{
+\item{\code{autocorr}}{\emph{list.}      Output of autocorr.unc(y) (see below), where y is a vector of the relevant data}
+
+\item{\code{plot.title}}{\emph{character.}             Title of the desired ACF plot}
+
+\item{\code{lag.max}}{\emph{Numeric.}               Maximum lag to be shown in ACF plot}
+
+\item{\code{show.plot}}{\emph{logical.}               Show plot in Rstudio window or not}
+}
+\value{
+\code{fplot}         \emph{ggplot}                Plot object of ACF plot
+}
 \description{
 Similar to R default acf() function, can also plot arbitrary bound lines. Useful when plotting the cut off lag proposed by Zhang in Calculation of the uncertainty of the mean of autocorrelated measurements (2006).
 }
-\details{
--------------------------Inputs-------------------------------------------
-  NAME          TYPE                  DESCRIPTION
-  autocorr      list                  Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
+\examples{
+# Generate a set of 1000 numbers from the standard normal distribution
+y <- rnorm(1000)
 
-plot.title    character             Title of the desired ACF plot
+# Calculate the autocorrelation and adjusted uncertainty for y
+autocorr <- autocorr.unc(y)
 
-lag.max       Numeric               Maximum lag to be shown in ACF plot
+# Plot acf plot with adjusted bounds defined by autocorr.unc
+fig <- acf.adj(autocorr)
 
-show.plot     Boolean               Show plot in Rstudio window or not
-
--------------------------Outputs-------------------------------------------
-  NAME          TYPE                  DESCRIPTION
-  fplot         ggplot                Plot object of ACF plot
+}
+\references{
+Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
 }
