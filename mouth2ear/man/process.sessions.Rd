@@ -33,9 +33,77 @@ A list containing the following components:
 \code{autocorr.data} \emph{list.}                  List with autocorr.unc() output for each session of each test of each setup
 }
 \description{
-process.sessions(all.setups) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
+process.sessions(all.setups) performs uncertainty analysis on the input test data in using the methods from the Joint Committee on Guides in Metrology (JCGM) \emph{Guide to the Expression of Uncertainty of Measurement (GUM)}. Relies on the 
   functions GUM and GUM.validate from the metRology package.
 }
 \details{
 process.sessions(all.setups, show.lags = T) prints the maximum lag for which significant autocorrelation is present for each session of each test.
+}
+\examples{
+Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX. Note data must be stored on computer
+ # Initialize lists for all test setups used
+# One location lab test setup information
+oneLoc <- list(
+name = "One Location Lab",
+path = oneLoc.path, # path where one location data stored
+tests = c(
+  "1loc-device-characterization",
+  "1loc-UHF-Direct-wired-p25-lab-Vol-11",
+  "1loc-UHF-Trunked-wired-p25-lab-Vol-11",
+  "1loc-VHF-Direct-wired-p25-lab-Vol-11",
+  "1loc-VHF-Trunked-wired-p25-lab-Vol-11"
+),
+thinning = c(3, # characterization
+             4, # uhf direct
+             4, # uhf trunked
+             7, # vhf direct
+             3 # vhf trunked
+)
+)
+
+# Two location lab test setup information
+twoLoc.lab <- list(
+name = "Two Location Lab",
+path = twoLoc.path,
+tests = c(
+  "p25-lab-characterization-2loc", # characterization lab
+  "UHF-Direct-p25-lab-wired-Vol-11", # uhf direct lab
+  "UHF-Trunked-p25-lab-wired-Vol-11", # uhf trunked lab
+  "VHF-Direct-p25-lab-wired-Vol-11", # vhf direct lab
+  "VHF-Trunked-p25-lab-wired-Vol-11" # vhf trunked lab
+),
+thinning = c(4, # characterization
+             3, # lab uhf direct
+             5, # lab uhf trunked
+             5, # lab vhf direct
+             5 # lab vhf trunked
+)
+
+)
+# Two location field test setup information
+twoLoc.field <- list(
+name = "Two Location Lab",
+path = twoLoc.path,
+tests = c(
+    "p25-lab-characterization-2loc", # characterization lab
+    "UHF-Direct-US36-G", # uhf direct field
+    "UHF-Trunked-US36-G", #uhf trunked field
+    "VHF-Direct-US36-G", # vhf direct field
+    "VHF-Trunked-US36-G" # vhf trunked field
+),
+thinning = c(4, # characterization
+               5, # field uhf direct
+               4, # field uhf trunked
+               4, # field vhf direct
+          1 # field vhf trunked
+  )
+  
+)
+
+# Calculate all test values and uncertainties
+m2e <- process.sessions(all.setups=list(oneLoc,twoLoc.lab,twoLoc.field))
+
+}
+\references{
+Joint Committee on Guides in Metrology (JCGM), \emph{Evaluation of Measurement Data Guide to the Expression of Uncertainty in Measurement}, http://www.bipm.org/utils/common/documents/jcgm/JCGM_100_2008_E.pdf, 2008.
 }
