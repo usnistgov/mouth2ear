@@ -10,15 +10,16 @@
 }
 \details{
 
-The DESCRIPTION file:
 \packageDESCRIPTION{mouth2ear}
 \packageIndices{mouth2ear}
-~~ An overview of how to use the package, including the most important functions ~~
+The mouth2ear package includes functions for:
+\enumerate{
+  \item Calculating M2E latency values for tests taken across multiple sessions. Can further thin data to eliminate significant autocorrelation in data.
+  \item Creating acf plots and identifying the effect of autocorrelation on measurement uncertainty.
+}
 }
 \author{
 \packageAuthor{mouth2ear}
-
-Maintainer: \packageMaintainer{mouth2ear}
 }
 \references{
 ~~ Literature or other references for background information ~~

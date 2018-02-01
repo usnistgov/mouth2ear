@@ -200,8 +200,7 @@ process.sessions <- function(all.setups,show.lags=F){
         }
         
         if(autocorr$lag>0){
-          # print(paste("Bad lag", test))
-          print(paste("---- Lag:", autocorr$lag))
+          warning("Session autocorrelated, GUM assumptions invalidated...")
         }
         
         # Initialize plot name
@@ -405,6 +404,7 @@ autocorr.unc <- function(y) {
   #'
   #'
   #'@references Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #' @export
   
   
   
