@@ -12,11 +12,13 @@
 
 \packageDESCRIPTION{mouth2ear}
 \packageIndices{mouth2ear}
-The mouth2ear package includes functions for:
-\enumerate{
-  \item Calculating M2E latency values for tests taken across multiple sessions. Can further thin data to eliminate significant autocorrelation in data.
-  \item Creating acf plots and identifying the effect of autocorrelation on measurement uncertainty.
-}
+  The mouth2ear package includes functions for:
+  \itemize{
+    \item Calculating M2E latency values for tests taken across multiple sessions. Can further thin data to eliminate significant autocorrelation in data.
+    \item Creating acf plots and identifying the effect of autocorrelation on measurement uncertainty.
+  }
+  The package also includes example M2E latency measurements presented in NISTIR XXXX, saved as individual csv files for each session of each test. See examples to access the directory with the data.
+  The data includes M2E latency measurements of LMR handhelds operating in direct and trunked modes. 
 }
 \author{
 \packageAuthor{mouth2ear}
