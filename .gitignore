@@ -23,7 +23,3 @@ test-type.txt
 # Excel uncertainty
 *.xlsm
 *.xlsx
-
-# Data
-*.csv
-.Rproj.user

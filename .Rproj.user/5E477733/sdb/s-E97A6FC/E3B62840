@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "\\name{mouth2ear-package}\n\\alias{mouth2ear-package}\n\\alias{mouth2ear}\n\\docType{package}\n\\title{\n\\packageTitle{mouth2ear}\n}\n\\description{\n\\packageDescription{mouth2ear}\n}\n\\details{\n\n\\packageDESCRIPTION{mouth2ear}\n\\packageIndices{mouth2ear}\n  The mouth2ear package includes functions for:\n  \\itemize{\n    \\item Calculating M2E latency values for tests taken across multiple sessions. Can further thin data to eliminate significant autocorrelation in data.\n    \\item Creating acf plots and identifying the effect of autocorrelation on measurement uncertainty.\n  }\n  The package also includes example M2E latency measurements presented in NISTIR XXXX, saved as individual csv files for each session of each test. See examples to access the directory with the data.\n  The data includes M2E latency measurements of LMR handhelds operating in direct and trunked modes. \n}\n\\author{\n\\packageAuthor{mouth2ear}\n}\n\\references{\n~~ Literature or other references for background information ~~\n}\n~~ Optionally other standard keywords, one per line, from file KEYWORDS in the R documentation directory ~~\n\\keyword{ package }\n\\seealso{\n~~ Optional links to other man pages, e.g. ~~\n~~ \\code{\\link[<pkg>:<pkg>-package]{<pkg>}} ~~\n}\n\\examples{\n~~ simple examples of the most important functions ~~\n}\n",
+    "created" : 1517346310115.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3589219239",
+    "id" : "E3B62840",
+    "lastKnownWriteTime" : 1517443660,
+    "last_content_update" : 1517444689994,
+    "path" : "H:/MCV/M2E-Latency/device-tst/mouth2ear/man/mouth2ear-package.Rd",
+    "project_path" : "mouth2ear/man/mouth2ear-package.Rd",
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_doc"
+}

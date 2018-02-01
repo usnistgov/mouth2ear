@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "Package: mouth2ear\nType: Package\nTitle: Data and Uncertainty Analysis for Mouth to Ear Latency Measurements\nVersion: 1.0\nDate: 2018-01-30\nAuthor: Jaden Pieper <jaden.pieper@nist.gov>\nMaintainer: Jaden Pieper <jaden.pieper@nist.gov>\nDescription: Provides functions for calculating the M2E latency value and associated uncertainty for measurements taken using the measurement system proposed in \\emph{MCV QoE Mouth to Ear Latency Measurement Methods}, available at <\\url{https://doi.org/10.6028/NIST.IR.XXXX}>. Software for the measurement system is available at <\\url{https://github.com/usnistgov/mouth2ear}>. \nLicense:This software was developed by employees of the National Institute of Standards and Technology (NIST), an agency of the Federal Government. Pursuant to title 17 United States Code Section 105, works of NIST employees are not subject to copyright protection in the United States and are considered to be in the public domain. Permission to freely use, copy, modify, and distribute this software and its documentation without fee is hereby granted, provided that this notice and disclaimer of warranty appears in all copies. THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING OUT OF, RESULTING FROM, OR IN ANY WAY CONNECTED WITH THIS SOFTWARE, WHETHER OR NOT BASED UPON WARRANTY, CONTRACT, TORT, OR OTHERWISE, WHETHER OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.\nRoxygenNote: 6.0.1\nImports: metRology,\n         ggplot2\nURL: https://github.com/usnistgov/mouth2ear, https://doi.org/10.6028/NIST.IR.XXXX\n",
+    "created" : 1517361549895.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1076868406",
+    "id" : "2FC2A52C",
+    "lastKnownWriteTime" : 1517425699,
+    "last_content_update" : 1517425701293,
+    "path" : "H:/MCV/M2E-Latency/device-tst/mouth2ear/DESCRIPTION",
+    "project_path" : "mouth2ear/DESCRIPTION",
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "dcf"
+}
