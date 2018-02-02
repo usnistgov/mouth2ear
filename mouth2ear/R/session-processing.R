@@ -329,7 +329,7 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
   #'
   #' @return   \code{fplot}         \emph{ggplot}                Plot object of ACF plot
   #' 
-  #' @references Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #' @references Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
   #' 
   #' @examples # Generate a set of 1000 numbers from the standard normal distribution
   #' y <- rnorm(1000)
@@ -403,7 +403,7 @@ autocorr.unc <- function(y) {
   #' \code{r}             \emph{numeric.}               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
   #'
   #'
-  #'@references Xhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #'@references Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
   #' @export
   
   
