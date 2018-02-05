@@ -216,13 +216,16 @@ function [dates,fsamp,frames,fbits]=time_decode(tca,fs,varargin)
     fsamp = fsamp(1:(fnum-1),:);
     
     %create date vectors
+    %IRIG B does not give month or day of month so use a empty part of the
+    %frame for month and fix it to 1 later. Day of year will wrap to the
+    %correct month
     dvec=frames(:,[6,5,4,3,2,1]);
     
     %add in year digits from current year
     dvec(:,1)=dvec(:,1)+floor(year(datetime)/100)*100;
     
-    %zero out the month
-    dvec(:,2)=0;
+    %set month to 1. Day of year will wrap to the correct month
+    dvec(:,2)=1;
     
     %convert to datetimes
     dates=datetime(dvec);
