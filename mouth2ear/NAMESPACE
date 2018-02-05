@@ -3,3 +3,5 @@
 export(acf.adj)
 export(autocorr.unc)
 export(process.sessions)
+import(ggplot2)
+import(metRology)

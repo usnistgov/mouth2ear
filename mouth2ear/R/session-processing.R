@@ -55,7 +55,9 @@ process.sessions <- function(all.setups,show.lags=F){
   #' @return   \code{df}            \emph{data.frame.}           Dataframe with GUM() output for all tests
   #'
   #' @return   \code{autocorr.data} \emph{list.}                  List with autocorr.unc() output for each session of each test of each setup
-  #'
+  #' 
+  #' @import ggplot2 metRology
+  #' 
   #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX.
   #' 
   #' # Full system path where 1loc data stored
@@ -227,14 +229,14 @@ process.sessions <- function(all.setups,show.lags=F){
         meas.fnc <- paste("d+1/", n, "*(", paste("s",1:n, sep="", collapse="+"), ")", sep="")
         
         # Use GUM to find uncertainty and additional uncertainty properties
-        test.uncertainty <- GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
+        test.uncertainty <- metRology::GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
                                 x.i=c(unlist(lapply(session.data,mean)),0),
                                 u.i=c(unlist(session.unc),meas.res/sqrt(12)),
                                 nu.i=c(rep(length(trial.m)-1,length(session.unc)),Inf),
                                 measurement.fnc=meas.fnc)
         
         # Run validation check (via Monte Carlo simulations) to see how well 95% Confidence Level achieved by GUM approximation
-        test.uncertainty$valid <- GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
+        test.uncertainty$valid <- metRology::GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
                                                x.i=c(unlist(lapply(session.data,mean)),0),
                                                u.i=c(unlist(session.unc),meas.res/sqrt(12)),
                                                nu.i=c(rep(length(trial.m)-1,length(session.unc)),9999),
@@ -271,14 +273,14 @@ process.sessions <- function(all.setups,show.lags=F){
         meas.fnc <- paste("d+1/", n, "*(", paste("s",1:n, sep="", collapse="+"), ") - c", sep="")
         
         # Use GUM to find uncertainty and additional uncertainty properties
-        test.uncertainty <- GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d","c"),
+        test.uncertainty <- metRology::GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d","c"),
                                 x.i=c(unlist(lapply(session.data,mean)),0,GUM.character$y),
                                 u.i=c(unlist(session.unc),meas.res/sqrt(12),GUM.character$u),
                                 nu.i=c(rep(length(trial.m)-1,length(session.unc)),Inf, GUM.character$nu.eff),
                                 measurement.fnc=meas.fnc)
         
         # Run validation check (via Monte Carlo simulations) to see how well 95% Confidence Level achieved by GUM approximation
-        test.uncertainty$valid <- GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d", "c"),
+        test.uncertainty$valid <- metRology::GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d", "c"),
                                                x.i=c(unlist(lapply(session.data,mean)),0, GUM.character$y),
                                                u.i=c(unlist(session.unc),meas.res/sqrt(12),GUM.character$u),
                                                nu.i=c(rep(length(trial.m)-1,length(session.unc)),9999,GUM.character$nu.eff),
@@ -330,6 +332,8 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
   #' @return   \code{fplot}         \emph{ggplot}                Plot object of ACF plot
   #' 
   #' @references Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #'
+  #' @import ggplot2
   #' 
   #' @examples # Generate a set of 1000 numbers from the standard normal distribution
   #' y <- rnorm(1000)
