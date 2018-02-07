@@ -14,8 +14,22 @@ plots/
 #test type file
 test-type.txt
 
-# R autosaves
+# R History files
 .Rhistory
+.Rapp.history
+
+# Session Data files 
+.RData
+
+# RStudio Files
+.Rproj.user/
+
+# Example code in package build process
+*-Ex.R
+
+# Output files from R CMD build
+/*.tar.gz
+*.zip
 
 # Plots
 *.png
@@ -23,4 +37,4 @@ test-type.txt
 # Excel uncertainty
 *.xlsm
 *.xlsx
-.Rproj.user
+
