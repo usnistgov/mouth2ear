@@ -29,40 +29,109 @@
 process.sessions <- function(all.setups,show.lags=F){
   #' process.sessions perform uncertainty analysis and report results for list of M2E latency tests
   #'
-  #'   process.sessions(all.setups) performs uncertainty analysis on the input test data in accordance with the Guide to the expression of uncertainty of measurement, GUM. Relies on the 
+  #'   process.sessions(all.setups) performs uncertainty analysis on the input test data in using the methods from the Joint Committee on Guides in Metrology (JCGM) \emph{Guide to the Expression of Uncertainty of Measurement (GUM)}. Relies on the 
   #'   functions GUM and GUM.validate from the metRology package.
   #'
   #'   process.sessions(all.setups, show.lags = T) prints the maximum lag for which significant autocorrelation is present for each session of each test.
+  #'   
+  #' @param   \code{show.lags}     \emph{logical.}              Informs whether or not to print the maximum lag for which significant autocorrelation is present for each session of each test
+  #' @param   \code{all.setups}    \emph{list.}                  List containing information for all tests. Further detailed below.
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   all.setups    list                  List containing information for all tests. Further detailed below.
+  #'   \code{name}          \emph{character.}             Name of test setup (i.e. Single Location Cabled Tests)
   #'
-  #'   show.lags     Boolean               Boolean informing whether or not to print the maximum lag for which significant autocorrelation is present for each session of each test
+  #'   \code{path}          \emph{character.}             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
   #'
-  #' ----------Details on all.setups list elements:----------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   name          character             Name of test setup (i.e. Single Location Cabled Tests)
+  #'   \code{tests}         \emph{character vector.}      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode")). Must match the folder names that contain the session csv files for that test.
   #'
-  #'   path          character             Path where csv files containing delay values for all tests of test setup contained. Expects each test in individual folder containing a csv file for each session.
-  #'
-  #'   tests         character vector      Vector of names of the specfic tests performed in the test setup (i.e. c("Device X Direct Mode", "Device X Trunked Mode", "Device Y Direct Mode")). Must match the folder names that contain the session csv files for that test.
-  #'
-  #'   thinning      numeric vector        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
+  #'   \code{thinning}      \emph{numeric vector.}        Vector of degree to which the sessions of each test must be thinned to remove significant autocorrelation. For example given Device X Direct Mode must be thinned 
   #'                                       by using every third data point to eliminate significant autocorrelation, Device X Trunked must be thinned by using every fifth data point, and Device Y Direct 
   #'                                       Mode must be thinned by using every second data point then thinning would be c(3,5,2).
+  #'                                       
+  #' @return  A list containing the following components: 
+  #' @return   \code{thinned.data}  \emph{list.}                  List with thinned data vectors for each session of each test of each test setup    
   #'
-  #' -------------------------Outputs------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   thinned.data  list                  List with thinned data vectors for each session of each test of each test setup    
+  #' @return   \code{gum.data}      \emph{list.}                  List with GUM output for each session of each test of each test setup
   #'
-  #'   gum.data      list                  List with GUM output for each session of each test of each test setup
+  #' @return   \code{df}            \emph{data.frame.}           Dataframe with GUM() output for all tests
   #'
-  #'   df            data.frame            Dataframe with GUM() output for all tests
+  #' @return   \code{autocorr.data} \emph{list.}                  List with autocorr.unc() output for each session of each test of each setup
+  #' 
+  #' @import ggplot2 metRology
+  #' 
+  #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX.
+  #' 
+  #' # Full system path where 1loc data stored
+  #' oneLoc.path <- system.file("extdata","Delay_Values", "1loc", package="mouth2ear")
+  #' 
+  #' # Full system path where 2loc data stored
+  #' twoLoc.path <- system.file("extdata","Delay_Values", "2loc", package="mouth2ear")
+  #' 
+  #' # Initialize lists for all test setups used
+  #' # One location lab test setup information
+  #' oneLoc <- list(
+  #' name = "One Location Lab",
+  #' path = oneLoc.path,
+  #' tests = c(
+  #'   "1loc-device-characterization",
+  #'   "1loc-UHF-Direct-wired-p25-lab-Vol-11",
+  #'   "1loc-UHF-Trunked-wired-p25-lab-Vol-11",
+  #'   "1loc-VHF-Direct-wired-p25-lab-Vol-11",
+  #'   "1loc-VHF-Trunked-wired-p25-lab-Vol-11"
+  #' ),
+  #' thinning = c(3, # characterization
+  #'              4, # uhf direct
+  #'              4, # uhf trunked
+  #'              7, # vhf direct
+  #'              3 # vhf trunked
+  #' )
+  #' )
+  #' 
+  #' # Two location lab test setup information
+  #' twoLoc.lab <- list(
+  #' name = "Two Location Lab",
+  #' path = twoLoc.path,
+  #' tests = c(
+  #'   "p25-lab-characterization-2loc", # characterization lab
+  #'   "UHF-Direct-p25-lab-wired-Vol-11", # uhf direct lab
+  #'   "UHF-Trunked-p25-lab-wired-Vol-11", # uhf trunked lab
+  #'   "VHF-Direct-p25-lab-wired-Vol-11", # vhf direct lab
+  #'   "VHF-Trunked-p25-lab-wired-Vol-11" # vhf trunked lab
+  #' ),
+  #' thinning = c(4, # characterization
+  #'              3, # lab uhf direct
+  #'              5, # lab uhf trunked
+  #'              5, # lab vhf direct
+  #'              5 # lab vhf trunked
+  #' )
+  #' 
+  #' )
+  #' # Two location field test setup information
+  #' twoLoc.field <- list(
+  #' name = "Two Location Lab",
+  #' path = twoLoc.path,
+  #' tests = c(
+  #'     "p25-lab-characterization-2loc", # characterization lab
+  #'     "UHF-Direct-US36-G", # uhf direct field
+  #'     "UHF-Trunked-US36-G", #uhf trunked field
+  #'     "VHF-Direct-US36-G", # vhf direct field
+  #'     "VHF-Trunked-US36-G" # vhf trunked field
+  #' ),
+  #' thinning = c(4, # characterization
+  #'                5, # field uhf direct
+  #'                4, # field uhf trunked
+  #'                4, # field vhf direct
+  #'           1 # field vhf trunked
+  #'   )
+  #'   
+  #' )
+  #' 
+  #' # Calculate all test values and uncertainties
+  #' m2e <- process.sessions(all.setups=list(oneLoc,twoLoc.lab,twoLoc.field))
+  #' 
+  #' @references Joint Committee on Guides in Metrology (JCGM), \emph{Evaluation of Measurement Data Guide to the Expression of Uncertainty in Measurement}, http://www.bipm.org/utils/common/documents/jcgm/JCGM_100_2008_E.pdf, 2008.
   #'
-  #'   autocorr.data list                  List with autocorr.unc() output for each session of each test of each setup
+  #' @export
   
-
   # Initialize empty list to store delay values in
   setup.data <- list()
   # Initialize empty list to store GUM output in
@@ -113,7 +182,7 @@ process.sessions <- function(all.setups,show.lags=F){
           trial.m[seq(from = 1,
                       to = length(trial.m),
                       by = setup$thinning[ix])]
-
+        
         
         # Store row means in session.data
         session.data[[gsub(".csv", "", session)]] <- trial.m
@@ -133,8 +202,7 @@ process.sessions <- function(all.setups,show.lags=F){
         }
         
         if(autocorr$lag>0){
-          # print(paste("Bad lag", test))
-          print(paste("---- Lag:", autocorr$lag))
+          warning("Session autocorrelated, GUM assumptions invalidated...")
         }
         
         # Initialize plot name
@@ -142,7 +210,7 @@ process.sessions <- function(all.setups,show.lags=F){
         # Clean plot names
         plot.name <- gsub("session_", "", gsub("-"," ", gsub("p25-lab-", "", gsub(".csv", "", plot.name))))
         
-
+        
       }
       # Store test data
       test.data[[test]] <- session.data
@@ -161,14 +229,14 @@ process.sessions <- function(all.setups,show.lags=F){
         meas.fnc <- paste("d+1/", n, "*(", paste("s",1:n, sep="", collapse="+"), ")", sep="")
         
         # Use GUM to find uncertainty and additional uncertainty properties
-        test.uncertainty <- GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
+        test.uncertainty <- metRology::GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
                                 x.i=c(unlist(lapply(session.data,mean)),0),
                                 u.i=c(unlist(session.unc),meas.res/sqrt(12)),
                                 nu.i=c(rep(length(trial.m)-1,length(session.unc)),Inf),
                                 measurement.fnc=meas.fnc)
         
         # Run validation check (via Monte Carlo simulations) to see how well 95% Confidence Level achieved by GUM approximation
-        test.uncertainty$valid <- GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
+        test.uncertainty$valid <- metRology::GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d"),
                                                x.i=c(unlist(lapply(session.data,mean)),0),
                                                u.i=c(unlist(session.unc),meas.res/sqrt(12)),
                                                nu.i=c(rep(length(trial.m)-1,length(session.unc)),9999),
@@ -205,14 +273,14 @@ process.sessions <- function(all.setups,show.lags=F){
         meas.fnc <- paste("d+1/", n, "*(", paste("s",1:n, sep="", collapse="+"), ") - c", sep="")
         
         # Use GUM to find uncertainty and additional uncertainty properties
-        test.uncertainty <- GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d","c"),
+        test.uncertainty <- metRology::GUM(var.name=c(paste("s",1:length(session.unc),sep=""),"d","c"),
                                 x.i=c(unlist(lapply(session.data,mean)),0,GUM.character$y),
                                 u.i=c(unlist(session.unc),meas.res/sqrt(12),GUM.character$u),
                                 nu.i=c(rep(length(trial.m)-1,length(session.unc)),Inf, GUM.character$nu.eff),
                                 measurement.fnc=meas.fnc)
         
         # Run validation check (via Monte Carlo simulations) to see how well 95% Confidence Level achieved by GUM approximation
-        test.uncertainty$valid <- GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d", "c"),
+        test.uncertainty$valid <- metRology::GUM.validate(var.name=c(paste("s",1:length(session.unc),sep=""),"d", "c"),
                                                x.i=c(unlist(lapply(session.data,mean)),0, GUM.character$y),
                                                u.i=c(unlist(session.unc),meas.res/sqrt(12),GUM.character$u),
                                                nu.i=c(rep(length(trial.m)-1,length(session.unc)),9999,GUM.character$nu.eff),
@@ -253,19 +321,30 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
   #'
   #' Similar to R default acf() function, can also plot arbitrary bound lines. Useful when plotting the cut off lag proposed by Zhang in Calculation of the uncertainty of the mean of autocorrelated measurements (2006).
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   autocorr      list                  Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
+  #' @param    \code{autocorr}  \emph{list.}      Output of autocorr.unc(y) (see below), where y is a vector of the relevant data
   #'
-  #'   plot.title    character             Title of the desired ACF plot
+  #' @param   \code{plot.title}    \emph{character.}             Title of the desired ACF plot
   #'
-  #'   lag.max       Numeric               Maximum lag to be shown in ACF plot
+  #' @param \code{lag.max}       \emph{Numeric.}               Maximum lag to be shown in ACF plot
   #'
-  #'   show.plot     Boolean               Show plot in Rstudio window or not
+  #' @param   \code{show.plot}     \emph{logical.}               Show plot in Rstudio window or not
   #'
-  #' -------------------------Outputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   fplot         ggplot                Plot object of ACF plot
+  #' @return   \code{fplot}         \emph{ggplot}                Plot object of ACF plot
+  #' 
+  #' @references Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #'
+  #' @import ggplot2
+  #' 
+  #' @examples # Generate a set of 1000 numbers from the standard normal distribution
+  #' y <- rnorm(1000)
+  #' 
+  #' # Calculate the autocorrelation and adjusted uncertainty for y
+  #' autocorr <- autocorr.unc(y)
+  #' 
+  #' # Plot acf plot with adjusted bounds defined by autocorr.unc
+  #' fig <- acf.adj(autocorr)
+  #' 
+  #' @export
   
   
   if(is.null(lag.max)){
@@ -312,24 +391,24 @@ acf.adj <- function(autocorr,plot.title = "",lag.max=NULL,show.plot=TRUE){
 autocorr.unc <- function(y) {
   #' Determine if data autocorrelated and calculate corrected uncertainty autocorrelated data
   #'
-  #' -------------------------Inputs-------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   y             numeric vector        Vector of data on which to calculate sample autocorrelation and uncertainty
   #'
-  #' -------------------------Outputs------------------------------------------
-  #'   NAME          TYPE                  DESCRIPTION
-  #'   u             Numeric               Uncertainty corrected for autocorrelation if significant autocorrelation detected
+  #' @param   \code{y}             \emph{numeric vector}        Vector of data on which to calculate sample autocorrelation and uncertainty
+  #' 
+  #' @return  A list with the following elements:
+  #' 
+  #' \code{u}             \emph{numeric.}               Uncertainty corrected for autocorrelation if significant autocorrelation detected
   #'
-  #'   lag           Numeric               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
+  #' \code{lag}           \emph{numeric.}               Maximum lag for which significant autocorrelation present (i.e. element k and element k+lag have significant autocorrelation)
   #'
-  #'   rho           Numeric vector        Sample autocorrelation
+  #' \code{rho}           \emph{numeric vector.}        Sample autocorrelation
   #'
-  #'   sigma         Numeric Vector        Sample autocorrelation variance estimator
+  #' \code{sigma}         \emph{numeric Vector.}        Sample autocorrelation variance estimator
   #'
-  #'   r             Numeric               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
+  #' \code{r}             \emph{numeric.}               Ratio between uncertainty of corrected uncertainty versus uncorrected uncertainty
   #'
-  #'---------------- Referenced equations from---------------------------------
-  #' Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. Metrologia 43(4):S276. URL https://stacks.iop.org/0026-1394/43/i=4/a=S15
+  #'
+  #'@references Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated measurements. \emph{Metrologia} 43(4):S276. URL http://stacks.iop.org/0026-1394/43/i=4/a=S15.
+  #' @export
   
   
   
