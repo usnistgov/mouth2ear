@@ -96,7 +96,6 @@ datType = p.Results.datType;
 % Directory to save mat file
 saveDir = p.Results.saveDir;
 %% Set path and extract data file names
-addpath(Path);
 Dir = dir(Path);
 % Toss '.' and '..'
 Dir = Dir(3:end);
