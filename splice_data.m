@@ -1,7 +1,11 @@
-function splice_data(Test_info)
+function splice_data(Test_info, varargin)
 %SPLICE_DATA split test data into wav and csv files
 %
-%   SPLICE_DATA(Test_info)
+%   SPLICE_DATA(Test_info) splices the data stored in mat files into either
+%   csv or wav files.
+%
+%   SPLICE_DATA(Test_info, 'outputs', value) splice the data into the
+%   format defined by value.
 %
 %
 %   NAME                TYPE                Description
@@ -11,6 +15,11 @@ function splice_data(Test_info)
 %                                           store and where newly formatted
 %                                           data should be stored. See
 %                                           below for more info
+%
+%   outputs             char vector         Type of output desired. Valid
+%                                           options are 'all', 'wav', or
+%                                           'csv'
+%                                   
 %
 %   Depending on if the data was for a two location or single location test
 %   different fields are required of the struct Test_info as shown below:
@@ -87,6 +96,20 @@ function splice_data(Test_info)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
+% create new input parser
+p = inputParser();
+
+% add required Test_info parameter
+addRequired(p, 'Test_info')
+% Define expected values for outputs parameter
+expectedOutputs = {'all', 'csv', 'wav'};
+% add optional outputs parameter
+addParameter(p,'outputs', 'all',...
+    @(n) any(validatestring(n,expectedOutputs)));
+
+%parse inputs
+parse(p,Test_info,varargin{:});
+
 test_loc_type = Test_info.Type;
 disp(['Processing ' test_loc_type])
 
@@ -151,38 +174,41 @@ for i = 1:n_types
     % Size of processed data
     [m,~] = size(data);                                                    %#ok loaded from file
     for j = 1:m
-        % Delay values for that session
-        session_dat = data{j,2};
-        % csv directory
-        csv_dir = fullfile(csv_Path , file_list{i});
-        if(~exist(csv_dir, 'dir'))
-            mkdir(csv_dir)
+        if(strcmpi(p.Results.outputs,'all') || strcmpi(p.Results.outputs, 'csv'))
+            % Delay values for that session
+            session_dat = data{j,2};
+            % csv directory
+            csv_dir = fullfile(csv_Path , file_list{i});
+            if(~exist(csv_dir, 'dir'))
+                mkdir(csv_dir)
+            end
+            % Name of csv file to store delay values
+            csv_file = [csv_dir '\session_' num2str(j) '.csv'];
+            % Store delay values in csv
+            csvwrite(csv_file, session_dat');
         end
-        % Name of csv file to store delay values
-        csv_file = [csv_dir '\session_' num2str(j) '.csv'];
-        % Store delay values in csv
-        csvwrite(csv_file, session_dat');
-        
-        % Session recordings
-        session_recs = data{j,3};
-        % number of recordings
-        [~,nRecs] = size(session_recs);
-        % directory to store session wav files
-        wdir = fullfile(proc_rx_Path, file_list{i}, ['session_', num2str(j)]);
-        % if directory doen't exist, make it
-        if(~exist(wdir,'dir'))
-            mkdir(wdir)
-        end
-        for k = 1:nRecs
-           % Name of wav file
-           wav_file = fullfile(wdir, ['rx', num2str(k), '.wav']);
-           % Save recording as wav file
-           audiowrite(wav_file, session_recs(:,k),fs);
+        if(strcmpi(p.Results.outputs, 'all') || strcmpi(p.Results.outputs, 'wav'))
+            % Session recordings
+            session_recs = data{j,3};
+            % number of recordings
+            [~,nRecs] = size(session_recs);
+            % directory to store session wav files
+            wdir = fullfile(proc_rx_Path, file_list{i}, ['session_', num2str(j)]);
+            % if directory doen't exist, make it
+            if(~exist(wdir,'dir'))
+                mkdir(wdir)
+            end
+            for k = 1:nRecs
+                % Name of wav file
+                wav_file = fullfile(wdir, ['rx', num2str(k), '.wav']);
+                % Save recording as wav file
+                audiowrite(wav_file, session_recs(:,k),fs);
+            end
         end
         
     end
    
-    if(strcmpi(test_loc_type,'2loc'))
+    if(strcmpi(test_loc_type,'2loc') && (strcmpi(p.Results.outputs, 'all') || strcmpi(p.Results.outputs, 'wav')))
         %% Set Up Processed tx files
         % Test type directory
         tdir = fullfile(proc_tx_Path, file_list{i});
