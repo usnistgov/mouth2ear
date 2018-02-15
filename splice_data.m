@@ -112,65 +112,123 @@ parse(p,Test_info,varargin{:});
 
 test_loc_type = Test_info.Type;
 disp(['Processing ' test_loc_type])
-
-if(strcmpi(test_loc_type,'1loc'))
-    procPath = Test_info.procPath;
-    proc_rx_Path = Test_info.procRxPath;
-    csv_Path = Test_info.csvPath;
-    file_list = Test_info.fileList;
-elseif(strcmpi(test_loc_type,'2loc'))
-    procPath = Test_info.procPath;
-    tx_path = Test_info.txPath;
-    rx_path = Test_info.rxPath;
-    proc_rx_Path = Test_info.procRxPath;
-    proc_tx_Path = Test_info.procTxPath;
-    csv_Path = Test_info.csvPath;
-    file_list = Test_info.fileList;
-    
-    
-    % if tx directory doen't exist, make it
-    if(~exist(proc_tx_Path,'dir'))
-        mkdir(proc_tx_Path)
+if(strcmpi(p.Results.outputs, 'all'))
+    if(strcmpi(test_loc_type,'1loc'))
+        procPath = Test_info.procPath;
+        proc_rx_Path = Test_info.procRxPath;
+        csv_Path = Test_info.csvPath;
+        file_list = Test_info.fileList;
+    elseif(strcmpi(test_loc_type,'2loc'))
+        procPath = Test_info.procPath;
+        tx_path = Test_info.txPath;
+        rx_path = Test_info.rxPath;
+        proc_rx_Path = Test_info.procRxPath;
+        proc_tx_Path = Test_info.procTxPath;
+        csv_Path = Test_info.csvPath;
+        file_list = Test_info.fileList;
+        
+        
+        % if tx directory doen't exist, make it
+        if(~exist(proc_tx_Path,'dir'))
+            mkdir(proc_tx_Path)
+        end
+        
+        addpath(tx_path);
+        % tx directory
+        tx_dir = dir(tx_path);
+        % tx file names
+        tx_names = {tx_dir.name};
+        
+        addpath(rx_path);
+        
+    else
+        error('Invalid Test Type....')
     end
     
-    addpath(tx_path);
-    % tx directory
-    tx_dir = dir(tx_path);
-    % tx file names
-    tx_names = {tx_dir.name};
+    % if rx directory doen't exist, make it
+    if(~exist(proc_rx_Path,'dir'))
+        mkdir(proc_rx_Path)
+    end
     
-    addpath(rx_path);
     
+    % if csv directory doen't exist, make it
+    if(~exist(csv_Path,'dir'))
+        mkdir(csv_Path)
+    end
+elseif(strcmpi(p.Results.outputs,'wav'))
+    if(strcmpi(test_loc_type,'1loc'))
+        procPath = Test_info.procPath;
+        proc_rx_Path = Test_info.procRxPath;
+        file_list = Test_info.fileList;
+    elseif(strcmpi(test_loc_type,'2loc'))
+        procPath = Test_info.procPath;
+        tx_path = Test_info.txPath;
+        rx_path = Test_info.rxPath;
+        proc_rx_Path = Test_info.procRxPath;
+        proc_tx_Path = Test_info.procTxPath;
+        file_list = Test_info.fileList;
+        
+        
+        % if tx directory doen't exist, make it
+        if(~exist(proc_tx_Path,'dir'))
+            mkdir(proc_tx_Path)
+        end
+        
+        addpath(tx_path);
+        % tx directory
+        tx_dir = dir(tx_path);
+        % tx file names
+        tx_names = {tx_dir.name};
+        
+        addpath(rx_path);
+        
+    else
+        error('Invalid Test Type....')
+    end
+    
+    % if rx directory doen't exist, make it
+    if(~exist(proc_rx_Path,'dir'))
+        mkdir(proc_rx_Path)
+    end
+elseif(strcmpi(p.Results.outputs,'csv'))
+    if(strcmpi(test_loc_type,'1loc'))
+        procPath = Test_info.procPath;
+        csv_Path = Test_info.csvPath;
+        file_list = Test_info.fileList;
+    elseif(strcmpi(test_loc_type,'2loc'))
+        procPath = Test_info.procPath;
+        csv_Path = Test_info.csvPath;
+        file_list = Test_info.fileList;
+    else
+        error('Invalid Test Type....')
+    end
+    % if csv directory doen't exist, make it
+    if(~exist(csv_Path,'dir'))
+        mkdir(csv_Path)
+    end
 else
-    error('Invalid Test Type....')
+    error('Invalid outputs')
 end
-
-% if rx directory doen't exist, make it
-if(~exist(proc_rx_Path,'dir'))
-    mkdir(proc_rx_Path)
-end
-
-
-% if csv directory doen't exist, make it
-if(~exist(csv_Path,'dir'))
-    mkdir(csv_Path)
-end
-
 % Number of file types
 n_types = length(file_list);
 
 % Sampling Rate
 fs = 48000;
-% Load transmite recording
-load([procPath, '\Tx_audio.mat'])
-% Save wav file to processed rx folder
-audiowrite([proc_rx_Path, '\Tx_audio.wav'],y,fs);
-
+if(strcmpi(p.Results.outputs,'all')||strcmpi(p.Results.outputs,'wav'))
+    % Load transmit recording
+    load([procPath, '\Tx_audio.mat'])
+    % Save wav file to processed rx folder
+    audiowrite([proc_rx_Path, '\Tx_audio.wav'],y,fs);
+end
 for i = 1:n_types
     %% Set up processed rx files
     disp(['Processing ' file_list{i}])
-    % Load processed Rx data
-    load(fullfile(procPath,[file_list{i} '-full.mat']))
+    if(strcmpi(p.Results.outputs,'all')||strcmpi(p.Results.outputs,'wav'))
+        % Load processed Rx data
+        load(fullfile(procPath,[file_list{i} '-full.mat']))
+    else
+        load(fullfile(procPath,[file_list{i} '.mat']))
+    end
     % Size of processed data
     [m,~] = size(data);                                                    %#ok loaded from file
     for j = 1:m
