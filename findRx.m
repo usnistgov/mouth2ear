@@ -1,8 +1,9 @@
 function [rx_name] = findRx(tx_name,rx_dat_fold)
 %FINDRX find the rx filename for a given tx filename
 %
-%   rx_name=FINDRX(tx_name) search the rx-data folder for a rx file that
-%   corosponds to the same time that the file given by tx_name was recorded
+%   rx_name=FINDRX(tx_name,rx_dat_fold) search the rx-data folder for a rx 
+%   file that corresponds to the same time that the file given by tx_name 
+%   was recorded.
 %
 
 %This software was developed by employees of the National Institute of
