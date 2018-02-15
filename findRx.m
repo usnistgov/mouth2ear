@@ -1,4 +1,4 @@
-function [rx_name] = findRx(tx_name)
+function [rx_name] = findRx(tx_name,rx_dat_fold)
 %FINDRX find the rx filename for a given tx filename
 %
 %   rx_name=FINDRX(tx_name) search the rx-data folder for a rx file that
@@ -28,9 +28,6 @@ function [rx_name] = findRx(tx_name)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
-%folder name for rx data
-rx_dat_fold='rx-data';
-
 %split tx filename
 [~,tx_name_only,~]=fileparts(tx_name);
 
@@ -51,7 +48,7 @@ rx_dat_fold='rx-data';
     tx_date=datetime(tx_datestr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
     
     %list files in the recive folder
-    names=cellstr(ls(fullfile('rx-data','Rx_capture_*')));
+    names=cellstr(ls(fullfile(rx_dat_fold,'Rx_capture_*')));
     
     %check that files were found
     if(isempty(names))
@@ -68,7 +65,7 @@ rx_dat_fold='rx-data';
         rx_date_start=datetime(dstr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
         
         %read info on the audio file
-        info=audioinfo(fullfile('rx-data',names{k}));
+        info=audioinfo(fullfile(rx_dat_fold,names{k}));
         
         %calculate the stop time
         rx_date_end=rx_date_start+seconds(info.Duration);
