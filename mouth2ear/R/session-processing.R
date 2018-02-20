@@ -302,9 +302,10 @@ process.sessions <- function(all.setups,show.lags=F){
   
   
   # Store GUM output as dataframe
-  df <- data.frame(matrix(unlist(test.GUM),ncol=length(unlist(test.GUM$`1loc-device-characterization`)),byrow=T),stringsAsFactors = T)
-  colnames(df) <- names(unlist(test.GUM$`1loc-device-characterization`))
-  rownames(df) <- names(test.GUM)
+  df <- data.frame(matrix(unlist(test.GUM),ncol=length(unlist(test.GUM[1])),byrow=T),stringsAsFactors = T)
+  test.names <- names(test.GUM)
+  colnames(df) <- names(unlist(test.GUM[[test.names[1]]]))
+  rownames(df) <- test.names
   
   # return data
   return(list(thinned.data=setup.data,
