@@ -38,3 +38,4 @@ test-type.txt
 *.xlsm
 *.xlsx
 
+.Rproj.user
