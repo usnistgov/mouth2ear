@@ -21,7 +21,7 @@
 \packageAuthor{mouth2ear}
 }
 \references{
-Frey JM, Pieper JK, Thompson ST (2018) MCV QoE Mouth to Ear Latency Measurement Methods. \emph{NISTIR}. URL \url{https://doi.org/10.6028/NIST.IR.XXXX}. 
+Frey JM, Pieper JK, Thompson ST (2018) Mission Critical Voice QoE Mouth to Ear Latency Measurement Methods. \emph{NISTIR}. URL \url{https://doi.org/10.6028/NIST.IR.8206}. 
 
 Joint Committee on Guides in Metrology (JCGM), \emph{Evaluation of Measurement Data Guide to the Expression of Uncertainty in Measurement}, http://www.bipm.org/utils/common/documents/jcgm/JCGM_100_2008_E.pdf, 2008.
 

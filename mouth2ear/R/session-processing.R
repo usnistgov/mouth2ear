@@ -58,7 +58,7 @@ process.sessions <- function(all.setups,show.lags=F){
   #' 
   #' @import ggplot2 metRology
   #' 
-  #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR XXXX.
+  #' @examples Calculation of M2E latency and uncertainty for data collected for NISTIR 8206.
   #' 
   #' # Full system path where 1loc data stored
   #' oneLoc.path <- system.file("extdata","Delay_Values", "1loc", package="mouth2ear")
@@ -129,7 +129,9 @@ process.sessions <- function(all.setups,show.lags=F){
   #' m2e <- process.sessions(all.setups=list(oneLoc,twoLoc.lab,twoLoc.field))
   #' 
   #' @references Joint Committee on Guides in Metrology (JCGM), \emph{Evaluation of Measurement Data Guide to the Expression of Uncertainty in Measurement}, http://www.bipm.org/utils/common/documents/jcgm/JCGM_100_2008_E.pdf, 2008.
-  #'
+  #' 
+  #' @refrences Frey JM, Pieper JK, Thompson ST (2018) Mission Critical Voice QoE Mouth to Ear Latency Measurement Methods. \emph{NISTIR}. URL \url{https://doi.org/10.6028/NIST.IR.8206}. 
+  #' 
   #' @export
   
   # Initialize empty list to store delay values in
