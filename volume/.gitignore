@@ -1,0 +1,21 @@
+
+#matlab temporary files
+*.asv
+
+#matlab data files
+*.mat
+
+#data directory
+data/
+
+#plots directory
+plots/
+
+#test type file
+test-type.txt
+
+#ignore pesq executable because it's not ours
+pesq.exe
+
+#ignore pesq results file
+pesq_results.txt

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?ccsproject version="1.0"?>
+<projectOptions>
+	<ccsVersion value="7.2.0"/>
+	<deviceVariant value="MSP430F5529"/>
+	<deviceFamily value="MSP430"/>
+	<deviceEndianness value="little"/>
+	<codegenToolVersion value="16.9.4.LTS"/>
+	<isElfFormat value="true"/>
+	<linkerCommandFile value="lnk_msp430f5529.cmd"/>
+	<rts value="libc.a"/>
+	<createSlaveProjects value=""/>
+	<templateProperties value="id=C1_LedOnOff.projectspec.C1_LedOnOff,"/>
+	<origin value="C:\Users\jmf6\Desktop\MSP430USBDevelopersPackage_5_20_06_02\MSP430USBDevelopersPackage_5_20_06_02\MSP430_USB_Software\MSP430_USB_API\examples\CDC_virtualCOMport\C1_LedOnOff\CCS\C1_LedOnOff.projectspec"/>
+	<filesToOpen value=""/>
+	<connection value="common/targetdb/connections/TIMSP430-USB.xml"/>
+	<isTargetManual value="false"/>
+</projectOptions>

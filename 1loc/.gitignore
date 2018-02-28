@@ -1,0 +1,15 @@
+
+#matlab temporary files
+*.asv
+
+#matlab data files
+*.mat
+
+#data directory
+data/
+
+#plots directory
+plots/
+
+#test type file
+test-type.txt
