@@ -126,9 +126,6 @@ if(p.Results.AudioSkip>0)
     end
 end
 
-%maximum size for a run
-max_size=2e3;
-
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
 
@@ -140,12 +137,6 @@ dev_name=choose_device(aPR);
 
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
-
-%run size
-Sr=min(p.Results.Trials,max_size);
-
-%calculate the number of runs that will be required
-runs=ceil(p.Results.Trials/Sr);
 
 %get git status
 git_status=gitStatus();                                                     %#ok git_status is saved in .m file
@@ -208,28 +199,21 @@ ri=radioInterface(p.Results.RadioPort);
 base_filename=sprintf('capture%s_%s',test_type,dtn);
 
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s_x_of_%i.mat',base_filename,runs)));
+fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s.mat',base_filename)));
 
 %turn on LED when test starts
 ri.led(1,true);
 
 try
-    for kk=1:runs
+    %preallocate arrays
+    st_idx=zeros(1,p.Results.Trials);
+    st_dly=zeros(1,p.Results.Trials);
+    underRun=zeros(1,p.Results.Trials);
+    overRun=zeros(1,p.Results.Trials);
+    recordings=cell(1,p.Results.Trials);
+    dly_its=cell(1,p.Results.Trials);
 
-        %if this is the last run, adjust the run size
-        if(kk==runs && kk>1)
-            Sr=p.Results.Trials-Sr*(runs-1);
-        end
-
-        %preallocate arrays
-        st_idx=zeros(1,Sr);
-        st_dly=zeros(1,Sr);
-        underRun=zeros(1,Sr);
-        overRun=zeros(1,Sr);
-        recordings=cell(1,Sr);
-        dly_its=cell(1,Sr);
-
-        for k=1:Sr
+    for k=1:p.Results.Trials
 
             %push the push to talk button
             ri.ptt(true);
@@ -295,19 +279,10 @@ try
             dly_its{k}=1e-3*ITS_delay_wrapper(dat,y',fs);
             %save data
             recordings{k}=dat;
-
-        end
-        %save datafile
-        save(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),save_vars{:},'-v7.3');
-
-        if(kk<runs)
-            %clear saved variables
-            clear recordings st_dly underRun overRun
-
-            %pause for 10s to let writing complete
-            pause(10);
-        end
     end
+    %save datafile
+    save(fullfile('data',sprintf('%s.mat',base_filename)),save_vars{:},'-v7.3');
+
 catch err
     %check that all vars exist
     if(exist(char(save_vars),'var'))
@@ -327,45 +302,6 @@ ri.led(1,false);
 
 %close radio interface
 delete(ri);
-
-%check if there was more than one run meaning that we should load in datafiles
-if(runs>1)
-    %preallocate arrays
-    st_dly=zeros(1,p.Results.Trials);
-    underRun=zeros(1,p.Results.Trials);
-    overRun=zeros(1,p.Results.Trials);
-    recordings=cell(1,p.Results.Trials);
-    dly_its=cell(1,p.Results.Trials);
-
-    pos=1;
-
-    for k=1:runs
-
-        %get run data
-        run_dat=load(fullfile('data',sprintf('%s_%i_of_%i.mat',base_filename,k,runs)),save_vars{:});
-
-        %get run length
-        run_length=length(run_dat.recordings);
-
-        %get range of values that are being set
-        rng=pos+(0:(run_length-1));
-
-        %put data in larger array
-        st_dly(rng)    =run_dat.st_dly;
-        underRun(rng)  =run_dat.underRun;
-        overRun(rng)   =run_dat.overRun;
-        recordings(rng)=run_dat.recordings;
-        dly_its(rng)   =run_dat.dly_its;
-        
-        %add run length to position
-        pos=pos+run_length;
-
-    end
-    
-    %save one big file with everything
-    save(fullfile('data',[base_filename '_all.mat']),save_vars{:},'-v7.3');
-    
-end
 
 %check for buffer over runs
 if(any(overRun))
