@@ -116,19 +116,31 @@ classdef radioInterface < handle
             end
         end
         %function to key or un-key the radio
-        function ptt(obj,state)      
+        function ptt(obj,num,state)      
 % PTT change the push-to-talk status of the radio interface
 %
 % PTT(state) if state is true then the PTT is set to transmit. if state is
 % false then the radio is set to not transmit
             
+            %check if three arguments were given
+            if(nargin<3)
+                %get state from num
+                state=num;
+                %default num to 1
+                num=1;
+            end
             
             %check what the state is 
             if(state)
-                obj.command('ptt on');
+                %state is on
+                state='on';
             else
-                obj.command('ptt off');
+                %state is off
+                state='off';
             end
+            
+            %send command
+            obj.command('ptt %u %s',num,state);
         end
         
         function led(obj,num,state)
@@ -168,24 +180,33 @@ classdef radioInterface < handle
             obj.command('ptt');
             %get response line
             resp=fgetl(obj.sobj);
-            %get state from response
-            state=textscan(resp,'PTT status : %s');
-            %check that state was parsed correctly
-            if(all(size(state)==[1 1]))
-                switch(state{1}{1})
-                    case 'on'
-                        value=true;
-                    case 'off'
-                        value=false;
-                    otherwise
-                        value=NaN;
+            %parse number of PTT outputs
+            num=textscan(resp,'%u PTT outputs:');
+            %preallocate value
+            value=NaN(1,num{1});
+            %loop through all outputs
+            for k=1:num{1}
+                %get response line
+                resp=fgetl(obj.sobj);
+                %get state from response
+                state=textscan(resp,sprintf('PTT%i status : %%s',k));
+                %check that state was parsed correctly
+                if(all(size(state)==[1 1]))
+                    switch(state{1}{1})
+                        case 'on'
+                            value(k)=true;
+                        case 'off'
+                            value(k)=false;
+                        otherwise
+                            value(k)=NaN;
+                    end
+                else
+                    value(k)=NaN;
                 end
-            else
-                value=NaN;
             end
         end
         
-        function delay =  ptt_delay(obj,delay)
+        function delay =  ptt_delay(obj,num,delay)
 % PTT_DELAY setup the radio interface to key the radio after a delay
 %
 %   PTT_DELAY(dly) set the radio to be keyed in dly seconds.
@@ -195,14 +216,39 @@ classdef radioInterface < handle
 %   the possible delay
 %
 
+            %check if all arguments were given
+            if(nargin<3)
+                %get delay from num
+                delay=num;
+                %default num to 1
+                num=1;
+            end
+            
             %flush input from buffer
             flushinput(obj.sobj)
             %send ptt command with no arguments
-            obj.command('ptt delay %f',delay);
+            obj.command('ptt %u delay %f',num,delay);
             %get response line
             resp=fgetl(obj.sobj);
             %get actual delay
-            delay=sscanf(resp,'PTT in %f sec');
+            delay=textscan(resp,'PTT in %f sec');
+            %get delay value
+            delay=delay{1};
+            %check if data was parsed correctly
+            if(isempty(delay))
+                %scan for error
+                err=textscan(resp,'Error : %[^\r\n]');
+                %get string from data
+                err=cell2mat(err{1});
+                %check that error was found
+                if(isempty(err))
+                    %unable to parse error
+                    error('Unknown Error');
+                else
+                    %raise error from MCU
+                    error('%s',err);
+                end
+            end
         end
         
         function [ext,int]=temp(obj)
