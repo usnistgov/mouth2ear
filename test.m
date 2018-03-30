@@ -309,8 +309,15 @@ try
         end
     end
 catch err
-    %save all data 
-    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),save_vars{:},'err','-v7.3');
+    %check that all vars exist
+    if(exist(char(save_vars),'var'))
+        %create filename
+        savename=fullfile('data',sprintf('%s_ERROR.mat',base_filename));
+        %save all data 
+        save(savename,save_vars{:},'err','-v7.3');
+        %print out file location
+        fprintf('Data saved in ''%s''',savename);
+    end
     %rethrow error
     rethrow(err);
 end
