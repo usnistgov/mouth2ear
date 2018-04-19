@@ -66,6 +66,9 @@ addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scala
 addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
 %add background noise volume parameter
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
+%add audio skip parameter to skip audio at the beginning of the clip
+addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+
 
 %parse inputs
 parse(p,varargin{:});
@@ -106,6 +109,17 @@ if(~isempty(p.Results.BGNoiseFile))
     nf=repmat(nf,ceil(length(y)/length(nf)),1);
     %add noise file to sample
     y=y+p.Results.BGNoiseVolume*nf(1:length(y));
+end
+
+%remove first part of audio file if AudioSkip is given
+if(p.Results.AudioSkip>0)
+    %remove audio from file
+    y=y(round(p.Results.AudioSkip*fs):end);
+    %check if any aduio is remaining
+    if(isempty(y))
+        %no audio left, give error
+        error('AudioSkip is too large, no audio left to play');
+    end
 end
 
 %maximum size for a run
