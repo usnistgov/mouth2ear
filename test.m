@@ -67,7 +67,7 @@ addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
 %add background noise volume parameter
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
 %add audio skip parameter to skip audio at the beginning of the clip
-addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
 
 
 %parse inputs
