@@ -75,8 +75,9 @@ parse(p,varargin{:});
 
 %vars to save to files
 save_vars={'git_status','test_type','y','recordings','st_dly','dev_name',...
-           'underRun','overRun','dly_its','fs'};
-
+           'underRun','overRun','dly_its','fs',...
+        ...%save pre test notes, post test notes will be appended later
+           'pre_notes'};
 
 %read audio file
 [y,fs]=audioread(p.Results.AudioFile);
@@ -147,14 +148,19 @@ git_status=gitStatus();                                                     %#ok
 %make data direcotry
 [~,~,~]=mkdir('data');
 
+%get start time
+dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
-dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
+dtn=char(dt_start);
 
 %open test type file
 test_type_f=fopen('test-type.txt');
 
 %check if open was successful
 if(test_type_f<0)
+    %set test type string for filename
+    test_type_str='';
+    %also set test type
     test_type='';
 else
     %get line from file
@@ -188,15 +194,42 @@ else
         %print out test type
         fprintf('Test type : %s\n',test_type);
         %preappend underscore and trim whitespace
-        test_type=['_',strtrim(test_type)];
+        test_type_str=['_',strtrim(test_type)];
     end
 end
+
+%get pre test notes these are saved with 
+resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
+%check if dialog was cancled
+if(isempty(resp))
+    %exit function
+    return
+end
+
+%get notes from response
+pre_note_array=resp{1};
+%get strings from output add a tabs and newlines
+pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notes=horzcat(pre_note_strings{:});
+
+%open log file
+logf=fopen('tests.log','a+');
+%set timeformat of start time
+dt_start.Format='dd-MMM-yyyy HH:mm:ss';
+%write start time to file with notes
+fprintf(logf,['\n>>Test started at %s\n'...
+              '\tTest Type : %s\n'...
+              '===Pre-Test Notes===\n'...
+              '%s'],char(dt_start),test_type,pre_notes);
+%close log file
+fclose(logf);
 
 %open radio interface
 ri=radioInterface(p.Results.RadioPort);
 
 %generate base file name to use for all files
-base_filename=sprintf('capture%s_%s',test_type,dtn);
+base_filename=sprintf('capture%s_%s',test_type_str,dtn);
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s.mat',base_filename)));
@@ -284,15 +317,46 @@ try
     save(fullfile('data',sprintf('%s.mat',base_filename)),save_vars{:},'-v7.3');
 
 catch err
+        
+    %add error to dialog prompt
+    dlgp=sprintf(['Error Encountered with test:\n'...
+                  '"%s"\n'...
+                  'Please enter notes on test conditions'],...
+                  strtrim(err.message));
+    
+    %get error test notes
+    resp=inputdlg(dlgp,'Test Error Conditions',[15,100]);
+
+    %open log file
+    logf=fopen('tests.log','a+');
+
+    %check if dialog was not cancled
+    if(~isempty(resp))
+        %get notes from response
+        post_note_array=resp{1};
+        %get strings from output add a tabs and newlines
+        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notes=horzcat(post_note_strings{:});
+
+        %write start time to file with notes
+        fprintf(logf,'===Test-Error Notes===\n%s',post_notes);
+    end
+    %print end of test marker
+    fprintf(logf,'===End Test===\n\n');
+    %close log file
+    fclose(logf);
+    
     %check that all vars exist
     if(exist(char(save_vars),'var'))
         %create filename
         savename=fullfile('data',sprintf('%s_ERROR.mat',base_filename));
-        %save all data 
-        save(savename,save_vars{:},'err','-v7.3');
+        %save all data and post notes
+        save(savename,save_vars{:},'err','post_notes','-v7.3');
         %print out file location
         fprintf('Data saved in ''%s''',savename);
     end
+    
     %rethrow error
     rethrow(err);
 end
@@ -374,3 +438,30 @@ ylabel(['Delay [' its_mat_u ']']);
 beep;
 pause(1);
 beep;
+
+%get post test notes
+resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
+
+%open log file
+logf=fopen('tests.log','a+');
+
+%check if dialog was cancled
+if(~isempty(resp))
+    %get notes from response
+    post_note_array=resp{1};
+    %get strings from output add a tabs and newlines
+    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+    %get a single string from response
+    post_notes=horzcat(post_note_strings{:});
+
+    %write start time to file with notes
+    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+end
+%print end of test marker
+fprintf(logf,'===End Test===\n\n');
+%close log file
+fclose(logf);
+
+%append post notes to .mat file
+save(fullfile('data',sprintf('%s.mat',base_filename)),'post_notes','-append');
+
