@@ -140,7 +140,7 @@ dev_name=choose_device(aPR);
 fprintf('Using "%s" for audio test\n',dev_name);
 
 %get git status
-git_status=gitStatus();                                                     %#ok git_status is saved in .m file
+git_status=gitStatus();
 
 %make plots direcotry
 [~,~,~]=mkdir('plots');
@@ -228,8 +228,9 @@ dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time to file with notes
 fprintf(logf,['\n>>Test started at %s\n'...
               '\tTest Type : %s\n'...
+              '\tGit Hash  : %s\n'...
               '===Pre-Test Notes===\n'...
-              '%s'],char(dt_start),test_type,pre_notes);
+              '%s'],char(dt_start),test_type,git_status.Hash,pre_notes);
 %close log file
 fclose(logf);
 
