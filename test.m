@@ -156,10 +156,12 @@ dtn=char(dt_start);
 %open test type file
 test_type_f=fopen('test-type.txt');
 
+
+%set test type string for filename
+test_type_str='';
+
 %check if open was successful
 if(test_type_f<0)
-    %set test type string for filename
-    test_type_str='';
     %also set test type
     test_type='';
 else
@@ -171,13 +173,18 @@ else
     if(~ischar(test_type))
         error('Could not read test type from file');
     end
+end
+
+%loop while we have an empty test type
+while(isempty(test_type_str))
     %check for leading '#'
-    if(test_type(1)=='#')
+    if(test_type_f<0 || isempty(test_type) || test_type(1)=='#')
         %prompt the user for test type
         test_type=inputdlg('Please enter a test type string','Test Type',[1,50],{test_type(2:end)});
         %check if anything was returned
         if(isempty(test_type))
-            test_type='';
+            %exit program
+            return;
         else
             %get test type from cell array
             test_type=test_type{1};
@@ -195,6 +202,7 @@ else
         fprintf('Test type : %s\n',test_type);
         %preappend underscore and trim whitespace
         test_type_str=['_',strtrim(test_type)];
+        %test_type_str set, loop will now exit
     end
 end
 
