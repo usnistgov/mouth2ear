@@ -160,41 +160,68 @@ test_type_f=fopen('test-type.txt');
 %set test type string for filename
 test_type_str='';
 
+
+%width for a device prompt
+dev_w=20;
+%initialize prompt array
+prompt={};
+%initialize text box dimentions array
+dims=[];
+
+%add test type prompt to dialog
+prompt{end+1}='Test Type';
+dims(end+1,:)=[1,50];
+%add Tx radio ID prompt to dialog
+prompt{end+1}='Transmit Device';
+dims(end+1,:)=[1,dev_w];
+%add Rx radio ID prompt to dialog
+prompt{end+1}='Recive Device';
+dims(end+1,:)=[1,dev_w];
+%add radio system under test prompt
+prompt{end+1}='System';
+dims(end+1,:)=[1,60];
+%add test notes prompt
+prompt{end+1}='Please enter notes on test conditions';
+dims(end+1,:)=[15,100];
+
+%construct empty response convert to char so inputdlg doesn't wine
+resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
+
 %check if open was successful
-if(test_type_f<0)
-    %also set test type
-    test_type='';
-else
+if(test_type_f>0)
     %get line from file
-    test_type=fgetl(test_type_f);
+    tmp=fgetl(test_type_f);
     %close test-type.txt file
     fclose(test_type_f);
     %check for error
-    if(~ischar(test_type))
+    if(~ischar(tmp))
         error('Could not read test type from file');
     end
+    %remove leading #
+    if(~isempty(tmp) && tmp(1)=='#')
+        tmp=tmp(2:end);
+    end
+    %put test type into response
+    resp{1}=tmp;
 end
 
 %loop while we have an empty test type
 while(isempty(test_type_str))
-    %check for leading '#'
-    if(test_type_f<0 || isempty(test_type) || test_type(1)=='#')
-        %prompt the user for test type
-        test_type=inputdlg('Please enter a test type string','Test Type',[1,50],{test_type(2:end)});
-        %check if anything was returned
-        if(isempty(test_type))
-            %exit program
-            return;
-        else
-            %get test type from cell array
-            test_type=test_type{1};
-            %reopend and delete contents
-            test_type_f = fopen('test-type.txt', 'w');
-            %write new test type to file
-            fprintf(test_type_f, ['#', test_type]);
-            %close test-type.txt file
-            fclose(test_type_f);
-        end
+    %prompt the user for test info
+    resp=inputdlg(prompt,'Test Info',dims,resp);
+    %check if anything was returned
+    if(isempty(resp))
+        %exit program
+        return;
+    else
+        %get test type from cell array
+        test_type=resp{1};
+        %reopend and delete contents
+        test_type_f = fopen('test-type.txt', 'w');
+        %write new test type to file
+        fprintf(test_type_f, test_type);
+        %close test-type.txt file
+        fclose(test_type_f);
     end
     %check if a test type was given
     if(~isempty(test_type))
@@ -206,16 +233,8 @@ while(isempty(test_type_str))
     end
 end
 
-%get pre test notes these are saved with 
-resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
-%check if dialog was cancled
-if(isempty(resp))
-    %exit function
-    return
-end
-
 %get notes from response
-pre_note_array=resp{1};
+pre_note_array=resp{end};
 %get strings from output add a tabs and newlines
 pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
 %get a single string from response
@@ -225,12 +244,18 @@ pre_notes=horzcat(pre_note_strings{:});
 logf=fopen('tests.log','a+');
 %set timeformat of start time
 dt_start.Format='dd-MMM-yyyy HH:mm:ss';
-%write start time to file with notes
+%write start time, test type and git hash
 fprintf(logf,['\n>>Test started at %s\n'...
-              '\tTest Type : %s\n'...
-              '\tGit Hash  : %s\n'...
-              '===Pre-Test Notes===\n'...
-              '%s'],char(dt_start),test_type,git_status.Hash,pre_notes);
+              '\tTest Type  : %s\n'...
+              '\tGit Hash   : %s\n'],char(dt_start),test_type,git_status.Hash);
+%write Tx device ID
+fprintf(logf, '\tTx Device  : %s\n',resp{2});
+%wriet Rx device ID
+fprintf(logf, '\tRx Device  : %s\n',resp{3});
+%write system under test 
+fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+%write pre test notes
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
 fclose(logf);
 
