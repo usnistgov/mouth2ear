@@ -68,6 +68,9 @@ addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
 %add audio skip parameter to skip audio at the beginning of the clip
 addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
+%add ptt wait parameter
+addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+
 
 
 %parse inputs
@@ -284,11 +287,9 @@ try
 
             %push the push to talk button
             ri.ptt(true);
-
-            %pause to let the radio key up
-            % 0.65 - access time limit UHF
-            % 0.68 - access time limit VHF
-            pause(0.68);
+            
+            %pause a bit to let the radio access the system
+            pause(p.Results.PTTWait);
 
             %play and record audio data
             [dat,underRun(k),overRun(k)]=play_record(aPR,y);
