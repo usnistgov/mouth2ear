@@ -274,6 +274,21 @@ fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s.mat',base_fil
 %turn on LED when test starts
 ri.led(1,true);
 
+if(p.Results.Trials>10)
+    %generate check trials vector
+    check_trials=0:10:p.Results.Trials;
+    %set the first one to trial one
+    check_trials(1)=1;
+else
+    %check at the first run and half way through
+    check_trials=[1 round(p.Results.Trials/2)];
+    %check if both checks are on the first run
+    if(check_trials(2)==1)
+        %set the second check trial to the second run
+        check_trials(2)=2;
+    end
+end
+
 try
     %preallocate arrays
     st_idx=zeros(1,p.Results.Trials);
@@ -300,7 +315,8 @@ try
             %add a pause after play_record to remove run to run dependencys
             pause(3.1);
 
-            if(mod(k,10)==0)
+            %check if we should run statistics on this trial
+            if(any(check_trials==k))
                 fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
                 %calculate RMS
                 rms=sqrt(mean(dat.^2));
