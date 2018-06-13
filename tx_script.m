@@ -1,3 +1,4 @@
+
 function tx_script(varargin)
 %TX_SCRIPT run the transmit side of a two location mouth to ear latency
 %test
@@ -68,10 +69,21 @@ addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scala
 addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
 %add background noise volume parameter
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
+%add audio skip parameter to skip audio at the beginning of the clip
+addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
+%add ptt wait parameter
+addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+
+
 
 %parse inputs
 parse(p,varargin{:});
 
+%vars to save to files
+save_vars={'git_status','test_type','y','recordings','dev_name',...
+           'underRun','overRun','fs',...
+        ...%save pre test notes, post test notes will be appended later
+           'pre_notes'};
 
 %read audio file
 [y,fs]=audioread(p.Results.AudioFile);
@@ -110,8 +122,16 @@ if(~isempty(p.Results.BGNoiseFile))
     y=y+p.Results.BGNoiseVolume*nf(1:length(y));
 end
 
-%maximum size for a run
-max_size=2e3;
+%remove first part of audio file if AudioSkip is given
+if(p.Results.AudioSkip>0)
+    %remove audio from file
+    y=y(round(p.Results.AudioSkip*fs):end);
+    %check if any aduio is remaining
+    if(isempty(y))
+        %no audio left, give error
+        error('AudioSkip is too large, no audio left to play');
+    end
+end
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
@@ -128,14 +148,8 @@ dev_name=choose_device(aPR);
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
 
-%run size
-Sr=min(p.Results.Trials,max_size);
-
-%calculate the number of runs that will be required
-runs=ceil(p.Results.Trials/Sr);
-
 %get git status
-git_status=gitStatus();                                                     %#ok git_status is saved in .m file
+git_status=gitStatus();
 
 %folder name for tx data
 tx_dat_fold='tx-data';
@@ -143,88 +157,158 @@ tx_dat_fold='tx-data';
 %make data direcotry
 [~,~,~]=mkdir(tx_dat_fold);
 
+%get start time
+dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
-dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
+dtn=char(dt_start);
 
 %open test type file
 test_type_f=fopen('test-type.txt');
 
+
+%set test type string for filename
+test_type_str='';
+
+
+%width for a device prompt
+dev_w=20;
+%initialize prompt array
+prompt={};
+%initialize text box dimentions array
+dims=[];
+
+%add test type prompt to dialog
+prompt{end+1}='Test Type';
+dims(end+1,:)=[1,50];
+%add Tx radio ID prompt to dialog
+prompt{end+1}='Transmit Device';
+dims(end+1,:)=[1,dev_w];
+%add Rx radio ID prompt to dialog
+prompt{end+1}='Recive Device';
+dims(end+1,:)=[1,dev_w];
+%add radio system under test prompt
+prompt{end+1}='System';
+dims(end+1,:)=[1,60];
+%add test notes prompt
+prompt{end+1}='Please enter notes on test conditions';
+dims(end+1,:)=[15,100];
+
+%construct empty response convert to char so inputdlg doesn't wine
+resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
+
 %check if open was successful
-if(test_type_f<0)
-    test_type='';
-else
+if(test_type_f>0)
     %get line from file
-    test_type=fgetl(test_type_f);
+    tmp=fgetl(test_type_f);
     %close test-type.txt file
     fclose(test_type_f);
     %check for error
-    if(~ischar(test_type))
+    if(~ischar(tmp))
         error('Could not read test type from file');
     end
-    %check for leading '#'
-    if(test_type(1)=='#')
-        %prompt the user for test type
-        test_type=inputdlg('Please enter a test type string','Test Type',[1,50],{test_type(2:end)});
-        %check if anything was returned
-        if(isempty(test_type))
-            test_type='';
-        else
-            %get test type from cell array
-            test_type=test_type{1};
-            %reopend and delete contents
-            test_type_f = fopen('test-type.txt', 'w');
-            %write new test type to file
-            fprintf(test_type_f, ['#', test_type]);
-            %close test-type.txt file
-            fclose(test_type_f);
-        end
+    %remove leading #
+    if(~isempty(tmp) && tmp(1)=='#')
+        tmp=tmp(2:end);
+    end
+    %put test type into response
+    resp{1}=tmp;
+end
+
+%loop while we have an empty test type
+while(isempty(test_type_str))
+    %prompt the user for test info
+    resp=inputdlg(prompt,'Test Info',dims,resp);
+    %check if anything was returned
+    if(isempty(resp))
+        %exit program
+        return;
+    else
+        %get test type from cell array
+        test_type=resp{1};
+        %reopend and delete contents
+        test_type_f = fopen('test-type.txt', 'w');
+        %write new test type to file
+        fprintf(test_type_f, test_type);
+        %close test-type.txt file
+        fclose(test_type_f);
     end
     %check if a test type was given
     if(~isempty(test_type))
         %print out test type
         fprintf('Test type : %s\n',test_type);
         %preappend underscore and trim whitespace
-        test_type=['_',strtrim(test_type)];
+        test_type_str=['_',strtrim(test_type)];
+        %test_type_str set, loop will now exit
     end
 end
+
+%get notes from response
+pre_note_array=resp{end};
+%get strings from output add a tabs and newlines
+pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notes=horzcat(pre_note_strings{:});
+
+%open log file
+logf=fopen('tests.log','a+');
+%set timeformat of start time
+dt_start.Format='dd-MMM-yyyy HH:mm:ss';
+%write start time, test type and git hash
+fprintf(logf,['\n>>Tx Two Loc Test started at %s\n'...
+              '\tTest Type  : %s\n'...
+              '\tGit Hash   : %s\n'],char(dt_start),test_type,git_status.Hash);
+%write Tx device ID
+fprintf(logf, '\tTx Device  : %s\n',resp{2});
+%wriet Rx device ID
+fprintf(logf, '\tRx Device  : %s\n',resp{3});
+%write system under test 
+fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+%write pre test notes
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
+%close log file
+fclose(logf);
 
 %open radio interface
 ri=radioInterface(p.Results.RadioPort);
 
 %generate base file name to use for all files
-base_filename=sprintf('Tx_capture%s_%s',test_type,dtn);
+base_filename=sprintf('Tx_capture%s_%s',test_type_str,dtn);
 
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s_x_of_%i.mat',base_filename,runs)));
+fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)));
 
 %turn on LED when test starts
 ri.led(1,true);
 
-%turn on LED when test starts
-ri.led(1,true);
+if(p.Results.Trials>10)
+    %generate check trials vector
+    check_trials=0:10:p.Results.Trials;
+    %set the first one to trial one
+    check_trials(1)=1;
+else
+    %check at the first run and half way through
+    check_trials=[1 round(p.Results.Trials/2)];
+    %check if both checks are on the first run
+    if(check_trials(2)==1)
+        %set the second check trial to the second run
+        check_trials(2)=2;
+    end
+end
 
 try
-    for kk=1:runs
+    %preallocate arrays
 
-        %if this is the last run, adjust the run size
-        if(kk==runs && kk>1)
-            Sr=p.Results.Trials-Sr*(runs-1);
-        end
+    underRun=zeros(1,p.Results.Trials);
+    overRun=zeros(1,p.Results.Trials);
+    recordings=cell(1,p.Results.Trials);
 
-        %preallocate arrays
-        underRun=zeros(1,Sr);
-        overRun=zeros(1,Sr);
-        recordings=cell(1,Sr);
-
-        for k=1:Sr
+    for k=1:p.Results.Trials
 
             %push the push to talk button
             ri.ptt(true);
-
-            %pause to let the radio key up
-            % 0.65 - access time limit UHF
-            % 0.68 - access time limit VHF
-            pause(0.68);
+            
+            %pause a bit to let the radio access the system
+            pause(p.Results.PTTWait);
 
             %play and record audio data
             [dat,underRun(k),overRun(k)]=play_record(aPR,y);
@@ -235,7 +319,8 @@ try
             %add a pause after play_record to remove run to run dependencys
             pause(3.1);
 
-            if(mod(k,10)==0)
+            %check if we should run statistics on this trial
+            if(any(check_trials==k))
                 fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
                 %calculate RMS
                 rms=sqrt(mean(dat.^2));
@@ -277,22 +362,51 @@ try
 
             %save data
             recordings{k}=dat;
-
-        end
-        %save datafile
-        save(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,kk,runs)),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
-
-        if(kk<runs)
-            %clear saved variables
-            clear recordings underRun overRun
-
-            %pause for 10s to let writing complete
-            pause(10);
-        end
     end
+    %save datafile
+    save(fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)),save_vars{:},'-v7.3');
+
 catch err
-    %save all data 
-    save(fullfile('data',sprintf('%s_ERROR.mat',base_filename)),'git_status','test_type','y','recordings','st_dly','dev_name','underRun','overRun','fs','dly_its','err','-v7.3');
+        
+    %add error to dialog prompt
+    dlgp=sprintf(['Error Encountered with test:\n'...
+                  '"%s"\n'...
+                  'Please enter notes on test conditions'],...
+                  strtrim(err.message));
+    
+    %get error test notes
+    resp=inputdlg(dlgp,'Test Error Conditions',[15,100]);
+
+    %open log file
+    logf=fopen('tests.log','a+');
+
+    %check if dialog was not cancled
+    if(~isempty(resp))
+        %get notes from response
+        post_note_array=resp{1};
+        %get strings from output add a tabs and newlines
+        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notes=horzcat(post_note_strings{:});
+
+        %write start time to file with notes
+        fprintf(logf,'===Test-Error Notes===\n%s',post_notes);
+    end
+    %print end of test marker
+    fprintf(logf,'===End Test===\n\n');
+    %close log file
+    fclose(logf);
+    
+    %check that all vars exist
+    if(exist(char(save_vars),'var'))
+        %create filename
+        savename=fullfile(tx_dat_fold,sprintf('%s.mat',base_filename));
+        %save all data and post notes
+        save(savename,save_vars{:},'err','post_notes','-v7.3');
+        %print out file location
+        fprintf('Data saved in ''%s''',savename);
+    end
+    
     %rethrow error
     rethrow(err);
 end
@@ -320,44 +434,33 @@ ri.led(1,false);
 %close radio interface
 delete(ri);
 
-%check if there was more than one run meaning that we should load in datafiles
-if(runs>1)
-    %preallocate arrays
-    underRun=zeros(1,p.Results.Trials);
-    overRun=zeros(1,p.Results.Trials);
-    recordings=cell(1,p.Results.Trials);
-    pos=1;
-
-    for k=1:runs
-
-        %get run data
-        run_dat=load(fullfile(tx_dat_fold,sprintf('%s_%i_of_%i.mat',base_filename,k,runs)));
-
-        %get run length
-        run_length=length(run_dat.recordings);
-
-        %get range of values that are being set
-        rng=pos+(0:(run_length-1));
-
-        %put data in larger array
-        underRun(rng)  =run_dat.underRun;
-        overRun(rng)   =run_dat.overRun;
-        recordings(rng)=run_dat.recordings;
-        
-        %add run length to position
-        pos=pos+run_length;
-
-    end
-    
-    %save one big file with everything
-    save(fullfile(tx_dat_fold,[base_filename '_all.mat']),'git_status','test_type','y','recordings','dev_name','underRun','overRun','fs','-v7.3');
-    
-    %print out that the data was saved
-    fprintf('Data file saved in "%s"\n',[base_filename '_all.mat']);
-    
-end
-
-
 beep;
 pause(1);
 beep;
+
+%get post test notes
+resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
+
+%open log file
+logf=fopen('tests.log','a+');
+
+%check if dialog was cancled
+if(~isempty(resp))
+    %get notes from response
+    post_note_array=resp{1};
+    %get strings from output add a tabs and newlines
+    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+    %get a single string from response
+    post_notes=horzcat(post_note_strings{:});
+
+    %write start time to file with notes
+    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+end
+%print end of test marker
+fprintf(logf,'===End Test===\n\n');
+%close log file
+fclose(logf);
+
+%append post notes to .mat file
+save(fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)),'post_notes','-append');
+

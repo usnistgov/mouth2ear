@@ -20,3 +20,6 @@ plots/
 
 #test type file
 test-type.txt
+
+#test conditions log file
+tests.log

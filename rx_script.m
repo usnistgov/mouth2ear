@@ -69,8 +69,67 @@ rx_dat_fold='rx-data';
 %make data direcotry
 [~,~,~]=mkdir(rx_dat_fold);
 
+
+%get start time
+dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
-dtn=char(datetime('now','Format','dd-MMM-yyyy_HH-mm-ss'));
+dtn=char(dt_start);
+
+%width for a device prompt
+dev_w=20;
+%initialize prompt array
+prompt={};
+%initialize text box dimentions array
+dims=[];
+
+%add Tx radio ID prompt to dialog
+prompt{end+1}='Transmit Device';
+dims(end+1,:)=[1,dev_w];
+%add Rx radio ID prompt to dialog
+prompt{end+1}='Recive Device';
+dims(end+1,:)=[1,dev_w];
+%add radio system under test prompt
+prompt{end+1}='System';
+dims(end+1,:)=[1,60];
+%add test notes prompt
+prompt{end+1}='Please enter notes on test conditions';
+dims(end+1,:)=[15,100];
+
+%construct empty response convert to char so inputdlg doesn't wine
+resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
+
+%prompt the user for test info
+resp=inputdlg(prompt,'Test Info',dims,resp);
+%check if anything was returned
+if(isempty(resp))
+    %exit program
+    return;
+end
+
+%get notes from response
+pre_note_array=resp{end};
+%get strings from output add a tabs and newlines
+pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notes=horzcat(pre_note_strings{:});
+
+%open log file
+logf=fopen('tests.log','a+');
+%set timeformat of start time
+dt_start.Format='dd-MMM-yyyy HH:mm:ss';
+%write start time, test type and git hash
+fprintf(logf,['\n>>Rx Two Loc Test started at %s\n'...
+              '\tGit Hash   : %s\n'],char(dt_start),git_status.Hash);
+%write Tx device ID
+fprintf(logf, '\tTx Device  : %s\n',resp{1});
+%wriet Rx device ID
+fprintf(logf, '\tRx Device  : %s\n',resp{2});
+%write system under test 
+fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+%write pre test notes
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
+%close log file
+fclose(logf);
 
 %generate base file name to use for all files
 filename=sprintf('Rx_capture_%s.wav',dtn);
@@ -122,11 +181,37 @@ else
     fprintf('There were no buffer over runs\n');
 end
 
+%we are done, beep to let the user know
+beep
+
+%get post test notes
+resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
+
+%open log file
+logf=fopen('tests.log','a+');
+
+%check if dialog was cancled
+if(~isempty(resp))
+    %get notes from response
+    post_note_array=resp{1};
+    %get strings from output add a tabs and newlines
+    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+    %get a single string from response
+    post_notes=horzcat(post_note_strings{:});
+
+    %write start time to file with notes
+    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+end
+%print end of test marker
+fprintf(logf,'===End Test===\n\n');
+%close log file
+fclose(logf);
+
 %generate name for info file
 info_name=sprintf('Rx_info_%s.mat',dtn);
 
 %save extra info in .mat file
-save(fullfile(rx_dat_fold,info_name),'dev_name','git_status','overRun','fs');
+save(fullfile(rx_dat_fold,info_name),'dev_name','git_status','overRun','pre_notes','post_notes','fs');
 
 %release the audio object
 release(RecObj);
@@ -137,5 +222,4 @@ release(RecWriter);
 %print completion message
 fprintf('Audio data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
 fprintf('Info saved to:\n\t''%s''\n',fullfile(rx_dat_fold,info_name));
-beep
 
