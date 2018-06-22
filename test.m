@@ -78,7 +78,7 @@ parse(p,varargin{:});
 
 %vars to save to files
 save_vars={'git_status','test_type','y','recordings','st_dly','dev_name',...
-           'underRun','overRun','dly_its','fs',...
+           'underRun','overRun','dly_its','fs','sys_info',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
@@ -243,6 +243,15 @@ pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'Unifor
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
 
+%structure for system info
+sys_info=struct();
+%get Tx device
+sys_info.TxDevice=resp{2};
+%get Rx device
+sys_info.RxDevice=resp{3};
+%get system info
+sys_info.system=resp{end-1};
+
 %open log file
 logf=fopen('tests.log','a+');
 %set timeformat of start time
@@ -252,11 +261,11 @@ fprintf(logf,['\n>>Test started at %s\n'...
               '\tTest Type  : %s\n'...
               '\tGit Hash   : %s\n'],char(dt_start),test_type,git_status.Hash);
 %write Tx device ID
-fprintf(logf, '\tTx Device  : %s\n',resp{2});
+fprintf(logf, '\tTx Device  : %s\n',sys_info.TxDevice);
 %wriet Rx device ID
-fprintf(logf, '\tRx Device  : %s\n',resp{3});
+fprintf(logf, '\tRx Device  : %s\n',sys_info.RxDevice);
 %write system under test 
-fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+fprintf(logf, '\tSystem     : %s\n',sys_info.system);
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
