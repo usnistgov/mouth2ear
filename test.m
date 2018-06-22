@@ -252,6 +252,15 @@ sys_info.RxDevice=resp{3};
 %get system info
 sys_info.system=resp{end-1};
 
+%check dirty status
+if(git_status.Dirty)
+    %local edits, flag as dirty
+    gitdty=' dty';
+else
+    %no edits, don't flag
+    gitdty='';
+end
+
 %open log file
 logf=fopen('tests.log','a+');
 %set timeformat of start time
@@ -259,7 +268,7 @@ dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time, test type and git hash
 fprintf(logf,['\n>>Test started at %s\n'...
               '\tTest Type  : %s\n'...
-              '\tGit Hash   : %s\n'],char(dt_start),test_type,git_status.Hash);
+              '\tGit Hash   : %s%s\n'],char(dt_start),test_type,git_status.Hash,gitdty);
 %write Tx device ID
 fprintf(logf, '\tTx Device  : %s\n',sys_info.TxDevice);
 %wriet Rx device ID
