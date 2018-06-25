@@ -261,6 +261,13 @@ else
     gitdty='';
 end
 
+%get call stack info to extract current filename
+[ST, I] = dbstack('-completenames');
+%get current filename parts
+[~,n,e]=fileparts(ST(I).file);
+%full name of current file without path
+fullname=[n e];
+
 %open log file
 logf=fopen('tests.log','a+');
 %set timeformat of start time
@@ -268,7 +275,8 @@ dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time, test type and git hash
 fprintf(logf,['\n>>Test started at %s\n'...
               '\tTest Type  : %s\n'...
-              '\tGit Hash   : %s%s\n'],char(dt_start),test_type,git_status.Hash,gitdty);
+              '\tGit Hash   : %s%s\n'...
+              '\tfilename   : %s\n'],char(dt_start),test_type,git_status.Hash,gitdty,fullname);
 %write Tx device ID
 fprintf(logf, '\tTx Device  : %s\n',sys_info.TxDevice);
 %wriet Rx device ID
