@@ -259,11 +259,20 @@ fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
 fclose(logf);
 
-%open radio interface
-ri=radioInterface(p.Results.RadioPort);
-
 %generate base file name to use for all files
 base_filename=sprintf('capture%s_%s',test_type_str,dtn);
+
+%generate filename for good data
+data_filename=fullfile('data',sprintf('%s.mat',base_filename));
+
+%generate filename for error data
+error_filename=fullfile('data',sprintf('%s_ERROR.mat',base_filename));
+
+%add cleanup function
+co=onCleanup(@()cleanFun(error_filename,data_filename));
+
+%open radio interface
+ri=radioInterface(p.Results.RadioPort);
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s.mat',base_filename)));
@@ -362,7 +371,7 @@ try
             recordings{k}=dat;
     end
     %save datafile
-    save(fullfile('data',sprintf('%s.mat',base_filename)),save_vars{:},'-v7.3');
+    save(data_filename,save_vars{:},'-v7.3');
 
 catch err
         
@@ -397,12 +406,15 @@ catch err
     
     %check that all vars exist
     if(exist(char(save_vars),'var'))
-        %create filename
-        savename=fullfile('data',sprintf('%s_ERROR.mat',base_filename));
         %save all data and post notes
-        save(savename,save_vars{:},'err','post_notes','-v7.3');
+        save(error_filename,save_vars{:},'err','post_notes','-v7.3');
         %print out file location
-        fprintf('Data saved in ''%s''',savename);
+        fprintf('Data saved in ''%s''',error_filename);
+    else
+        %save all data and post notes
+        save(error_filename,'err','post_notes','-v7.3');
+        %print out file location
+        fprintf('Dummy data saved in ''%s''',error_filename);
     end
     
     %rethrow error
@@ -487,29 +499,47 @@ beep;
 pause(1);
 beep;
 
-%get post test notes
-resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
 
-%open log file
-logf=fopen('tests.log','a+');
 
-%check if dialog was cancled
-if(~isempty(resp))
-    %get notes from response
-    post_note_array=resp{1};
-    %get strings from output add a tabs and newlines
-    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
-    %get a single string from response
-    post_notes=horzcat(post_note_strings{:});
+function cleanFun(err_name,good_name)
+%check if error .m file exists
+if(~exist(err_name,'file'))
 
-    %write start time to file with notes
-    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    prompt='Please enter notes on test conditions';
+    
+    %check to see if data file is missing
+    if(~exist(good_name,'file'))
+        %add not to say that this was an error
+        prompt=[prompt,newline,'Data file missing, something went wrong'];
+    end
+    
+    %get post test notes
+    resp=inputdlg(prompt,'Test Conditions',[15,100]);
+
+    %open log file
+    logf=fopen('tests.log','a+');
+
+    %check if dialog was cancled
+    if(~isempty(resp))
+        %get notes from response
+        post_note_array=resp{1};
+        %get strings from output add a tabs and newlines
+        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notes=horzcat(post_note_strings{:});
+
+        %write start time to file with notes
+        fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    end
+    %print end of test marker
+    fprintf(logf,'===End Test===\n\n');
+    %close log file
+    fclose(logf);
+
+    %check to see if data file exists
+    if(exist(good_name,'file'))
+        %append post notes to .mat file
+        save(good_name,'post_notes','-append');
+    end
 end
-%print end of test marker
-fprintf(logf,'===End Test===\n\n');
-%close log file
-fclose(logf);
-
-%append post notes to .mat file
-save(fullfile('data',sprintf('%s.mat',base_filename)),'post_notes','-append');
 
