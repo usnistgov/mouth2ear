@@ -77,8 +77,8 @@ addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','po
 parse(p,varargin{:});
 
 %vars to save to files
-save_vars={'git_status','test_type','y','recordings','dev_name','underRun',...
-           'overRun','dly_its','st_dly','fs','sys_info','p',...
+save_vars={'git_status','y','recordings','dev_name','underRun',...
+           'overRun','dly_its','st_dly','fs','test_info','p',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
@@ -157,12 +157,7 @@ dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 dtn=char(dt_start);
 
 %open test type file
-test_type_f=fopen('test-type.txt');
-
-
-%set test type string for filename
-test_type_str='';
-
+init_tstinfo=readTestState('test-type.txt');
 
 %width for a device prompt
 dev_w=20;
@@ -170,46 +165,35 @@ dev_w=20;
 prompt={};
 %initialize text box dimentions array
 dims=[];
+%initialize empty response array
+resp={};
 
 %add test type prompt to dialog
 prompt{end+1}='Test Type';
 dims(end+1,:)=[1,50];
+resp{end+1}=init_tstinfo.testType;
 %add Tx radio ID prompt to dialog
 prompt{end+1}='Transmit Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.TxDevice;
 %add Rx radio ID prompt to dialog
 prompt{end+1}='Recive Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.RxDevice;
 %add radio system under test prompt
 prompt{end+1}='System';
 dims(end+1,:)=[1,60];
+resp{end+1}=init_tstinfo.System;
 %add test notes prompt
 prompt{end+1}='Please enter notes on test conditions';
 dims(end+1,:)=[15,100];
+resp{end+1}='';
 
-%construct empty response convert to char so inputdlg doesn't wine
-resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
-
-%check if open was successful
-if(test_type_f>0)
-    %get line from file
-    tmp=fgetl(test_type_f);
-    %close test-type.txt file
-    fclose(test_type_f);
-    %check for error
-    if(~ischar(tmp))
-        error('Could not read test type from file');
-    end
-    %remove leading #
-    if(~isempty(tmp) && tmp(1)=='#')
-        tmp=tmp(2:end);
-    end
-    %put test type into response
-    resp{1}=tmp;
-end
+%dummy struct for sys_info
+test_info=struct('testType','');
 
 %loop while we have an empty test type
-while(isempty(test_type_str))
+while(isempty(test_info.testType))
     %prompt the user for test info
     resp=inputdlg(prompt,'Test Info',dims,resp);
     %check if anything was returned
@@ -217,21 +201,17 @@ while(isempty(test_type_str))
         %exit program
         return;
     else
-        %get test type from cell array
-        test_type=resp{1};
-        %reopend and delete contents
-        test_type_f = fopen('test-type.txt', 'w');
-        %write new test type to file
-        fprintf(test_type_f, test_type);
-        %close test-type.txt file
-        fclose(test_type_f);
+        %get test state from dialog
+        test_info=getTestState(prompt(1:(end-1)),resp(1:(end-1)));
+        %write test state
+        writeTestState('test-type.txt',test_info);
     end
     %check if a test type was given
-    if(~isempty(test_type))
+    if(~isempty(test_info.testType))
         %print out test type
-        fprintf('Test type : %s\n',test_type);
+        fprintf('Test type : %s\n',test_info.testType);
         %preappend underscore and trim whitespace
-        test_type_str=['_',strtrim(test_type)];
+        test_type_str=['_',strtrim(test_info.testType)];
         %test_type_str set, loop will now exit
     end
 end
@@ -242,15 +222,6 @@ pre_note_array=resp{end};
 pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
-
-%structure for system info
-sys_info=struct();
-%get Tx device
-sys_info.TxDevice=resp{2};
-%get Rx device
-sys_info.RxDevice=resp{3};
-%get system info
-sys_info.system=resp{end-1};
 
 %check dirty status
 if(git_status.Dirty)
@@ -276,13 +247,13 @@ dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 fprintf(logf,['\n>>Test started at %s\n'...
               '\tTest Type  : %s\n'...
               '\tGit Hash   : %s%s\n'...
-              '\tfilename   : %s\n'],char(dt_start),test_type,git_status.Hash,gitdty,fullname);
+              '\tfilename   : %s\n'],char(dt_start),test_info.testType,git_status.Hash,gitdty,fullname);
 %write Tx device ID
-fprintf(logf, '\tTx Device  : %s\n',sys_info.TxDevice);
+fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 %wriet Rx device ID
-fprintf(logf, '\tRx Device  : %s\n',sys_info.RxDevice);
+fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
-fprintf(logf, '\tSystem     : %s\n',sys_info.system);
+fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
