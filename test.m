@@ -145,11 +145,17 @@ fprintf('Using "%s" for audio test\n',dev_name);
 %get git status
 git_status=gitStatus();
 
+%folder name for data
+dat_fold='data';
+
+%folder name for plots
+plots_fold='plots';
+
 %make plots direcotry
-[~,~,~]=mkdir('plots');
+[~,~,~]=mkdir(plots_fold);
 
 %make data direcotry
-[~,~,~]=mkdir('data');
+[~,~,~]=mkdir(dat_fold);
 
 %get start time
 dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
@@ -263,10 +269,10 @@ fclose(logf);
 base_filename=sprintf('capture%s_%s',test_type_str,dtn);
 
 %generate filename for good data
-data_filename=fullfile('data',sprintf('%s.mat',base_filename));
+data_filename=fullfile(dat_fold,sprintf('%s.mat',base_filename));
 
 %generate filename for error data
-error_filename=fullfile('data',sprintf('%s_ERROR.mat',base_filename));
+error_filename=fullfile(dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
 %add cleanup function
 co=onCleanup(@()cleanFun(error_filename,data_filename));
@@ -275,7 +281,7 @@ co=onCleanup(@()cleanFun(error_filename,data_filename));
 ri=radioInterface(p.Results.RadioPort);
 
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile('data',sprintf('%s.mat',base_filename)));
+fprintf('Storing data in:\n\t''%s''\n',fullfile(dat_fold,sprintf('%s.mat',base_filename)));
 
 %turn on LED when test starts
 ri.led(1,true);
@@ -477,7 +483,7 @@ st_dev=std(its_dly_mean);
 title(sprintf('StD : %.1f %s',st_dev_e,st_u));
 
 %print plot to .png
-print(fullfile('plots',[base_filename '.png']),'-dpng','-r600');
+print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
 
 %New figure for time plot
 figure;
