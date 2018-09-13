@@ -151,6 +151,9 @@ dat_fold='data';
 %folder name for plots
 plots_fold='plots';
 
+%file name for log file
+log_name='tests.log';
+
 %make plots direcotry
 [~,~,~]=mkdir(plots_fold);
 
@@ -246,7 +249,7 @@ end
 fullname=[n e];
 
 %open log file
-logf=fopen('tests.log','a+');
+logf=fopen(log_name,'a+');
 %set timeformat of start time
 dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time, test type and git hash
@@ -391,7 +394,7 @@ catch err
     resp=inputdlg(dlgp,'Test Error Conditions',[15,100]);
 
     %open log file
-    logf=fopen('tests.log','a+');
+    logf=fopen(log_name,'a+');
 
     %check if dialog was not cancled
     if(~isempty(resp))
@@ -523,7 +526,7 @@ if(~exist(err_name,'file'))
     resp=inputdlg(prompt,'Test Conditions',[15,100]);
 
     %open log file
-    logf=fopen('tests.log','a+');
+    logf=fopen(log_name,'a+');
 
     %check if dialog was cancled
     if(~isempty(resp))
