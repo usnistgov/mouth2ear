@@ -154,6 +154,9 @@ plots_fold='plots';
 %file name for log file
 log_name='tests.log';
 
+%file name for test type
+test_name='test-type.txt';
+
 %make plots direcotry
 [~,~,~]=mkdir(plots_fold);
 
@@ -166,7 +169,7 @@ dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 dtn=char(dt_start);
 
 %open test type file
-init_tstinfo=readTestState('test-type.txt');
+init_tstinfo=readTestState(test_name);
 
 %width for a device prompt
 dev_w=20;
@@ -213,7 +216,7 @@ while(isempty(test_info.testType))
         %get test state from dialog
         test_info=getTestState(prompt(1:(end-1)),resp(1:(end-1)));
         %write test state
-        writeTestState('test-type.txt',test_info);
+        writeTestState(test_name,test_info);
     end
     %check if a test type was given
     if(~isempty(test_info.testType))
