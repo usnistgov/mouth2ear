@@ -70,6 +70,8 @@ addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar
 addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
 %add ptt wait parameter
 addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+%add output directory parameter
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
 
 
 
@@ -146,16 +148,16 @@ fprintf('Using "%s" for audio test\n',dev_name);
 git_status=gitStatus();
 
 %folder name for data
-dat_fold='data';
+dat_fold=fullfile(p.Results.OutDir,'data');
 
 %folder name for plots
-plots_fold='plots';
+plots_fold=fullfile(p.Results.OutDir,'plots');
 
 %file name for log file
-log_name='tests.log';
+log_name=fullfile(p.Results.OutDir,'tests.log');
 
 %file name for test type
-test_name='test-type.txt';
+test_name=fullfile(p.Results.OutDir,'test-type.txt');
 
 %make plots direcotry
 [~,~,~]=mkdir(plots_fold);
