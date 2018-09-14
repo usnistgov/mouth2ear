@@ -73,6 +73,8 @@ addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar
 addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
 %add ptt wait parameter
 addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+%add output directory parameter
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
 
 
 
@@ -80,8 +82,8 @@ addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','po
 parse(p,varargin{:});
 
 %vars to save to files
-save_vars={'git_status','test_type','y','recordings','dev_name',...
-           'underRun','overRun','fs',...
+save_vars={'git_status','test_info','y','recordings','dev_name',...
+           'underRun','overRun','fs','p',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
@@ -152,7 +154,13 @@ fprintf('Using "%s" for audio test\n',dev_name);
 git_status=gitStatus();
 
 %folder name for tx data
-tx_dat_fold='tx-data';
+tx_dat_fold=fullfile(p.Results.OutDir,'tx-data');
+
+%file name for log file
+log_name=fullfile(p.Results.OutDir,'tests.log');
+
+%file name for test type
+test_name=fullfile(p.Results.OutDir,'test-type.txt');
 
 %make data direcotry
 [~,~,~]=mkdir(tx_dat_fold);
@@ -163,12 +171,7 @@ dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 dtn=char(dt_start);
 
 %open test type file
-test_type_f=fopen('test-type.txt');
-
-
-%set test type string for filename
-test_type_str='';
-
+init_tstinfo=readTestState(test_name);
 
 %width for a device prompt
 dev_w=20;
@@ -176,46 +179,39 @@ dev_w=20;
 prompt={};
 %initialize text box dimentions array
 dims=[];
+%initialize empty response array
+resp={};
 
 %add test type prompt to dialog
 prompt{end+1}='Test Type';
 dims(end+1,:)=[1,50];
+resp{end+1}=init_tstinfo.testType;
 %add Tx radio ID prompt to dialog
 prompt{end+1}='Transmit Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.TxDevice;
 %add Rx radio ID prompt to dialog
 prompt{end+1}='Recive Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.RxDevice;
 %add radio system under test prompt
 prompt{end+1}='System';
 dims(end+1,:)=[1,60];
+resp{end+1}=init_tstinfo.System;
+%add Test location prompt
+prompt{end+1}='Test Location';
+dims(end+1,:)=[1,100];
+resp{end+1}=init_tstinfo.Location;
 %add test notes prompt
 prompt{end+1}='Please enter notes on test conditions';
 dims(end+1,:)=[15,100];
+resp{end+1}='';
 
-%construct empty response convert to char so inputdlg doesn't wine
-resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
-
-%check if open was successful
-if(test_type_f>0)
-    %get line from file
-    tmp=fgetl(test_type_f);
-    %close test-type.txt file
-    fclose(test_type_f);
-    %check for error
-    if(~ischar(tmp))
-        error('Could not read test type from file');
-    end
-    %remove leading #
-    if(~isempty(tmp) && tmp(1)=='#')
-        tmp=tmp(2:end);
-    end
-    %put test type into response
-    resp{1}=tmp;
-end
+%dummy struct for sys_info
+test_info=struct('testType','');
 
 %loop while we have an empty test type
-while(isempty(test_type_str))
+while(isempty(test_info.testType))
     %prompt the user for test info
     resp=inputdlg(prompt,'Test Info',dims,resp);
     %check if anything was returned
@@ -223,21 +219,17 @@ while(isempty(test_type_str))
         %exit program
         return;
     else
-        %get test type from cell array
-        test_type=resp{1};
-        %reopend and delete contents
-        test_type_f = fopen('test-type.txt', 'w');
-        %write new test type to file
-        fprintf(test_type_f, test_type);
-        %close test-type.txt file
-        fclose(test_type_f);
+        %get test state from dialog
+        test_info=getTestState(prompt(1:(end-1)),resp(1:(end-1)));
+        %write test state
+        writeTestState(test_name,test_info);
     end
     %check if a test type was given
-    if(~isempty(test_type))
+    if(~isempty(test_info.testType))
         %print out test type
-        fprintf('Test type : %s\n',test_type);
+        fprintf('Test type : %s\n',test_info.testType);
         %preappend underscore and trim whitespace
-        test_type_str=['_',strtrim(test_type)];
+        test_type_str=['_',strtrim(test_info.testType)];
         %test_type_str set, loop will now exit
     end
 end
@@ -249,33 +241,59 @@ pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'Unifor
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
 
+%check dirty status
+if(git_status.Dirty)
+    %local edits, flag as dirty
+    gitdty=' dty';
+else
+    %no edits, don't flag
+    gitdty='';
+end
+
+%get call stack info to extract current filename
+[ST, I] = dbstack('-completenames');
+%get current filename parts
+[~,n,e]=fileparts(ST(I).file);
+%full name of current file without path
+fullname=[n e];
+
 %open log file
-logf=fopen('tests.log','a+');
+logf=fopen(log_name,'a+');
 %set timeformat of start time
 dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time, test type and git hash
 fprintf(logf,['\n>>Tx Two Loc Test started at %s\n'...
               '\tTest Type  : %s\n'...
-              '\tGit Hash   : %s\n'],char(dt_start),test_type,git_status.Hash);
+              '\tGit Hash   : %s%s\n'...
+              '\tfilename   : %s\n'],char(dt_start),test_info.testType,git_status.Hash,gitdty,fullname);
 %write Tx device ID
-fprintf(logf, '\tTx Device  : %s\n',resp{2});
+fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 %wriet Rx device ID
-fprintf(logf, '\tRx Device  : %s\n',resp{3});
+fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
-fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
 fclose(logf);
 
-%open radio interface
-ri=radioInterface(p.Results.RadioPort);
-
 %generate base file name to use for all files
 base_filename=sprintf('Tx_capture%s_%s',test_type_str,dtn);
 
+%generate filename for good data
+data_filename=fullfile(tx_dat_fold,sprintf('%s.mat',base_filename));
+
+%generate filename for error data
+error_filename=fullfile(tx_dat_fold,sprintf('%s_ERROR.mat',base_filename));
+
+%add cleanup function
+co=onCleanup(@()cleanFun(log_name,error_filename,data_filename));
+
+%open radio interface
+ri=radioInterface(p.Results.RadioPort);
+
 %print name and location of run
-fprintf('Storing data in:\n\t''%s''\n',fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)));
+fprintf('Storing data in:\n\t''%s''\n',data_filename);
 
 %turn on LED when test starts
 ri.led(1,true);
@@ -364,7 +382,7 @@ try
             recordings{k}=dat;
     end
     %save datafile
-    save(fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)),save_vars{:},'-v7.3');
+    save(data_filename,save_vars{:},'-v7.3');
 
 catch err
         
@@ -378,7 +396,7 @@ catch err
     resp=inputdlg(dlgp,'Test Error Conditions',[15,100]);
 
     %open log file
-    logf=fopen('tests.log','a+');
+    logf=fopen(log_name,'a+');
 
     %check if dialog was not cancled
     if(~isempty(resp))
@@ -399,12 +417,15 @@ catch err
     
     %check that all vars exist
     if(exist(char(save_vars),'var'))
-        %create filename
-        savename=fullfile(tx_dat_fold,sprintf('%s.mat',base_filename));
         %save all data and post notes
-        save(savename,save_vars{:},'err','post_notes','-v7.3');
+        save(error_filename,save_vars{:},'err','post_notes','-v7.3');
         %print out file location
-        fprintf('Data saved in ''%s''',savename);
+        fprintf('Data saved in ''%s''',error_filename);
+    else
+        %save all data and post notes
+        save(error_filename,'err','post_notes','-v7.3');
+        %print out file location
+        fprintf('Dummy data saved in ''%s''',error_filename);
     end
     
     %rethrow error
@@ -438,29 +459,46 @@ beep;
 pause(1);
 beep;
 
-%get post test notes
-resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
 
-%open log file
-logf=fopen('tests.log','a+');
+function cleanFun(log_name,err_name,good_name)
+%check if error .m file exists
+if(~exist(err_name,'file'))
 
-%check if dialog was cancled
-if(~isempty(resp))
-    %get notes from response
-    post_note_array=resp{1};
-    %get strings from output add a tabs and newlines
-    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
-    %get a single string from response
-    post_notes=horzcat(post_note_strings{:});
+    prompt='Please enter notes on test conditions';
+    
+    %check to see if data file is missing
+    if(~exist(good_name,'file'))
+        %add not to say that this was an error
+        prompt=[prompt,newline,'Data file missing, something went wrong'];
+    end
+    
+    %get post test notes
+    resp=inputdlg(prompt,'Test Conditions',[15,100]);
 
-    %write start time to file with notes
-    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    %open log file
+    logf=fopen(log_name,'a+');
+
+    %check if dialog was cancled
+    if(~isempty(resp))
+        %get notes from response
+        post_note_array=resp{1};
+        %get strings from output add a tabs and newlines
+        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notes=horzcat(post_note_strings{:});
+
+        %write start time to file with notes
+        fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    end
+    %print end of test marker
+    fprintf(logf,'===End Test===\n\n');
+    %close log file
+    fclose(logf);
+
+    %check to see if data file exists
+    if(exist(good_name,'file'))
+        %append post notes to .mat file
+        save(good_name,'post_notes','-append');
+    end
 end
-%print end of test marker
-fprintf(logf,'===End Test===\n\n');
-%close log file
-fclose(logf);
-
-%append post notes to .mat file
-save(fullfile(tx_dat_fold,sprintf('%s.mat',base_filename)),'post_notes','-append');
 

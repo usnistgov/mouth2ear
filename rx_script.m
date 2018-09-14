@@ -1,3 +1,4 @@
+function rx_script(varargin)
 %RX_SCRIPT run the receive side of a two location mouth to ear latency test
 %
 %RX_SCRIPT records the test audio and timecode audio on the receive end.
@@ -45,6 +46,18 @@
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
+%create new input parser
+p=inputParser();
+
+%add output directory parameter
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+
+%set parameter names to be case sensitive
+p.CaseSensitive= true;
+
+%parse inputs
+parse(p,varargin{:});
+
 %use a sample rate of 48 kHz
 fs=48e3;
 
@@ -64,7 +77,13 @@ bsz=RecObj. SamplesPerFrame;
 git_status=gitStatus();
     
 %folder name for tx data
-rx_dat_fold='rx-data';
+rx_dat_fold=fullfile(p.Results.OutDir,'rx-data');
+
+%file name for log file
+log_name=fullfile(p.Results.OutDir,'tests.log');
+
+%file name for test type
+test_name=fullfile(p.Results.OutDir,'test-type.txt');
 
 %make data direcotry
 [~,~,~]=mkdir(rx_dat_fold);
@@ -75,28 +94,39 @@ dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
 dtn=char(dt_start);
 
+
+%open test type file
+init_tstinfo=readTestState(test_name);
+
 %width for a device prompt
 dev_w=20;
 %initialize prompt array
 prompt={};
 %initialize text box dimentions array
 dims=[];
+%initialize empty response array
+resp={};
 
 %add Tx radio ID prompt to dialog
 prompt{end+1}='Transmit Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.TxDevice;
 %add Rx radio ID prompt to dialog
 prompt{end+1}='Recive Device';
 dims(end+1,:)=[1,dev_w];
+resp{end+1}=init_tstinfo.RxDevice;
 %add radio system under test prompt
 prompt{end+1}='System';
 dims(end+1,:)=[1,60];
+resp{end+1}=init_tstinfo.System;
+%add Test location prompt
+prompt{end+1}='Test Location';
+dims(end+1,:)=[1,100];
+resp{end+1}=init_tstinfo.Location;
 %add test notes prompt
 prompt{end+1}='Please enter notes on test conditions';
 dims(end+1,:)=[15,100];
-
-%construct empty response convert to char so inputdlg doesn't wine
-resp=cellfun(@char,cell(size(prompt)),'UniformOutput',false);
+resp{end+1}='';
 
 %prompt the user for test info
 resp=inputdlg(prompt,'Test Info',dims,resp);
@@ -104,6 +134,11 @@ resp=inputdlg(prompt,'Test Info',dims,resp);
 if(isempty(resp))
     %exit program
     return;
+else
+    %get test state from dialog
+    test_info=getTestState(prompt(1:(end-1)),resp(1:(end-1)));
+    %write test state
+    writeTestState(test_name,test_info);
 end
 
 %get notes from response
@@ -113,29 +148,62 @@ pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'Unifor
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
 
+%check dirty status
+if(git_status.Dirty)
+    %local edits, flag as dirty
+    gitdty=' dty';
+else
+    %no edits, don't flag
+    gitdty='';
+end
+
+%get call stack info to extract current filename
+[ST, I] = dbstack('-completenames');
+%get current filename parts
+[~,n,e]=fileparts(ST(I).file);
+%full name of current file without path
+fullname=[n e];
+
 %open log file
-logf=fopen('tests.log','a+');
+logf=fopen(log_name,'a+');
 %set timeformat of start time
 dt_start.Format='dd-MMM-yyyy HH:mm:ss';
 %write start time, test type and git hash
-fprintf(logf,['\n>>Rx Two Loc Test started at %s\n'...
-              '\tGit Hash   : %s\n'],char(dt_start),git_status.Hash);
+fprintf(logf,['\n>>Test started at %s\n'...
+              '\tTest Type  : %s\n'...
+              '\tGit Hash   : %s%s\n'...
+              '\tfilename   : %s\n'],char(dt_start),test_info.testType,git_status.Hash,gitdty,fullname);
 %write Tx device ID
-fprintf(logf, '\tTx Device  : %s\n',resp{1});
+fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 %wriet Rx device ID
-fprintf(logf, '\tRx Device  : %s\n',resp{2});
+fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
-fprintf(logf, '\tSystem     : %s\n',resp{end-1});
+fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
 fclose(logf);
 
 %generate base file name to use for all files
-filename=sprintf('Rx_capture_%s.wav',dtn);
+base_filename=sprintf('Rx_capture_%s',dtn);
+
+%generate filename for good data
+audio_filename=fullfile(rx_dat_fold,sprintf('%s.wav',base_filename));
+
+%generate name for info file
+info_filename=fullfile(rx_dat_fold,sprintf('Rx_info_%s.mat',dtn));
+
+%generate filename for error data
+error_filename=fullfile(rx_dat_fold,sprintf('%s_ERROR.mat',base_filename));
+
+%add cleanup function
+co=onCleanup(@()cleanFun(log_name,error_filename,info_filename));
+
+%print name and location of run
+fprintf('Storing data in:\n\t''%s''\n',audio_filename);
 
 %create an object two write audio data to output file
-RecWriter=dsp.AudioFileWriter(fullfile(rx_dat_fold,filename),'FileFormat','WAV','SampleRate',fs,'DataType','int24');
+RecWriter=dsp.AudioFileWriter(audio_filename,'FileFormat','WAV','SampleRate',fs,'DataType','int24');
 
 %print instructions
 fprintf('Recording data. Turn down timecode audio volume to stop.\n\n');
@@ -184,34 +252,8 @@ end
 %we are done, beep to let the user know
 beep
 
-%get post test notes
-resp=inputdlg('Please enter notes on test conditions','Test Conditions',[15,100]);
-
-%open log file
-logf=fopen('tests.log','a+');
-
-%check if dialog was cancled
-if(~isempty(resp))
-    %get notes from response
-    post_note_array=resp{1};
-    %get strings from output add a tabs and newlines
-    post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
-    %get a single string from response
-    post_notes=horzcat(post_note_strings{:});
-
-    %write start time to file with notes
-    fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
-end
-%print end of test marker
-fprintf(logf,'===End Test===\n\n');
-%close log file
-fclose(logf);
-
-%generate name for info file
-info_name=sprintf('Rx_info_%s.mat',dtn);
-
 %save extra info in .mat file
-save(fullfile(rx_dat_fold,info_name),'dev_name','git_status','overRun','pre_notes','post_notes','fs');
+save(info_filename,'dev_name','git_status','overRun','pre_notes','fs');
 
 %release the audio object
 release(RecObj);
@@ -220,6 +262,48 @@ release(RecObj);
 release(RecWriter);
 
 %print completion message
-fprintf('Audio data saved to:\n\t''%s''\n',fullfile(rx_dat_fold,filename));
-fprintf('Info saved to:\n\t''%s''\n',fullfile(rx_dat_fold,info_name));
+fprintf('Audio data saved to:\n\t''%s''\n',audio_filename);
+fprintf('Info saved to:\n\t''%s''\n',info_filename);
 
+
+function cleanFun(log_name,err_name,good_name)
+%check if error .m file exists
+if(~exist(err_name,'file'))
+
+    prompt='Please enter notes on test conditions';
+    
+    %check to see if data file is missing
+    if(~exist(good_name,'file'))
+        %add not to say that this was an error
+        prompt=[prompt,newline,'Data file missing, something went wrong'];
+    end
+    
+    %get post test notes
+    resp=inputdlg(prompt,'Test Conditions',[15,100]);
+
+    %open log file
+    logf=fopen(log_name,'a+');
+
+    %check if dialog was cancled
+    if(~isempty(resp))
+        %get notes from response
+        post_note_array=resp{1};
+        %get strings from output add a tabs and newlines
+        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notes=horzcat(post_note_strings{:});
+
+        %write start time to file with notes
+        fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    end
+    %print end of test marker
+    fprintf(logf,'===End Test===\n\n');
+    %close log file
+    fclose(logf);
+
+    %check to see if data file exists
+    if(exist(good_name,'file'))
+        %append post notes to .mat file
+        save(good_name,'post_notes','-append');
+    end
+end

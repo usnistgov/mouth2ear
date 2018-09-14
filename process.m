@@ -76,6 +76,8 @@ addParameter(p,'winArgs', {4,2},@(l) cellfun(@(x) validateattributes(x,{'numeric
 addParameter(p,'OverPlay',1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
 % add rx folder parameter
 addParameter(p,'rx_folder', 'rx-data', @(l)validateattributes(l,{'char'},{'vector'}));
+%add output directory parameter
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
 
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
@@ -84,16 +86,25 @@ p.CaseSensitive= true;
 parse(p,tx_name,varargin{:});
 
 %folder name for tx data
-tx_dat_fold='tx-data';
+tx_dat_fold=fullfile(p.Results.OutDir,'tx-data');
+
+%check if folder was explicatly specified
+if(any(strcmp('rx_folder',p.UsingDefaults)))
+    %generate name
+    rx_dat_fold=fullfile(p.Results.OutDir,'rx-data');
+else
+    %use the provided name
+    rx_dat_fold=p.Results.rx_folder;
+end
 
 %folder name for plots
-plots_fold='plots';
-
-%make data direcotry
-[~,~,~]=mkdir(plots_fold);
+plots_fold=fullfile(p.Results.OutDir,'plots');
 
 %folder name for processing data
-proc_dat_fold='proc-data';
+proc_dat_fold=fullfile(p.Results.OutDir,'proc-data');
+
+%make plots direcotry
+[~,~,~]=mkdir(plots_fold);
 
 %make data direcotry
 [~,~,~]=mkdir(proc_dat_fold);
@@ -138,12 +149,14 @@ if(isempty(p.Results.rx_name))
         tx_datestr=[tx_parts{3} '_' tx_parts{4}];
     elseif(length(tx_parts)==8)
         tx_datestr=[tx_parts{4} '_' tx_parts{5}];
+    else
+        tx_datestr=[tx_parts{end-1} '_' tx_parts{end}];
     end
     %attempt to get date from tx filename
     tx_date=datetime(tx_datestr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
     
     %list files in the recive folder
-    names=cellstr(ls(fullfile(p.Results.rx_folder,'Rx_capture_*')));
+    names=cellstr(ls(fullfile(rx_dat_fold,'Rx_capture_*')));
     
     %check that files were found
     if(isempty(names))
@@ -160,7 +173,7 @@ if(isempty(p.Results.rx_name))
         rx_date_start=datetime(dstr,'InputFormat','dd-MMM-yyyy_HH-mm-ss');
         
         %read info on the audio file
-        info=audioinfo(fullfile(p.Results.rx_folder,names{k}));
+        info=audioinfo(fullfile(rx_dat_fold,names{k}));
         
         %calculate the stop time
         rx_date_end=rx_date_start+seconds(info.Duration);
@@ -170,7 +183,7 @@ if(isempty(p.Results.rx_name))
             %flag as found
             found=1;
             %set rx filename
-            rx_name=fullfile(p.Results.rx_folder,names{k});
+            rx_name=fullfile(rx_dat_fold,names{k});
             %print out filename
             fprintf('Rx file found "%s"\n',rx_name);
             %exit the loop
@@ -191,7 +204,7 @@ else
     %check if rx_folder given
     if(isempty(rx_fold))
         %add folder to filename
-        rx_name=fullfile(p.Results.rx_folder,p.Results.rx_name);
+        rx_name=fullfile(rx_dat_fold,p.Results.rx_name);
     else
         %use name as given
         rx_name=p.Results.rx_name;
