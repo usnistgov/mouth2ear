@@ -283,7 +283,7 @@ data_filename=fullfile(dat_fold,sprintf('%s.mat',base_filename));
 error_filename=fullfile(dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
 %add cleanup function
-co=onCleanup(@()cleanFun(error_filename,data_filename));
+co=onCleanup(@()cleanFun(error_filename,data_filename,log_name));
 
 %open radio interface
 ri=radioInterface(p.Results.RadioPort);
@@ -515,7 +515,7 @@ beep;
 
 
 
-function cleanFun(err_name,good_name)
+function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
 if(~exist(err_name,'file'))
 
