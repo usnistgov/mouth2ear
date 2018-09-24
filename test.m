@@ -61,9 +61,9 @@ addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector
 %add number of trials parameter
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add radio port parameter
-addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scalartext'}));
+addParameter(p,'RadioPort','',@(n)validateattributes(n,{'char','string'},{'scalartext'}));
 %add background noise file parameter
-addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
+addParameter(p,'BGNoiseFile','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 %add background noise volume parameter
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
 %add audio skip parameter to skip audio at the beginning of the clip
@@ -71,7 +71,7 @@ addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','non
 %add ptt wait parameter
 addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add output directory parameter
-addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 
 
@@ -268,6 +268,8 @@ fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
 fprintf(logf, '\tSystem     : %s\n',test_info.System);
+%write system under test 
+fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
