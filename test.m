@@ -592,6 +592,8 @@ if(~exist(err_name,'file'))
 
         %write start time to file with notes
         fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+    else
+        post_notes='';                                                     %#ok, saved in file
     end
     %print end of test marker
     fprintf(logf,'===End Test===\n\n');
