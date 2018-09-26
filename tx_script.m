@@ -60,13 +60,13 @@ function tx_script(varargin)
 p=inputParser();
 
 %add optional filename parameter
-addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'AudioFile','test.wav',@validateAudioFiles);
 %add number of trials parameter
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add radio port parameter
-addParameter(p,'RadioPort',[],@(n)validateattributes(n,{'char','string'},{'scalartext'}));
+addParameter(p,'RadioPort','',@(n)validateattributes(n,{'char','string'},{'scalartext'}));
 %add background noise file parameter
-addParameter(p,'BGNoiseFile',[],@(n)validateattributes(n,{'char'},{'vector'}));
+addParameter(p,'BGNoiseFile','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 %add background noise volume parameter
 addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar','nonempty','nonnegative'}));
 %add audio skip parameter to skip audio at the beginning of the clip
@@ -74,7 +74,7 @@ addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','non
 %add ptt wait parameter
 addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add output directory parameter
-addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 
 
@@ -87,27 +87,20 @@ save_vars={'git_status','test_info','y','recordings','dev_name',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
-%read audio file
-[y,fs]=audioread(p.Results.AudioFile);
-
-%check fs and resample if nessicessary
-if(fs<44.1e3)
-    %resample to 48e3
-    y=resample(y,48e3/fs,1);
-    %set new fs
-    fs=48e3;
+%check if audio file is a cell array
+if(iscell(p.Results.AudioFile))
+    %yes, copy
+    AudioFiles=p.Results.AudioFile;
+else
+    %no, create cell array
+    AudioFiles={p.Results.AudioFile};
 end
+      
+%cell array of audio clips to use
+y=cell(size(AudioFiles));
 
-%reshape y to be a column vector/matrix
-y=reshape(y,sort(size(y),'descend'));
-
-%check if there is more than one channel
-if(size(y,2)>1)
-    %warn user
-    warning('audio file has %i channels. discarding all but channel 1',size(y,2));
-    %get first column
-    y=y(:,1);
-end
+%sample audio sample rate to use
+fs=48e3;
 
 %check if a noise file was given
 if(~isempty(p.Results.BGNoiseFile))
@@ -115,25 +108,58 @@ if(~isempty(p.Results.BGNoiseFile))
     [nf,nfs]=audioread(p.Results.BGNoiseFile);
     %check if sample rates match
     if(nfs~=fs)
+        %calculate resample factors
+        [prs,qrs]=rat(fs/nfs);
         %resample if nessicessary
-        nf=resample(nf,fs/nfs,1);
+        nf=resample(nf,prs,qrs);
     end
-    %extend noise file to match y
-    nf=repmat(nf,ceil(length(y)/length(nf)),1);
-    %add noise file to sample
-    y=y+p.Results.BGNoiseVolume*nf(1:length(y));
 end
 
-%remove first part of audio file if AudioSkip is given
-if(p.Results.AudioSkip>0)
-    %remove audio from file
-    y=y(round(p.Results.AudioSkip*fs):end);
-    %check if any aduio is remaining
-    if(isempty(y))
-        %no audio left, give error
-        error('AudioSkip is too large, no audio left to play');
+
+%read in audio files and perform checks
+for k=1:length(AudioFiles)
+    %read audio file
+    [y{k},fs_file]=audioread(AudioFiles{k});
+
+    %check fs and resample if nessicessary
+    if(fs_file~=fs)
+        %calculate resample factors
+        [prs,qrs]=rat(fs/fs_file);
+        %resample to 48e3
+        y{k}=resample(y{k},prs,qrs);
+    end
+
+    %reshape y to be a column vector/matrix
+    y{k}=reshape(y{k},sort(size(y{k}),'descend'));
+
+    %check if there is more than one channel
+    if(size(y{k},2)>1)
+        %warn user
+        warning('audio file has %i channels. discarding all but channel 1',size(y,2));
+        %get first column
+        y{k}=y{k}(:,1);
+    end
+    
+    %check if we need to add noise
+    if(~isempty(p.Results.BGNoiseFile))
+        %extend noise file to match y
+        nfr=repmat(nf,ceil(length(y{k})/length(nf)),1);   
+        %add noise file to sample
+        y{k}=y{k}+p.Results.BGNoiseVolume*nfr(1:length(y{k}));
+    end    
+
+    %remove first part of audio file if AudioSkip is given
+    if(p.Results.AudioSkip>0)
+        %remove audio from file
+        y{k}=y{k}(round(p.Results.AudioSkip*fs):end);
+        %check if any aduio is remaining
+        if(isempty(y{k}))
+            %no audio left, give error
+            error('AudioSkip is too large, no audio left to play from clip ''%s''',AudioFiles{k});
+        end
     end
 end
+
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
@@ -272,6 +298,8 @@ fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
 fprintf(logf, '\tSystem     : %s\n',test_info.System);
+%write system under test 
+fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
@@ -287,7 +315,7 @@ data_filename=fullfile(tx_dat_fold,sprintf('%s.mat',base_filename));
 error_filename=fullfile(tx_dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
 %add cleanup function
-co=onCleanup(@()cleanFun(log_name,error_filename,data_filename));
+co=onCleanup(@()cleanFun(error_filename,data_filename,log_name));
 
 %open radio interface
 ri=radioInterface(p.Results.RadioPort);
@@ -327,9 +355,12 @@ try
             
             %pause a bit to let the radio access the system
             pause(p.Results.PTTWait);
+            
+            %get clip index. wrap around after each clip is used
+            clipi=mod(k-1,length(AudioFiles))+1;
 
             %play and record audio data
-            [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi});
 
             %un-push the push to talk button
             ri.ptt(false);
@@ -459,8 +490,18 @@ beep;
 pause(1);
 beep;
 
+function validateAudioFiles(fl)
+    validateStr=@(n)validateattributes(n,{'char'},{'vector','nonempty'});
+    %check if input is a cell array
+    if(iscell(fl))
+        %validate each element in the array
+        cellfun(validateStr,fl);
+    else
+        %otherwise validate a single string
+        validateStr(fl);
+    end
 
-function cleanFun(log_name,err_name,good_name)
+function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
 if(~exist(err_name,'file'))
 

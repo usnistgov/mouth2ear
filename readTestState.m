@@ -28,7 +28,7 @@ if(f>=0)
             state.(fields{match})=dat{2}{k};
         else
             %field not found
-            error('Invalid field ''%s'' found in state file',strtrim(dat{1}{k}));
+            warning('Invalid field ''%s'' found in state file',strtrim(dat{1}{k}));
         end
     end
 

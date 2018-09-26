@@ -179,6 +179,8 @@ fprintf(logf, '\tTx Device  : %s\n',test_info.TxDevice);
 fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 %write system under test 
 fprintf(logf, '\tSystem     : %s\n',test_info.System);
+%write system under test
+fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
@@ -197,7 +199,7 @@ info_filename=fullfile(rx_dat_fold,sprintf('Rx_info_%s.mat',dtn));
 error_filename=fullfile(rx_dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
 %add cleanup function
-co=onCleanup(@()cleanFun(log_name,error_filename,info_filename));
+co=onCleanup(@()cleanFun(error_filename,info_filename,log_name));
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',audio_filename);
@@ -266,7 +268,7 @@ fprintf('Audio data saved to:\n\t''%s''\n',audio_filename);
 fprintf('Info saved to:\n\t''%s''\n',info_filename);
 
 
-function cleanFun(log_name,err_name,good_name)
+function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
 if(~exist(err_name,'file'))
 
