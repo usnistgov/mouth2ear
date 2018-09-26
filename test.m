@@ -57,7 +57,7 @@ function [dly_its]=test(varargin)
 p=inputParser();
 
 %add optional filename parameter
-addParameter(p,'AudioFile','test.wav',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'AudioFile','test.wav',@validateAudioFiles);
 %add number of trials parameter
 addParameter(p,'Trials',100,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
 %add radio port parameter
@@ -84,27 +84,20 @@ save_vars={'git_status','y','recordings','dev_name','underRun',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
-%read audio file
-[y,fs]=audioread(p.Results.AudioFile);
-
-%check fs and resample if nessicessary
-if(fs<44.1e3)
-    %resample to 48e3
-    y=resample(y,48e3/fs,1);
-    %set new fs
-    fs=48e3;
+%check if audio file is a cell array
+if(iscell(p.Results.AudioFile))
+    %yes, copy
+    AudioFiles=p.Results.AudioFile;
+else
+    %no, create cell array
+    AudioFiles={p.Results.AudioFile};
 end
+      
+%cell array of audio clips to use
+y=cell(size(AudioFiles));
 
-%reshape y to be a column vector/matrix
-y=reshape(y,sort(size(y),'descend'));
-
-%check if there is more than one channel
-if(size(y,2)>1)
-    %warn user
-    warning('audio file has %i channels. discarding all but channel 1',size(y,2));
-    %get first column
-    y=y(:,1);
-end
+%sample audio sample rate to use
+fs=48e3;
 
 %check if a noise file was given
 if(~isempty(p.Results.BGNoiseFile))
@@ -112,25 +105,58 @@ if(~isempty(p.Results.BGNoiseFile))
     [nf,nfs]=audioread(p.Results.BGNoiseFile);
     %check if sample rates match
     if(nfs~=fs)
+        %calculate resample factors
+        [prs,qrs]=rat(fs/nfs);
         %resample if nessicessary
-        nf=resample(nf,fs/nfs,1);
+        nf=resample(nf,prs,qrs);
     end
-    %extend noise file to match y
-    nf=repmat(nf,ceil(length(y)/length(nf)),1);
-    %add noise file to sample
-    y=y+p.Results.BGNoiseVolume*nf(1:length(y));
 end
 
-%remove first part of audio file if AudioSkip is given
-if(p.Results.AudioSkip>0)
-    %remove audio from file
-    y=y(round(p.Results.AudioSkip*fs):end);
-    %check if any aduio is remaining
-    if(isempty(y))
-        %no audio left, give error
-        error('AudioSkip is too large, no audio left to play');
+
+%read in audio files and perform checks
+for k=1:length(AudioFiles)
+    %read audio file
+    [y{k},fs_file]=audioread(AudioFiles{k});
+
+    %check fs and resample if nessicessary
+    if(fs_file~=fs)
+        %calculate resample factors
+        [prs,qrs]=rat(fs/fs_file);
+        %resample to 48e3
+        y{k}=resample(y{k},prs,qrs);
+    end
+
+    %reshape y to be a column vector/matrix
+    y{k}=reshape(y{k},sort(size(y{k}),'descend'));
+
+    %check if there is more than one channel
+    if(size(y{k},2)>1)
+        %warn user
+        warning('audio file has %i channels. discarding all but channel 1',size(y,2));
+        %get first column
+        y{k}=y{k}(:,1);
+    end
+    
+    %check if we need to add noise
+    if(~isempty(p.Results.BGNoiseFile))
+        %extend noise file to match y
+        nfr=repmat(nf,ceil(length(y{k})/length(nf)),1);   
+        %add noise file to sample
+        y{k}=y{k}+p.Results.BGNoiseVolume*nfr(1:length(y{k}));
+    end    
+
+    %remove first part of audio file if AudioSkip is given
+    if(p.Results.AudioSkip>0)
+        %remove audio from file
+        y{k}=y{k}(round(p.Results.AudioSkip*fs):end);
+        %check if any aduio is remaining
+        if(isempty(y{k}))
+            %no audio left, give error
+            error('AudioSkip is too large, no audio left to play from clip ''%s''',AudioFiles{k});
+        end
     end
 end
+
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
@@ -327,9 +353,12 @@ try
             
             %pause a bit to let the radio access the system
             pause(p.Results.PTTWait);
+            
+            %get clip index. wrap around after each clip is used
+            clipi=mod(k-1,length(AudioFiles))+1;
 
             %play and record audio data
-            [dat,underRun(k),overRun(k)]=play_record(aPR,y);
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi});
 
             %un-push the push to talk button
             ri.ptt(false);
@@ -378,11 +407,11 @@ try
                 end
             end
 
-            st_idx(:,k)=finddelay(y',dat);
+            st_idx(:,k)=finddelay(y{clipi}',dat);
 
             st_dly(:,k)=1/fs*st_idx(k);
 
-            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y',fs);
+            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y{clipi}',fs);
             %save data
             recordings{k}=dat;
     end
@@ -498,24 +527,41 @@ print(fullfile(plots_fold,[base_filename '.png']),'-dpng','-r600');
 %New figure for time plot
 figure;
 
+%create cell array of trial numbers
+Trial=cellfun(@(a,n)(((1:length(a))-1)/length(a)+n),dly_its,num2cell(1:length(dly_its)),'UniformOutput',false);
+%make vector of trial numbers
+Trial=horzcat(Trial{:});
+
+%transpose each element of dly_its for concatination
+dly_its_t=cellfun(@(a)a',dly_its,'UniformOutput',false);
+
 %create matrix of ITS_delay data
-its_mat=cell2mat(dly_its);
+its_mat=horzcat(dly_its_t{:});
 
 %get engineering units
 [its_mat_e,~,its_mat_u]=engunits(its_mat,'time');
 
 %plot delay dat
-plot(its_mat_e(:))
+plot(Trial,its_mat_e(:))
 
 %axis lables
-xlabel('Measurement number');
+xlabel('Trial Number');
 ylabel(['Delay [' its_mat_u ']']);
 
 beep;
 pause(1);
 beep;
 
-
+function validateAudioFiles(fl)
+    validateStr=@(n)validateattributes(n,{'char'},{'vector','nonempty'});
+    %check if input is a cell array
+    if(iscell(fl))
+        %validate each element in the array
+        cellfun(validateStr,fl);
+    else
+        %otherwise validate a single string
+        validateStr(fl);
+    end
 
 function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
