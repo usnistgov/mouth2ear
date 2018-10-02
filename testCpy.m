@@ -228,7 +228,7 @@ if(isempty(p.Results.SyncDir))
         %split the path into parts
         pparts=split(p.Results.DestDir,filesep);
         %use drive letter to create sync path
-        SyncDir=fullfile(pparts(1),'sync');
+        SyncDir=fullfile(pparts{1},'sync');
     else
         error('SyncDir is only optional on Windows');
     end
