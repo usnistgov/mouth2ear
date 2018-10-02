@@ -9,6 +9,8 @@ addRequired(p,'DestDir',@(n)validateattributes(n,{'char','string'},{'scalartext'
 addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 %add Computer name parameter
 addParameter(p,'CName','',@(n)validateattributes(n,{'char'},{'scalartext'}));
+%add Sync Script directory parameter
+addParameter(p,'SyncDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 %parse inputs
 parse(p,destDir,varargin{:});
@@ -16,11 +18,20 @@ parse(p,destDir,varargin{:});
 %get git status
 git_status=gitStatus();
 
+%check if OutDir was given
+if(isempty(p.Results.OutDir))
+    %use current directory
+    OutDir=pwd();
+else
+    %use OutDir parameter
+    OutDir=p.Results.OutDir;
+end
+
 %filename for computer name
-comp_file=fullfile(p.Results.OutDir,'ComputerName.txt');
+comp_file=fullfile(OutDir,'ComputerName.txt');
 
 %file name for input log file
-log_in_name=fullfile(p.Results.OutDir,'tests.log');
+log_in_name=fullfile(OutDir,'tests.log');
 
 %get start time
 dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
@@ -210,6 +221,25 @@ else
     %print success message
     fprintf('Log updated successfully to %s\n',log_out_name);
 end
+
+if(isempty(p.Results.SyncDir))
+    %make sure that we are on windows
+    if(ispc)
+        %split the path into parts
+        pparts=split(p.Results.DestDir,filesep);
+        %use drive letter to create sync path
+        SyncDir=fullfile(pparts(1),'sync');
+    else
+        error('SyncDir is only optional on Windows');
+    end
+else
+    SyncDir=p.Results.SyncDir;
+end
+
+%compose sync command
+syncCmd=sprintf('python %s --import "%s" "%s"',fullfile(SyncDir,'sync.py'),OutDir,p.Results.DestDir);
+
+system(syncCmd,'-echo');
 
    
 %function to determine if result from fgetl indicates end of file
