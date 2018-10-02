@@ -5,9 +5,9 @@ p=inputParser();
 
 %location to copy log file to
 addRequired(p,'DestDir',@(n)validateattributes(n,{'char','string'},{'scalartext'}));
-%add output directory parameter
+%add output data directory parameter
 addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
-%add output directory parameter
+%add Computer name parameter
 addParameter(p,'CName','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 %parse inputs
