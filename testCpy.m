@@ -236,8 +236,17 @@ else
     SyncDir=p.Results.SyncDir;
 end
 
+%get path to sync script
+SyncScript=fullfile(SyncDir,'sync.py');
+
+%check if sync script exists
+if(~exist(SyncScript,'file'))
+    %give error
+    error('Sync script not found at ''%s''',SyncScript);
+end    
+
 %compose sync command
-syncCmd=sprintf('python %s --import "%s" "%s"',fullfile(SyncDir,'sync.py'),OutDir,p.Results.DestDir);
+syncCmd=sprintf('python %s --import "%s" "%s"',SyncScript,OutDir,p.Results.DestDir);
 
 system(syncCmd,'-echo');
 
