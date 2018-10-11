@@ -246,6 +246,12 @@ tx_tc=cell(1,length(tx_dat.recordings));
 rx_rec=cell(1,length(tx_dat.recordings));
 good=zeros(1,length(tx_dat.recordings),'logical');
 
+%check if we have audio clip index
+if(~isfield(tx_dat,'clipi'))
+    %generate clip index. wrap around after each clip is used
+    clipi=mod(1:length(tx_dat.recordings),length(tx_dat.y))+1;
+end
+
 %loop through all transmit recordings
 for k=1:length(tx_dat.recordings)
     %decode timecode
@@ -293,39 +299,57 @@ for k=1:length(tx_dat.recordings)
     %get rx recording data from big array
     rx_rec{k}=rx_dat(first:last,1);
     
+    %check if y is a cell
+    if(iscell(tx_dat.y))
+        %get the correct clip from the cell array
+        y=tx_dat.y{clipi(k)}';
+    else
+        %set y for delay use
+        y=tx_dat.y';
+    end
+    
     %calculate delay
-    dly_its{k}=ITS_delay_wrapper(rx_rec{k},tx_dat.y',rx_fs,p.Results.winArgs{:})*1e-3;
+    dly_its{k}=ITS_delay_wrapper(rx_rec{k},y,rx_fs,p.Results.winArgs{:})*1e-3;
 end
 
 % new figure
 figure
-% get data as matrix
-fulldat = cell2mat(dly_its);
-% Number of measurements in one trial
-[nWindows,~] = size(fulldat);
-% get data sequentially in time
-timedata = fulldat(:);
-% x-axis
-xV = (1:length(timedata))/nWindows;
-% Plot data vs time
-plot(xV, timedata)
-xlabel('Trial Number')
-ylabel('Delay (s)')
+
+%create cell array of trial numbers
+Trial=cellfun(@(a,n)(((1:length(a))-1)/length(a)+n),dly_its,num2cell(1:length(dly_its)),'UniformOutput',false);
+%make vector of trial numbers
+Trial=horzcat(Trial{:});
+
+%transpose each element of dly_its for concatination
+dly_its_t=cellfun(@(a)a',dly_its,'UniformOutput',false);
+
+%create matrix of ITS_delay data
+its_mat=horzcat(dly_its_t{:});
+
+%get engineering units
+[its_mat_e,~,its_mat_u]=engunits(its_mat,'time');
+
+%plot delay dat
+plot(Trial,its_mat_e(:))
+
+%axis lables
+xlabel('Trial Number');
+ylabel(['Delay [' its_mat_u ']']);
 
 %new figure
 figure
 % Calculate delay mean
-dly_m = mean(timedata);
+dly_m = mean(its_mat);
 % get engineering units
 [dly_m_e,~,dly_u] = engunits(dly_m,'time');
 
 % calculate standard deviation
-st_dev = std(timedata);
+st_dev = std(its_mat);
 % get engineering units
 [st_dev_e,~,st_u] = engunits(st_dev, 'time');
 
 %plot histogram
-histogram(timedata)
+histogram(its_mat)
 %add mean and standard deveation in title
 title(sprintf('Mean : %.2f %s  StD : %.1f %s',dly_m_e,dly_u,st_dev_e,st_u));
 

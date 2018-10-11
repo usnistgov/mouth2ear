@@ -83,7 +83,7 @@ parse(p,varargin{:});
 
 %vars to save to files
 save_vars={'git_status','test_info','y','recordings','dev_name',...
-           'underRun','overRun','fs','p',...
+           'underRun','overRun','fs','p','clipi',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
@@ -347,6 +347,9 @@ try
     underRun=zeros(1,p.Results.Trials);
     overRun=zeros(1,p.Results.Trials);
     recordings=cell(1,p.Results.Trials);
+    
+    %generate clip index. wrap around after each clip is used
+    clipi=mod(1:p.Results.Trials,length(AudioFiles))+1;
 
     for k=1:p.Results.Trials
 
@@ -355,12 +358,9 @@ try
             
             %pause a bit to let the radio access the system
             pause(p.Results.PTTWait);
-            
-            %get clip index. wrap around after each clip is used
-            clipi=mod(k-1,length(AudioFiles))+1;
 
             %play and record audio data
-            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi});
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)});
 
             %un-push the push to talk button
             ri.ptt(false);
