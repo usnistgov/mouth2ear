@@ -80,7 +80,7 @@ parse(p,varargin{:});
 
 %vars to save to files
 save_vars={'git_status','y','recordings','dev_name','underRun',...
-           'overRun','dly_its','st_dly','fs','test_info','p',...
+           'overRun','dly_its','st_dly','fs','test_info','p','clipi',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
 
@@ -345,6 +345,9 @@ try
     overRun=zeros(1,p.Results.Trials);
     recordings=cell(1,p.Results.Trials);
     dly_its=cell(1,p.Results.Trials);
+    
+    %generate clip index. wrap around after each clip is used
+    clipi=mod(1:p.Results.Trials,length(AudioFiles))+1;
 
     for k=1:p.Results.Trials
 
@@ -353,12 +356,9 @@ try
             
             %pause a bit to let the radio access the system
             pause(p.Results.PTTWait);
-            
-            %get clip index. wrap around after each clip is used
-            clipi=mod(k-1,length(AudioFiles))+1;
 
             %play and record audio data
-            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi});
+            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)});
 
             %un-push the push to talk button
             ri.ptt(false);
@@ -407,11 +407,11 @@ try
                 end
             end
 
-            st_idx(:,k)=finddelay(y{clipi}',dat);
+            st_idx(:,k)=finddelay(y{clipi(k)}',dat);
 
             st_dly(:,k)=1/fs*st_idx(k);
 
-            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y{clipi}',fs);
+            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y{clipi(k)}',fs);
             %save data
             recordings{k}=dat;
     end
