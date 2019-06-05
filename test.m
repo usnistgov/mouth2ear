@@ -52,6 +52,7 @@ function [dly_its]=test(varargin)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
+%% ========================[Parse Input Arguments]========================
 
 %create new input parser
 p=inputParser();
@@ -78,11 +79,20 @@ addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 %parse inputs
 parse(p,varargin{:});
 
+%% ======================[List Vars to save in file]======================
+%This is a list of all the files to save in data files. This is don both
+%for a normal test run and if an error is encountered. This list is here so
+%there is only one place to add new variables that need to be saved in the
+%file
+
 %vars to save to files
 save_vars={'git_status','y','recordings','dev_name','underRun',...
            'overRun','dly_its','st_dly','fs','test_info','p','clipi',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
+
+       
+%% ===================[Read in Audio file(s) for test]===================
 
 %check if audio file is a cell array
 if(iscell(p.Results.AudioFile))
@@ -157,6 +167,7 @@ for k=1:length(AudioFiles)
     end
 end
 
+%% ========================[Setup Playback Object]========================
 
 %create an object for playback and recording
 aPR=audioPlayerRecorder(fs);
@@ -170,8 +181,12 @@ dev_name=choose_device(aPR);
 %print the device used
 fprintf('Using "%s" for audio test\n',dev_name);
 
+%% ===========================[Read git status]===========================
+
 %get git status
 git_status=gitStatus();
+
+%% ==================[Initialize file and folder names]==================
 
 %folder name for data
 dat_fold=fullfile(p.Results.OutDir,'data');
@@ -191,10 +206,14 @@ test_name=fullfile(p.Results.OutDir,'test-type.txt');
 %make data direcotry
 [~,~,~]=mkdir(dat_fold);
 
+%% =========================[Get Test Start Time]=========================
+
 %get start time
 dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
 dtn=char(dt_start);
+
+%% ==================[Get Test info and notes from user]==================
 
 %open test type file
 init_tstinfo=readTestState(test_name);
@@ -256,6 +275,8 @@ while(isempty(test_info.testType))
     end
 end
 
+%% ===============[Parse User response and write log entry]===============
+
 %get notes from response
 pre_note_array=resp{end};
 %get strings from output add a tabs and newlines
@@ -301,6 +322,9 @@ fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
 %close log file
 fclose(logf);
 
+
+%% =======================[Filenames for data files]=======================
+
 %generate base file name to use for all files
 base_filename=sprintf('capture%s_%s',test_type_str,dtn);
 
@@ -310,17 +334,27 @@ data_filename=fullfile(dat_fold,sprintf('%s.mat',base_filename));
 %generate filename for error data
 error_filename=fullfile(dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
+
+%% ======================[Generate oncleanup object]======================
+
 %add cleanup function
 co=onCleanup(@()cleanFun(error_filename,data_filename,log_name));
 
+%% ========================[Open Radio Interface]========================
+
 %open radio interface
 ri=radioInterface(p.Results.RadioPort);
+
+%% ========================[Notify user of start]========================
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',fullfile(dat_fold,sprintf('%s.mat',base_filename)));
 
 %turn on LED when test starts
 ri.led(1,true);
+
+
+%% ========================[Compute Check Trials]========================
 
 if(p.Results.Trials>10)
     %generate check trials vector
@@ -338,6 +372,11 @@ else
 end
 
 try
+
+    %% ========================[preallocate arrays]========================
+    %give arrays dummy values so things go faster and mlint doesn't
+    %complain
+    
     %preallocate arrays
     st_idx=zeros(1,p.Results.Trials);
     st_dly=zeros(1,p.Results.Trials);
@@ -349,75 +388,89 @@ try
     %generate clip index. wrap around after each clip is used
     clipi=mod(1:p.Results.Trials,length(AudioFiles))+1;
 
+
+    %% =========================[Measurment Loop]=========================
     for k=1:p.Results.Trials
 
-            %push the push to talk button
-            ri.ptt(true);
-            
-            %pause a bit to let the radio access the system
-            pause(p.Results.PTTWait);
+        %%  ==================[Key Radio and Play Audio]==================
 
-            %play and record audio data
-            [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)});
+        %push the push to talk button
+        ri.ptt(true);
 
-            %un-push the push to talk button
-            ri.ptt(false);
+        %pause a bit to let the radio access the system
+        pause(p.Results.PTTWait);
 
-            %add a pause after play_record to remove run to run dependencys
-            pause(3.1);
+        %play and record audio data
+        [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)});
 
-            %check if we should run statistics on this trial
-            if(any(check_trials==k))
-                fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
-                %calculate RMS
-                rms=sqrt(mean(dat.^2));
-                %calculate maximum
-                [mx,mx_idx]=max(dat);
-                %print values
-                fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
-                %check if levels are low
-                if(rms<1e-3)
-                    %print warning
-                    warning('Low levels input levels detected. RMS = %g',rms);
-                    %length of plot in sec
-                    plen=0.01;
-                    %generate range centered around maximum value
-                    rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
-                    if(length(rng)>length(dat))
-                        rng=1:length(dat);
-                    end
-                    %check that we didn't go off of the beginning of the array
-                    if(rng(1)<1)
-                        %shift range
-                        rng=rng-rng(1)+1;
-                    end
-                    %check that we didn't go off of the end of the array
-                    if(rng(end)>length(dat))
-                        %shift range
-                        rng=rng+(length(dat)-rng(end));
-                    end
-                    %new figure for plot
-                    figure;
-                    %generate time axis
-                    t_r=((1:length(dat))-1)*1/fs;
-                    %plot graph
-                    plot(t_r(rng),dat(rng));
-                    %force drawing
-                    drawnow;
+        %un-push the push to talk button
+        ri.ptt(false);
+
+
+        %%  =====================[pause between runs]=====================
+        
+        %add a pause after play_record to remove run to run dependencys
+        pause(3.1);
+
+        %%  =======================[Data Processing]=======================
+        
+        %check if we should run statistics on this trial
+        if(any(check_trials==k))
+            fprintf('Run %i of %i complete :\n',k,p.Results.Trials);
+            %calculate RMS
+            rms=sqrt(mean(dat.^2));
+            %calculate maximum
+            [mx,mx_idx]=max(dat);
+            %print values
+            fprintf('\tMax : %.4f\n\tRMS : %.4f\n\n',mx,rms);
+            %check if levels are low
+            if(rms<1e-3)
+                %print warning
+                warning('Low levels input levels detected. RMS = %g',rms);
+                %length of plot in sec
+                plen=0.01;
+                %generate range centered around maximum value
+                rng=(mx_idx-round(plen/2*fs)):(mx_idx+round(plen/2*fs));
+                if(length(rng)>length(dat))
+                    rng=1:length(dat);
                 end
+                %check that we didn't go off of the beginning of the array
+                if(rng(1)<1)
+                    %shift range
+                    rng=rng-rng(1)+1;
+                end
+                %check that we didn't go off of the end of the array
+                if(rng(end)>length(dat))
+                    %shift range
+                    rng=rng+(length(dat)-rng(end));
+                end
+                %new figure for plot
+                figure;
+                %generate time axis
+                t_r=((1:length(dat))-1)*1/fs;
+                %plot graph
+                plot(t_r(rng),dat(rng));
+                %force drawing
+                drawnow;
             end
+        end
 
-            st_idx(:,k)=finddelay(y{clipi(k)}',dat);
+        st_idx(:,k)=finddelay(y{clipi(k)}',dat);
 
-            st_dly(:,k)=1/fs*st_idx(k);
+        st_dly(:,k)=1/fs*st_idx(k);
 
-            dly_its{k}=1e-3*ITS_delay_wrapper(dat,y{clipi(k)}',fs);
-            %save data
-            recordings{k}=dat;
+        dly_its{k}=1e-3*ITS_delay_wrapper(dat,y{clipi(k)}',fs);
+        %save data
+        recordings{k}=dat;
+    %% =======================[End Measurment Loop]=======================
     end
+    
+    %%  ========================[save datafile]=========================
+    
     %save datafile
     save(data_filename,save_vars{:},'-v7.3');
-
+    
+%%  ===========================[Catch Errors]===========================
 catch err
         
     %add error to dialog prompt
@@ -466,11 +519,15 @@ catch err
     rethrow(err);
 end
 
+%% ===========================[Close Hardware]===========================
+
 %turn off LED when test stops
 ri.led(1,false);
 
 %close radio interface
 delete(ri);
+
+%% ======================[Check for buffer issues]======================
 
 %check for buffer over runs
 if(any(overRun))
@@ -485,6 +542,8 @@ if(any(underRun))
 else
     fprintf('There were no buffer under runs\n');
 end
+
+%% ===========================[Generate Plots]===========================
 
 %new figure
 figure;
@@ -548,21 +607,16 @@ plot(Trial,its_mat_e(:))
 xlabel('Trial Number');
 ylabel(['Delay [' its_mat_u ']']);
 
+%% =========================[Beep to alert user]=========================
+
 beep;
 pause(1);
 beep;
 
-function validateAudioFiles(fl)
-    validateStr=@(n)validateattributes(n,{'char'},{'vector','nonempty'});
-    %check if input is a cell array
-    if(iscell(fl))
-        %validate each element in the array
-        cellfun(validateStr,fl);
-    else
-        %otherwise validate a single string
-        validateStr(fl);
-    end
-
+%% ==========================[Cleanup Function]==========================
+%This is called when cleanup object co is deleted (Function exits for any
+%reason other than CTRL-C). This ensures that the log entries are propperly
+%closed and that there is a chance to add notes on what went wrong.
 function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
 if(~exist(err_name,'file'))
@@ -593,7 +647,7 @@ if(~exist(err_name,'file'))
         %write start time to file with notes
         fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
     else
-        post_notes='';                                                     %#ok, saved in file
+        post_notes='';
     end
     %print end of test marker
     fprintf(logf,'===End Test===\n\n');
@@ -607,3 +661,17 @@ if(~exist(err_name,'file'))
     end
 end
 
+%% =====================[Argument validatig functions]=====================
+%some arguments require more complex validation than validateattributes can
+%provide
+
+function validateAudioFiles(fl)
+    validateStr=@(n)validateattributes(n,{'char'},{'vector','nonempty'});
+    %check if input is a cell array
+    if(iscell(fl))
+        %validate each element in the array
+        cellfun(validateStr,fl);
+    else
+        %otherwise validate a single string
+        validateStr(fl);
+    end
