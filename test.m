@@ -280,9 +280,15 @@ end
 %get notes from response
 pre_note_array=resp{end};
 %get strings from output add a tabs and newlines
-pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+pre_note_tab_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
 %get a single string from response
-pre_notes=horzcat(pre_note_strings{:});
+pre_notesT=horzcat(pre_note_tab_strings{:});
+
+%get strings from output add newlines only
+pre_note_strings=cellfun(@(s)[s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notes=horzcat(pre_note_strings{:});                                     %#ok saved in file
+
 
 %check dirty status
 if(git_status.Dirty)
@@ -318,7 +324,7 @@ fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write system under test 
 fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
-fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notesT);
 %close log file
 fclose(logf);
 
@@ -617,6 +623,7 @@ beep;
 %This is called when cleanup object co is deleted (Function exits for any
 %reason other than CTRL-C). This ensures that the log entries are propperly
 %closed and that there is a chance to add notes on what went wrong.
+
 function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
 if(~exist(err_name,'file'))
@@ -627,6 +634,11 @@ if(~exist(err_name,'file'))
     if(~exist(good_name,'file'))
         %add not to say that this was an error
         prompt=[prompt,newline,'Data file missing, something went wrong'];
+        %set flag
+        no_file=true;
+    else
+        %clear flag
+        no_file=false;
     end
     
     %get post test notes
@@ -640,12 +652,22 @@ if(~exist(err_name,'file'))
         %get notes from response
         post_note_array=resp{1};
         %get strings from output add a tabs and newlines
-        post_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        post_note_tab_strings=cellfun(@(s)[char(9),s,newline],cellstr(post_note_array),'UniformOutput',false);
+        %get a single string from response
+        post_notesT=horzcat(post_note_tab_strings{:});
+        
+        %get strings from output add newlines only
+        post_note_strings=cellfun(@(s)[s,newline],cellstr(post_note_array),'UniformOutput',false);
         %get a single string from response
         post_notes=horzcat(post_note_strings{:});
 
-        %write start time to file with notes
-        fprintf(logf,'===Post-Test Notes===\n%s',post_notes);
+        if(no_file)
+            %write error notes header
+            fprintf(logf,'===Test-Error Notes===\n%s',post_notesT);
+        else
+            %write post notes header
+            fprintf(logf,'===Post-Test Notes===\n%s',post_notesT);
+        end
     else
         post_notes='';
     end
