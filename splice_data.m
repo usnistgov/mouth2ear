@@ -223,20 +223,26 @@ end
 for i = 1:n_types
     %% Set up processed rx files
     disp(['Processing ' file_list{i}])
+    [pp,fname,e] = fileparts(file_list{i});
+    
+    ext = '.mat';
+    
     if(strcmpi(p.Results.outputs,'all')||strcmpi(p.Results.outputs,'wav'))
         % Load processed Rx data
-        load(fullfile(procPath,[file_list{i} '-full.mat']))
+        inName = fullfile(procPath,[fname '-full' ext]);
+        dat = load(inName);
     else
-        load(fullfile(procPath,[file_list{i} '.mat']))
+        inName = fullfile(procPath, [fname ext]);
+        dat = load(inName);
     end
     % Size of processed data
-    [m,~] = size(data);                                                    %#ok loaded from file
+    [m,~] = size(dat.data);                                                    %#ok loaded from file
     for j = 1:m
         if(strcmpi(p.Results.outputs,'all') || strcmpi(p.Results.outputs, 'csv'))
             % Delay values for that session
-            session_dat = data{j,2};
+            session_dat = dat.data{j,2};
             % csv directory
-            csv_dir = fullfile(csv_Path , file_list{i});
+            csv_dir = fullfile(csv_Path , fname);
             if(~exist(csv_dir, 'dir'))
                 mkdir(csv_dir)
             end
@@ -247,11 +253,11 @@ for i = 1:n_types
         end
         if(strcmpi(p.Results.outputs, 'all') || strcmpi(p.Results.outputs, 'wav'))
             % Session recordings
-            session_recs = data{j,3};
+            session_recs = dat.data{j,3};
             % number of recordings
             [~,nRecs] = size(session_recs);
             % directory to store session wav files
-            wdir = fullfile(proc_rx_Path, file_list{i}, ['session_', num2str(j)]);
+            wdir = fullfile(proc_rx_Path, fname, ['session_', num2str(j)]);
             % if directory doen't exist, make it
             if(~exist(wdir,'dir'))
                 mkdir(wdir)
@@ -269,13 +275,13 @@ for i = 1:n_types
     if(strcmpi(test_loc_type,'2loc') && (strcmpi(p.Results.outputs, 'all') || strcmpi(p.Results.outputs, 'wav')))
         %% Set Up Processed tx files
         % Test type directory
-        tdir = fullfile(proc_tx_Path, file_list{i});
+        tdir = fullfile(proc_tx_Path, fname);
         % if directory doesn't exist, make it
         if(~exist(tdir,'dir'))
             mkdir(tdir)
         end
         % Description tx files contain
-        descr = [file_list{i}, '_'];
+        descr = [fname, '_'];
         % Identify tx files matching description
         f_ix = cellfun(@(x) contains(x,descr),tx_names);
         % List of tx files

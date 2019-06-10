@@ -96,12 +96,7 @@ datType = p.Results.datType;
 % Directory to save mat file
 saveDir = p.Results.saveDir;
 %% Set path and extract data file names
-Dir = dir(Path);
-% Toss '.' and '..'
-Dir = Dir(3:end);
-% Store file names in array
-% fNames = extractfield(Dir,'name'); % requires mapping toolbox
-fNames = {Dir.name};
+
 
 if(strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
     %%
@@ -114,8 +109,6 @@ elseif(~strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
     fclose(file);
     fList = fList{1};
     nFiles = length(fList);
-    % Store index of desired files in directory (Dir)
-    fIx = find(cell2mat(cellfun(@(x) ismember(x, fList), fNames, 'UniformOutput', 0)));
     
     % store data in cell array
     data = cell(nFiles,3);
@@ -123,14 +116,16 @@ elseif(~strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
     rx_list = cell(nFiles,1);
     for i = 1:nFiles
         if(strcmpi(datType, '1loc'))
-            load(fNames{fIx(i)});
-            rx_list{i} = fNames{fIx(i)};
+            dat = load(fList{i});
+            dly_its = dat.dly_its;
+            recordings = dat.recordings;
+            rx_list{i} = fList{i};
         elseif(strcmpi(datType, '2loc'))
-            [dly_its,~,rx_name] = process(fNames{fIx(i)},'rx_folder',p.Results.rx_folder,'winArgs', p.Results.winArgs);
+            [dly_its,recordings,rx_name] = process(fList{i},'rx_folder',p.Results.rx_folder,'winArgs', p.Results.winArgs);
             rx_list{i} = rx_name;
         end
         % first column: file name
-        data{i,1} = fNames{fIx(i)};
+        data{i,1} = fList{i};
         % second column: delay values
         data{i,2} = cell2mat(dly_its);
         % third column: recordings
@@ -139,6 +134,11 @@ elseif(~strcmpi(datFile, 'na') && strcmpi(descr, 'na'))
     datName = strrep(datFile, '.csv','-full.mat');
 elseif(strcmpi(datFile, 'na') && ~strcmpi(descr, 'na'))
     %% datFile not given, descriptor given
+    Dir = dir(Path);
+    % Toss '.' and '..'
+    Dir = Dir(3:end);
+    % Store file names in array
+    fNames = {Dir.name};
     % File indices that contain description
     fIx = cellfun(@(x) contains(x, descr), fNames);
     % File names that contain description
@@ -178,7 +178,10 @@ end
 
 %% Save a mat file of extracted data
 if(saveDir)
-    saveF = [saveDir '\' datName];
+    if(~exist(saveDir,'dir'))
+        mkdir(saveDir);
+    end
+    saveF = fullfile(saveDir, datName);
 else
     saveF = datName;
 end
