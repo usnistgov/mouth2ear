@@ -25,10 +25,11 @@ log.updateMode = 'AND';
 log.stringSearchMode = 'AND';
 
 testTypes = {
-    'PTT', 'Gate';
+%     'PTT', 'Gate';
 %     'Analog','Direct';
 %     'Analog','Conventional';
 %     '700','Direct';
+'700','Conventional';
 %     '700','Phase1';
 %     '700','Phase2';
     };
