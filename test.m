@@ -71,6 +71,8 @@ addParameter(p,'BGNoiseVolume',0.1,@(n)validateattributes(n,{'numeric'},{'scalar
 addParameter(p,'AudioSkip',0,@(t)validateattributes(t,{'numeric'},{'scalar','nonnegative'}));
 %add ptt wait parameter
 addParameter(p,'PTTWait',0.68,@(t)validateattributes(t,{'numeric'},{'scalar','positive'}));
+%add overplay parameter
+addParameter(p,'OverPlay',1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
 %add output directory parameter
 addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
@@ -407,7 +409,7 @@ try
         pause(p.Results.PTTWait);
 
         %play and record audio data
-        [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)});
+        [dat,underRun(k),overRun(k)]=play_record(aPR,y{clipi(k)},'OverPlay',p.Results.OverPlay);
 
         %un-push the push to talk button
         ri.ptt(false);
