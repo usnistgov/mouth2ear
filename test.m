@@ -27,6 +27,30 @@ function [dly_its]=test(varargin)
 %
 %   BGNoiseVolume       double              scale factor for background
 %                                           noise. defaults to 0.1
+%
+%   AudioSkip           double              Number of seconds at the
+%                                           beginning of the audio clip to
+%                                           skip during playback. Defaults
+%                                           to zero
+%
+%   PTTWait             double              The amount of time to wait in
+%                                           seconds between pushing the
+%                                           push to talk button and
+%                                           starting playback. This allows
+%                                           time for access to be granted
+%                                           on the system. Default value is
+%                                           0.68 seconds
+%
+%   OverPlay            double              The number of seconds to play
+%                                           silence after the audio is
+%                                           complete. This allows for all
+%                                           of the audio to be recorded
+%                                           when there is delay in the
+%                                           system.
+%
+%   OutDir				char vector			Directory that is added to the
+%                                           output path for all files.
+%
 
 
 %This software was developed by employees of the National Institute of
