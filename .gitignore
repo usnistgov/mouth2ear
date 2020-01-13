@@ -1,12 +1,28 @@
-
+#random script
+process_script.m
 #matlab temporary files
 *.asv
 
 #matlab data files
 *.mat
 
-#data directory
+#data directorys
 data/
+tx-data/
+rx-data/
 
 #plots directory
 plots/
+
+#plot files
+*.png
+*.fig
+
+#test type file
+test-type.txt
+
+#test conditions log file
+tests.log
+
+#computer name file
+ComputerName.txt
