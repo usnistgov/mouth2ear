@@ -1,10 +1,10 @@
 function state=readTestState(fname)
 
 %names of fields in file
-names={'Test Type','System','Tx Device','Rx Device','3rd Device'};
+names={'Test Type','System','Tx Device','Rx Device','3rd Device','Location'};
 
 %names of fields in structure
-fields={'testType','System','TxDevice','RxDevice','ThirdDevice'};
+fields={'testType','System','TxDevice','RxDevice','ThirdDevice','Location'};
 
 %open file
 f=fopen(fname,'r');

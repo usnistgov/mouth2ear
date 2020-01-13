@@ -1,10 +1,12 @@
 function state=getTestState(prompt,resp)
 
 %names of fields in file
-names={'Test Type','System','Tx Device','Transmit Device','Rx Device','Recive Device','3rd Device'};
+names={'Test Type','System','Tx Device','Transmit Device','Rx Device',...
+    'Recive Device','3rd Device','Test Location'};
 
 %names of fields in structure
-fields={'testType','System','TxDevice','TxDevice','RxDevice','RxDevice','ThirdDevice'};
+fields={'testType','System','TxDevice','TxDevice','RxDevice',...
+    'RxDevice','ThirdDevice','Location'};
 
 %create struct to keep data
 state=struct();

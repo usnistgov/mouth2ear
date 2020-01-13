@@ -1,5 +1,6 @@
 function [y,underRun,overRun]=play_record(apr,x,varargin)
-%PLAY_RECORD play and record audio simultaneously    
+%PLAY_RECORD play and record audio simultaneously   
+%
 %   [y,underRun,overRun]=PLAY_RECORD(apr,x) Play the audio x using the
 %    audioPlayerRecorder object apr. The recorded audio is returned in y.
 %    underRun and overRun are the number of buffer under and over runs

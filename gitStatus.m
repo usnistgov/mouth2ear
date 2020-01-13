@@ -1,5 +1,13 @@
 function [ stat] = gitStatus()
-    %GITSTATUS return information on the git status as a structure
+%GITSTATUS return information on the git status as a structure
+%
+%   stat=GITSTATUS() get the git status information from the current
+%   directory. GITSTATUS returns a structure with three feilds : Hash,
+%   Dirty and Patch. Hash is the hash of the current git commit as a
+%   string. Dirty is a boolean value that is true when there are local
+%   uncommitted changes. If Dirty is true than Patch contains a patch with
+%   all of the local uncommitted changes. If Dirty is false than Patch
+%   contains an empty string.
     
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
