@@ -1,10 +1,10 @@
 function [dly_its]=m2e_1loc(varargin)
-%TEST run a mouth to ear latency test
+%M2E_1LOC run a mouth to ear latency test
 %
-%   TEST() runs a mouth-to-ear latency test. This test will run 100 trials
-%   playing test.wav into the radio.
+%   M2E_1LOC() runs a mouth-to-ear latency test. This test will run 100
+%   trials playing test.wav into the radio.
 %
-%   TEST(name,value) same as above but specify test parameters as name
+%   M2E_1LOC(name,value) same as above but specify test parameters as name
 %   value pairs. Possible name value pairs are shown below:
 %
 %   NAME                TYPE                Description
@@ -48,7 +48,7 @@ function [dly_its]=m2e_1loc(varargin)
 %                                           when there is delay in the
 %                                           system.
 %
-%   OutDir				char vector			Directory that is added to the
+%   OutDir              char vector         Directory that is added to the
 %                                           output path for all files.
 %
 

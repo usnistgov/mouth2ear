@@ -1,12 +1,12 @@
 function m2e_2loc_tx(varargin)
-%TX_SCRIPT run the transmit side of a two location mouth to ear latency
+%M2E_2LOC_TX run the transmit side of a two location mouth to ear latency
 %test
 %
-%   TX_SCRIPT() runs the transmit side of a two location mouth-to-ear
+%   M2E_2LOC_TX() runs the transmit side of a two location mouth-to-ear
 %   latency test. This test will run 100 trials playing test.wav into the
 %   radio.
 %
-%   TEST(name,value) same as above but specify test parameters as name
+%   M2E_2LOC_TX(name,value) same as above but specify test parameters as name
 %   value pairs. Possible name value pairs are shown below:
 %
 %   NAME                TYPE                Description
@@ -29,7 +29,10 @@ function m2e_2loc_tx(varargin)
 %
 %   BGNoiseVolume       double              scale factor for background
 %                                           noise. defaults to 0.1
-%See also rx_script, process
+%
+%   OutDir              char vector         Directory that is added to the
+%                                           output path for all files.
+%See also m2e_2loc_rx, m2e_2loc_process
 %
 
 %This software was developed by employees of the National Institute of

@@ -1,14 +1,15 @@
 function [dly_its, rx_rec,rx_name] = m2e_2loc_process(tx_name,varargin)
-%PROCESS process rx and tx files to get mouth to ear latency for a two
-%location test
+%M2E_2LOC_PROCESS process rx and tx files to get mouth to ear latency for a
+%two location test
 %
-%   PROCESS(tx_name) pdrocess a two location test with tx file named
-%   tx_name. if no folder is given PROCESS automatically searches in the
-%   tx-dat folder for the file. PROCESS searches for a matching rx file in
-%   the rx-data folder
+%   M2E_2LOC_PROCESS(tx_name) pdrocess a two location test with tx file
+%   named tx_name. if no folder is given M2E_2LOC_PROCESS automatically
+%   searches in the tx-dat folder for the file. M2E_2LOC_PROCESS searches
+%   for a matching rx file in the rx-data folder
 %
-%   PROCESS(tx_name,name,value) same as above but, specify test parameters
-%   using name value pairs. Posible test parameters are shown below:
+%   M2E_2LOC_PROCESS(tx_name,name,value) same as above but, specify test
+%   parameters using name value pairs. Posible test parameters are shown
+%   below:
 %
 %   NAME        TYPE            Description
 %
@@ -35,7 +36,10 @@ function [dly_its, rx_rec,rx_name] = m2e_2loc_process(tx_name,varargin)
 %                               use from the rx file in seconds. The
 %                               default is 1 second
 %
-%See also tx_script, rx_script
+%   OutDir      char vector     Directory that is added to the output path
+%                               for all files.
+%
+%See also m2e_2loc_rx, m2e_2loc_tx
 %
 
 %This software was developed by employees of the National Institute of

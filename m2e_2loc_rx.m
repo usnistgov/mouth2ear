@@ -1,26 +1,29 @@
 function m2e_2loc_rx(varargin)
-%RX_SCRIPT run the receive side of a two location mouth to ear latency test
+%M2E_2LOC_RX run the receive side of a two location mouth to ear latency test
 %
-%RX_SCRIPT records the test audio and timecode audio on the receive end.
+%M2E_2LOC_RX() records the test audio and timecode audio on the receive end.
 %The audio is saved to a timestamped file in the rx-dat folder. Additional
 %test parameters such as the device used, git revision hash and the number
 %of buffer over runs are stored in a .mat file.
 %
+%M2E_2LOC_RX('OutDir','some\other\place\') same as above but the audio file
+%is saved to a timestamped file in the some\other\place\rx-dat folder
+%
 %The audio file is saved as a 24-bit sterio WAV file sampled at 48 kHz. The
 %receive auido is in channel one and the receive timecode audio is in
 %channel 2. The file is streamed to disk with AudioFileWriter. This means
-%that RX_SCRIPT does not have memory require requirements that grow with
+%that M2E_2LOC_RX does not have memory require requirements that grow with
 %time but it is limited by the maximum file size for the chosen file
 %system. Streaming to disk also means that in the case of an unexpected
 %termination of the program there should be recoverable audio.
 %
-%RX_SCRIPT decides to terminate recordings based on timecode audio levels.
-%Input average audio levels of more than 4% full scale are considered
-%active. The audio levels are not checked for the first 3 seconds of the
-%recording. The average is taken over sections of 1024 samples or, at a
-%48 khz sample rate, about 20 ms.
+%M2E_2LOC_RX decides to terminate recordings based on timecode audio
+%levels. Input average audio levels of more than 4% full scale are
+%considered active. The audio levels are not checked for the first 3
+%seconds of the recording. The average is taken over sections of 1024
+%samples or, at a 48 khz sample rate, about 20 ms.
 %
-%See also tx_script, process
+%See also m2e_2loc_tx, m2e_2loc_process
 
 
 %This software was developed by employees of the National Institute of
