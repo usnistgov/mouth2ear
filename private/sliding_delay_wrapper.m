@@ -1,13 +1,5 @@
-function [ stat] = gitStatus()
-%GITSTATUS return information on the git status as a structure
-%
-%   stat=GITSTATUS() get the git status information from the current
-%   directory. GITSTATUS returns a structure with three feilds : Hash,
-%   Dirty and Patch. Hash is the hash of the current git commit as a
-%   string. Dirty is a boolean value that is true when there are local
-%   uncommitted changes. If Dirty is true than Patch contains a patch with
-%   all of the local uncommitted changes. If Dirty is false than Patch
-%   contains an empty string.
+function [varargout] = sliding_delay_wrapper(varargin)
+%SLIDING_DELAY_ESTIMATES wrapper function for sliding_delay_estimates
     
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
@@ -31,29 +23,18 @@ function [ stat] = gitStatus()
 %OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
+
+    %generate cell array for output arguments
+    varargout=cell(1,nargout);
     
-    %get hash of current commit
-    [res,hash]=system('git rev-parse HEAD');
+    %add to path and save old path
+    oldpath=addpath('./ITS_delay');
 
-    %check for error
-    if(res)
-        hash='';
-    else
-        hash=strtrim(hash);
-    end
-
-    %get if there are local mods
-    [dty,~]=system('git diff-index --quiet HEAD --');
-
-    %check if there were local mods
-    if(dty)
-        %get diff of local mods
-        [~,patch]=system('git diff HEAD');
-    else
-        patch='';
-    end
-
-    %make structure for git status
-    stat=struct('Hash',hash,'Dirty',dty','Patch',patch);
+    %make sure path gets restored
+    cleanObj=onCleanup(@()path(oldpath));
+    
+    %call function now added to path
+    [varargout{:}]=sliding_delay_estimates(varargin{:});
+    
 end
 

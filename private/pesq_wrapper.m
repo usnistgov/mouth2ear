@@ -43,7 +43,7 @@ function [pesqmos,moslqo]=pesq_wrapper(fs,ref,deg)
     ref_file=[tempname '.wav'];
     deg_file=[tempname '.wav'];
     
-    %write out aduio files
+    %write out audio files
     audiowrite(ref_file,ref,fs_new);
     audiowrite(deg_file,deg,fs_new);
     

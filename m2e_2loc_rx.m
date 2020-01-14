@@ -112,7 +112,7 @@ prompt{end+1}='Transmit Device';
 dims(end+1,:)=[1,dev_w];
 resp{end+1}=init_tstinfo.TxDevice;
 %add Rx radio ID prompt to dialog
-prompt{end+1}='Recive Device';
+prompt{end+1}='Receive Device';
 dims(end+1,:)=[1,dev_w];
 resp{end+1}=init_tstinfo.RxDevice;
 %add radio system under test prompt

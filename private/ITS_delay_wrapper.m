@@ -1,13 +1,6 @@
-function name=choose_device(apr)
-%CHOOSE_DEVICE choose a suitable audio device for test
-%   name=CHOOSE_DEVICE(apr) finds and selects a suitable audio device
-%
-%   CHOOSE_DEVICE uses the audioPlayerRecorder object apr to find a list of
-%   possible audio devices. CHOOSE_DEVICE then searches the list for one
-%   that matches devices in the allowed list and selects that as the audio
-%   device for apr. CHOOSE_DEVICE returns the name of the audio device that
-%   was selected
-
+function [varargout] = ITS_delay_wrapper(varargin)
+%SLIDING_DELAY_ESTIMATES wrapper function for sliding_delay_estimates
+    
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
 %Pursuant to title 17 United States Code Section 105, works of NIST
@@ -31,32 +24,17 @@ function name=choose_device(apr)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
-    %list of sound device names to use
-    device_names={'UMC'};
-
-    %get a list of the audio devices
-    ad=apr.getAudioDevices();
-
-    %get matches
-    idx=find(contains(ad,device_names));
-
-    %check if there were more than one matching device
-    if(length(idx)>1)
-        %print out devices found
-        fprintf('Multiple devices found :\n');
-        fprintf('\t%s\n',ad{idx});
-        %use the last
-        idx=idx(end);
-    end
-
-    if(isempty(idx))
-        error('Could not find a sutable output device')
-    end
+    %generate cell array for output arguments
+    varargout=cell(1,nargout);
     
-    %return name
-    name=ad{idx};
+    %add to path and save old path
+    oldpath=addpath('./ITS_delay');
 
-    %set device
-    apr.Device=name;
-    
+    %make sure path gets restored
+    cleanObj=onCleanup(@()path(oldpath));
+
+    %call function now added to path
+    [varargout{:}]=ITS_delay_est(varargin{:});
+
 end
+

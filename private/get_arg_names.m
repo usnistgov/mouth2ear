@@ -1,6 +1,30 @@
 function [requiredInputs,parameterInputs,optionInputs] = get_arg_names(filePath)
-%% Get any possible inputs to the file at filePath.
+% GET_ARG_NAMES - Get any possible inputs to the file at filePath.
 %
+
+%This software was developed by employees of the National Institute of
+%Standards and Technology (NIST), an agency of the Federal Government.
+%Pursuant to title 17 United States Code Section 105, works of NIST
+%employees are not subject to copyright protection in the United States and
+%are considered to be in the public domain. Permission to freely use, copy,
+%modify, and distribute this software and its documentation without fee is
+%hereby granted, provided that this notice and disclaimer of warranty
+%appears in all copies.
+%
+%THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
+%EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
+%WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
+%WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+%FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+%CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
+%FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
+%LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
+%OUT OF, RESULTING FROM, OR IN ANY WAY CONNECTED WITH THIS SOFTWARE,
+%WHETHER OR NOT BASED UPON WARRANTY, CONTRACT, TORT, OR OTHERWISE, WHETHER
+%OR NOT INJURY WAS SUSTAINED BY PERSONS OR PROPERTY OR OTHERWISE, AND
+%WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
+%USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
+
 % Open function file
 fid = fopen(filePath);
 
@@ -45,17 +69,17 @@ while(~parseFlag)
         % Not comment line good to go
         
         if(~functionFlag)
-            % Havent seen function yet
+            % Haven't seen function yet
             % Find if function def is on this line
             funcIx = strfind(strLine,functionExp);
             if(funcIx)
                 % If it is grab remainder of line after function
                rem = strLine((funcIx+length(functionExp)):end);
-               % Find end parantheses of line: )
+               % Find end parentheses of line: )
                endParanLocs = strfind(rem,')');
-               % Find beginning parantheses of line: (
+               % Find beginning parentheses of line: (
                begParanLocs = strfind(rem,'(');
-               % Grab everything between last pair of parantheses
+               % Grab everything between last pair of parentheses
                backupParams = rem((begParanLocs(end)+1):(endParanLocs(end)-1));
                % Set function flag
                functionFlag = 1;
@@ -65,7 +89,7 @@ while(~parseFlag)
             paramIx = strfind(strLine, paramExp);
             
             if(paramIx)
-                % For each occurence of parameter expression
+                % For each occurrence of parameter expression
                 for i = 1:length(paramIx)
                     % Increment number of parameters seen
                     nPI = nPI+1;
@@ -81,7 +105,7 @@ while(~parseFlag)
             %  Find locations of option expression
             optionIx = strfind(strLine, optionExp);
             if(optionIx)
-                % For each occurence of option expression
+                % For each occurrence of option expression
                 for i = 1:length(optionIx)
                     % Increment number of options seen
                     nOI = nOI + 1;
@@ -97,7 +121,7 @@ while(~parseFlag)
             % Find locations of required expression
             requiredIx = strfind(strLine,requiredExp);
             if(requiredIx)
-                % For each occurence of required expression on line
+                % For each occurrence of required expression on line
                 for i = 1:length(requiredIx)
                     % Increment number of requireds seen
                     nRI = nRI + 1;
@@ -105,23 +129,23 @@ while(~parseFlag)
                     rem = strLine((requiredIx(i)+length(requiredExp)):end);
                     % Find commas after expression
                     commLoc = strfind(rem, ',');
-                    % Find end parantheses after expression
+                    % Find end parentheses after expression
                     endParanLoc = strfind(rem, ')');
                     if(length(commLoc)>1)
                         % If multiple commas:
                         if(commLoc(1)<endParanLoc(1) && endParanLoc(1) < commLoc(2))
-                            % Have multiple commas, but end parantheses between
+                            % Have multiple commas, but end parentheses between
                             % them...Likely have multiple inputs on one line
                             requiredInputs{nRI} = strrep(strrep(rem((commLoc(1)+1):(endParanLoc(1)-1)),' ', ''), '''', '');
                         else
-                            % Have multiple commas w/o end parantheses
+                            % Have multiple commas w/o end parentheses
                             % between them. Likely have required input with
                             % extra input
                             requiredInputs{nRI} = strrep(strrep(rem((commLoc(1)+1):(commLoc(2)-1)),' ', ''), '''', '');
                         end
                     else
                         % Only one comma: no other inputs, input is between
-                        % first comma and end paranthese
+                        % first comma and end parentheses
                         requiredInputs{nRI} = strrep(strrep(rem((commLoc+1):(endParanLoc-1)),' ', ''), '''', '');
                     end
                 end

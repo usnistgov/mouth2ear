@@ -1,6 +1,10 @@
-function [varargout] = ITS_delay_wrapper(varargin)
-%SLIDING_DELAY_ESTIMATES wrapper function for sliding_delay_estimates
-    
+function state=getTestState(prompt,resp)
+%GETTESTSTATE generate test state struct from cell array of prompts and responses
+%
+%	state=GETTESTSTATE(prompt,resp) returns a test state struct that
+%	represents the state given by the prompt and responses
+%
+
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
 %Pursuant to title 17 United States Code Section 105, works of NIST
@@ -24,21 +28,37 @@ function [varargout] = ITS_delay_wrapper(varargin)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
-    %generate cell array for output arguments
-    varargout=cell(1,nargout);
-    %get old path
-    oldpath=path();
-    %add directory to path
-    path('./ITS_delay',oldpath);
-    try
-        [varargout{:}]=sliding_delay_estimates(varargin{:});
-    catch e
-        %restore path
-        path(oldpath);
-        %rethrow error
-        rethrow(e)
+
+%names of fields in file
+names={'Test Type','System','Tx Device','Transmit Device','Rx Device','Receive Device','3rd Device','Test Location'};
+
+%names of fields in structure
+fields={'testType','System','TxDevice','TxDevice','RxDevice','RxDevice','ThirdDevice','Location'};
+
+%create struct to keep data
+state=struct();
+
+for k=1:length(prompt)
+    %check for match
+    match=strcmp(names,strtrim(prompt{k}));
+    
+    %check if there was a match
+    if(any(match))
+        %found correct name, set value
+        state.(fields{match})=resp{k};
+    else
+        %field not found
+        error('Invalid prompt ''%s''',strtrim(prompt{k}));
     end
-    %restore path
-    path(oldpath);
 end
 
+%make sure all fields are present
+for k=1:length(names)
+    %check if field is present
+    if(~isfield(state,fields{k}))
+        %not present, set to empty string
+        state.(fields{k})='';
+    end
+end
+
+end

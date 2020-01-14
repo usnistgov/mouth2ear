@@ -309,7 +309,7 @@ for k=1:length(tx_dat.recordings)
     end
     
     %calculate delay
-    dly_its{k}=ITS_delay_wrapper(rx_rec{k},y,rx_fs,p.Results.winArgs{:})*1e-3;
+    dly_its{k}=sliding_delay_wrapper(rx_rec{k},y,rx_fs,p.Results.winArgs{:})*1e-3;
 end
 
 % new figure

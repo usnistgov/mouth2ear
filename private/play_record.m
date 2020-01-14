@@ -1,6 +1,5 @@
 function [y,underRun,overRun]=play_record(apr,x,varargin)
-%PLAY_RECORD play and record audio simultaneously   
-%
+%PLAY_RECORD play and record audio simultaneously    
 %   [y,underRun,overRun]=PLAY_RECORD(apr,x) Play the audio x using the
 %    audioPlayerRecorder object apr. The recorded audio is returned in y.
 %    underRun and overRun are the number of buffer under and over runs
@@ -15,6 +14,11 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
 %                               the audio is complete. This allows for all
 %                               of the audio to be recorded when there is
 %                               delay in the system.
+%
+%	StartSig	logical			Play start signal out of output 2 on the
+%                               audio interface. If StartSig is true then
+%                               apr must have at least two output channels
+%                               defined.
 %
 
 %This software was developed by employees of the National Institute of
@@ -46,32 +50,63 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
     %add audio object argument
     addRequired(p,'apr',@(l)validateattributes(l,{'audioPlayerRecorder'},{'scalar'}));
     %add output audio argument
-    addRequired(p,'x',@(l)validateattributes(l,{'numeric'},{'real','finite'}));
+    addRequired(p,'x',@(l)validateattributes(l,{'numeric'},{'real','finite','vector'}));
     %add overplay parameter
     addParameter(p,'OverPlay',0.1,@(l)validateattributes(l,{'numeric'},{'real','finite','scalar','nonnegative'}));
+    %add clip start signal parameter
+    addParameter(p,'StartSig',false,@(t)validateattributes(t,{'numeric','logical'},{'scalar'}));
 
     %set parameter names to be case sensitive
     p.CaseSensitive= true;
 
+    %get player channel mapping length
+    out_chan=max([1,length(apr.PlayerChannelMapping)]);
+    
+    %get recorder channel mapping length
+    in_chan =max([1,length(apr.RecorderChannelMapping)]);
+    
+    
+    
+    %make x a column vector
+    x=x(:);
+    
     %parse inputs
     parse(p,apr,x,varargin{:});
-
-    %reshape x into a column vector
-    x=reshape(p.Results.x,[],1);
-
-    %get buffer size
-    bsz=p.Results.apr.BufferSize;
     
     %get sample rate
     fs=p.Results.apr.SampleRate;
+    
+    
+    %replicate x for all channels
+    x=repmat(x,1,out_chan);
+    
+    if(p.Results.StartSig)
+        %check if we have at least two outputs
+        if(out_chan<=1)
+            error('Start sig requires at least two output channels but only %d given',out_chan)
+        end
+        %signal frequency
+        f_sig=1e3;
+        %signal time
+        t_sig=22e-3;
+        %calculate time for playback
+        t=((1:size(x,1))-1)/fs;
+        %calculate clip start signal
+        x(:,2)=(t<t_sig).*sin(2*pi*f_sig*t);
+        %clear time array (no longer needed)
+        clear t
+    end
+    
+    %get buffer size
+    bsz=p.Results.apr.BufferSize;
 
     %calculate the number of loops needed
     runs=ceil((length(x)+p.Results.OverPlay*fs)/bsz);
     
-    %initialize recive audio buffer
-    y=zeros((runs-1)*bsz,size(x,2));
+    %initialize receive audio buffer
+    y=zeros((runs-1)*bsz,in_chan);
     
-    %zerro under and over runs
+    %zero under and over runs
     underRun=0;
     overRun=0;
     
@@ -79,15 +114,15 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
         
         if(k*bsz<=length(x))
             %get a chunk of data
-            datin=x((bsz*(k-1)+1):(bsz*k));
+            datin=x((bsz*(k-1)+1):(bsz*k),:);
         elseif(k*bsz>=length(x))
             %get data to end of file
-            datin=x((bsz*(k-1)+1):end);
+            datin=x((bsz*(k-1)+1):end,:);
             %add zeros to buffer size
-            datin(end+1:bsz)=zeros(bsz-length(datin),1);
+            datin(end+1:bsz,:)=zeros(bsz-length(datin),size(x,2));
         else
             %no data to send, just send zeros
-            datin=zeros(bsz,1);
+            datin=zeros(bsz,size(x,2));
         end
         
         %play/record audio
@@ -96,7 +131,7 @@ function [y,underRun,overRun]=play_record(apr,x,varargin)
         %check if this is not the first run
         if(k>1)
             %add data to array
-            y((bsz*(k-2)+1):(bsz*(k-1)))=datout;
+            y((bsz*(k-2)+1):(bsz*(k-1)),:)=datout;
         end
 
         %add under and over runs

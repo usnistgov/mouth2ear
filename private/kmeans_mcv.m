@@ -64,7 +64,7 @@ nd = length(x);
 dV = zeros(nd,k);
 % count iterations
 numIter = 1;
-% converagance condition
+% convergence condition
 convFlag = 1;
 while(numIter<iterTol && convFlag)
     % Assign distance value from each data point to each center guess
@@ -81,7 +81,7 @@ while(numIter<iterTol && convFlag)
         idx = [ix ==i];
         C(i) = mean(x(idx));
     end
-    % Update convergance tracker
+    % Update convergence tracker
     conv = abs(C - iC);
     % Flag if max change smaller than tol
     if(max(max(conv))<convTol)
