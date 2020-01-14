@@ -1,5 +1,4 @@
-
-function tx_script(varargin)
+function m2e_2loc_tx(varargin)
 %TX_SCRIPT run the transmit side of a two location mouth to ear latency
 %test
 %

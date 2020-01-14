@@ -1,4 +1,4 @@
-function [dly_its]=test(varargin)
+function [dly_its]=m2e_1loc(varargin)
 %TEST run a mouth to ear latency test
 %
 %   TEST() runs a mouth-to-ear latency test. This test will run 100 trials

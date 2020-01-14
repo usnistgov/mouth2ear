@@ -1,4 +1,4 @@
-function [dly_its, rx_rec,rx_name] = process(tx_name,varargin)
+function [dly_its, rx_rec,rx_name] = m2e_2loc_process(tx_name,varargin)
 %PROCESS process rx and tx files to get mouth to ear latency for a two
 %location test
 %

@@ -1,4 +1,4 @@
-function rx_script(varargin)
+function m2e_2loc_rx(varargin)
 %RX_SCRIPT run the receive side of a two location mouth to ear latency test
 %
 %RX_SCRIPT records the test audio and timecode audio on the receive end.
