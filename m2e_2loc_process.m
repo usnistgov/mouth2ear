@@ -77,7 +77,7 @@ addParameter(p,'OverPlay',1,@(l)validateattributes(l,{'numeric'},{'real','finite
 % add rx folder parameter
 addParameter(p,'rx_folder', 'rx-data', @(l)validateattributes(l,{'char'},{'vector'}));
 %add output directory parameter
-addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 %set parameter names to be case sensitive
 p.CaseSensitive= true;

@@ -50,7 +50,7 @@ function m2e_2loc_rx(varargin)
 p=inputParser();
 
 %add output directory parameter
-addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'vector','nonempty'}));
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
 %set parameter names to be case sensitive
 p.CaseSensitive= true;
