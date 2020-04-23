@@ -29,7 +29,6 @@ Zhang NF (2006) Calculation of the uncertainty of the mean of autocorrelated mea
 
 Voran SD (2004) A bottom-up algorithm for estimating time-varying delays in coded speech. \emph{Proceedings of the 3rd International Conference on Measurement of Speech and Audio Quality in Networks}.
 }
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in the R documentation directory ~~
 \keyword{ package }
 \seealso{
 \code{\link[metRology]{metRology-package}}
