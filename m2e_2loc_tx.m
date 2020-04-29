@@ -282,14 +282,25 @@ while(isempty(test_info.testType))
     end
 end
 
-%% ===============[Parse User response and write log entry]===============
+%% ===============[Print Log entry so it is easily copyable]===============
 
 %get notes from response
 pre_note_array=resp{end};
-%get strings from output add a tabs and newlines
-pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+
+%get strings from output add newlines only
+pre_note_strings=cellfun(@(s)[s,newline],cellstr(pre_note_array),'UniformOutput',false);
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
+
+%print
+fprintf('Pre test notes:\n%s\n',pre_notes);
+
+%% ===============[Parse User response and write log entry]===============
+
+%get strings from output add a tabs and newlines
+pre_note_tab_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notesT=horzcat(pre_note_tab_strings{:});
 
 %check dirty status
 if(git_status.Dirty)
@@ -325,7 +336,7 @@ fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write system under test 
 fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
-fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notesT);
 %close log file
 fclose(logf);
 
