@@ -414,6 +414,9 @@ function testCpy(varargin)
     else
         SyncDir=p.Results.SyncDir;
     end
+    
+    %create destination path
+    destDir=fullfile(dest_drive_prefix,set_struct.Path);
 
     %get path to sync script
     SyncScript=fullfile(SyncDir,'sync.py');
@@ -425,7 +428,7 @@ function testCpy(varargin)
     end    
 
     %compose sync command
-    syncCmd=sprintf('python %s --import "%s" "%s" --cull',SyncScript,OutDir,p.Results.DestDir);
+    syncCmd=sprintf('python %s --import "%s" "%s" --cull',SyncScript,OutDir,destDir);
 
     if(~p.Results.DryRun)
         stat=system(syncCmd,'-echo');
