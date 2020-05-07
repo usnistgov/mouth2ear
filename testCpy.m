@@ -84,6 +84,8 @@ function testCpy(varargin)
     addParameter(p,'SyncDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
     %add dry run parameter
     addParameter(p,'DryRun',false,@(l)validateattributes(l,{'logical','numeric'},{'scalar'}));
+    %add force parameter
+    addParameter(p,'force',false,@(l)validateattributes(l,{'logical','numeric'},{'scalar'}));
 
     %parse inputs
     parse(p,varargin{:});
@@ -172,6 +174,17 @@ function testCpy(varargin)
         
         if(isempty(p.Results.DestDir))
             error('DestDir must be given if ''%s'' does not exist',set_file);
+        end
+        
+        %strings associated with mouth to ear tests
+        bad_strs={'Access Time','access','time','accTime'};
+        
+        if(contains(p.Results.DestDir,bad_strs,'IgnoreCase',true))
+            if(p.Results.force)
+                warning('%s path detected',bad_strs{1});
+            else
+                error('%s path detected in ''%s''. if this path is correct re run with ''force'' set to true',bad_strs{1},p.Results.DestDir)
+            end
         end
         
         %split into parts
