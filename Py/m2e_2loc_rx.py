@@ -36,7 +36,7 @@ THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
 EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
 WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
-FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+FREDDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
 CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
 FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
 LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
@@ -94,7 +94,7 @@ def post_test_notes():
     """Collect user's post-test notes"""
     
     global post_test
-    
+       
     post_test = entry.get(1.0, tk.END)
     
     # Delete window
@@ -130,7 +130,7 @@ sd.default.device=device_name
 #=======================[Initialize Rx-Data Folder]========================    
 
 # Create rx-data folder
-rx_dat_fold = os.path.join(args.outdir,'rx-data')
+rx_dat_fold = os.path.join(args.outdir,'2loc_rx-data')
 os.makedirs(rx_dat_fold, exist_ok=True)
 
 #==========================[Get Test Start Time]===========================
@@ -143,6 +143,9 @@ time_n_date = datetime.datetime.now().replace(microsecond=0)
 # Window creation
 root = tk.Tk()
 root.title("Test Information")
+
+# End the program if the window is exited out
+root.protocol("WM_DELETE_WINDOW", exit_prog)
 
 # Test type prompt
 l1 = tk.Label(root, text="Test Type")
@@ -203,19 +206,22 @@ print('Pre test notes:\n%s' % test_notes, flush=True)
 # Write info to .txt file
 datadir = os.path.join(args.outdir,'test-type.txt')
 with open(datadir, 'w') as file:
-    file.write('Test Type : "%s"\n' % test_type)
-    file.write('System    : "%s"\n' % system)
-    file.write('Tx Device : "%s"\n' % tran_dev)
-    file.write('Rx Device : "%s"\n' % rec_dev) 
+    file.write("Test Type : '%s'\n" % test_type)
+    file.write("System    : '%s'\n" % system)
+    file.write("Tx Device : '%s'\n" % tran_dev)
+    file.write("Rx Device : '%s'\n" % rec_dev) 
     
 #====================[Write Log Entry With User Input]======================
 
 # Add 'outdir' to path
 log_datadir = os.path.join(args.outdir, 'tests.log')
 
+# Change time and date to proper format for tests.log
+tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
+
 # Open test.log and append with current test information
 with open(log_datadir, 'a') as file:
-    file.write('>>Rx Two Loc Test started at %s\n' % time_n_date)
+    file.write('>>Rx Two Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
     file.write('\tFilename    : m2e_2loc_tx.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
@@ -234,12 +240,8 @@ q = queue.Queue()
 fs = int(48e3)
 
 # Create proper time/date syntax
-td = str(time_n_date).replace(" ", "_")
-td = td.replace(":", "-")
-
-# Create file for recording audio
-filename = td+'.wav'
-filename = os.path.join(rx_dat_fold, filename)
+td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
+filename = os.path.join(rx_dat_fold, 'Rx_capture_'+td+'.wav')
 
 #=============================[Recording Loop]==============================
 
@@ -269,6 +271,9 @@ except Exception as e:
 root = tk.Tk()
 root.title("Test Information")
 root.after(1, lambda: root.focus_force())
+
+# Prevent error if user exits
+root.protocol("WM_DELETE_WINDOW", post_test_notes)
 
 # Pre-test notes prompt
 label = tk.Label(root, text="Please enter post-test notes")
