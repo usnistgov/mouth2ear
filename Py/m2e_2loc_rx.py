@@ -36,7 +36,7 @@ THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
 EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
 WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
-FREDDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
 CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
 FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
 LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
@@ -49,6 +49,7 @@ USE OF, THE SOFTWARE OR SERVICE PROVIDED HEREUNDER.
 
 import argparse
 import datetime
+import numpy
 import queue
 import sys
 import os
@@ -58,7 +59,6 @@ from tkinter import scrolledtext
 import sounddevice as sd
 import soundfile as sf
 import tkinter as tk
-import numpy as np
 
 #============================[Helper Functions]============================
 
@@ -109,7 +109,7 @@ def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
     
     if status:
-        print(status, file=sys.stderr)
+        print(status, file=sys.stderr, flush=True)
     q.put(indata.copy())
 
 #====================[Parse the command line argument]====================
@@ -223,7 +223,7 @@ tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
 with open(log_datadir, 'a') as file:
     file.write('>>Rx Two Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
-    file.write('\tFilename    : m2e_2loc_tx.py\n')
+    file.write('\tFilename    : m2e_2loc_rx.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
     file.write('\tRx Device   : %s\n' % rec_dev)
     file.write('\tSystem      : %s\n' % system)
@@ -243,6 +243,10 @@ fs = int(48e3)
 td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
 filename = os.path.join(rx_dat_fold, 'Rx_capture_'+td+'.wav')
 
+#=========================[Notify User of Start]============================
+
+print('Storing audio data in \n\t"%s"\n' % rx_dat_fold, flush=True)
+
 #=============================[Recording Loop]==============================
 
 try:
@@ -260,7 +264,7 @@ try:
                 file.write(q.get())
                 
 except KeyboardInterrupt:
-    print('\nRecording finished: ' + repr(filename))
+    print('\nRecording finished')
 except Exception as e:
     parser.exit(type(e).__name__ + ': ' + str(e))
 
