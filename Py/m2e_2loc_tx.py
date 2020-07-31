@@ -19,7 +19,7 @@ THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
 EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
 WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
-FREDDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
 CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
 FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
 LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
@@ -115,13 +115,13 @@ def callback(indata, outdata, frames, time, status):
     qr.put_nowait(indata.copy())
      
     if status.output_underflow:
-        print('Output underflow: increase blocksize?', file=sys.stderr)
+        print('Output underflow: may need to increase blocksize', file=sys.stderr)
         raise sd.CallbackAbort
     assert not status
     try:
         data = q.get_nowait()
     except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
+        print('Buffer is empty: may need to increase buffersize', file=sys.stderr)
         raise sd.CallbackAbort
     if data.size < outdata.size:
         outdata[:len(data),0] = data
@@ -149,6 +149,10 @@ parser.add_argument("-bg", "--bgnoisevolume", type=float, default=0.1,
 parser.add_argument("-as", "--audioskip", type=float, default=0.0,
                     help="Number of seconds at the beginning of the audio clip"+
                     " to skip during playback. Defaults to 0.0")
+parser.add_argument('-b', '--blocksize', type=int, default=512,
+                    help='block size (default: %(default)s)')
+parser.add_argument('-q', '--buffersize', type=int, default=20,
+                    help='number of blocks used for buffering (default: %(default)s)')
 parser.add_argument("-pw", "--pttwait", type=float, default=0.68,
                     help="The amount of time to wait in seconds between pushing the"+
                     " push to talk button and starting playback. This allows time "+
@@ -277,16 +281,6 @@ with open(log_datadir, 'a') as file:
     file.write("'Trials','%s'\n" % args.trials)
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
-    
-#========================[Open Radio Interface]============================
-
-ri = RadioInterface(args.radioport)
-
-#========================[Notify User of Start]============================
-
-#print('Storing data in\n\t"%s"\n' % mat_file)
-
-ri.led(1, True)
 
 #========================[Compute Check Trials]============================
 
@@ -314,10 +308,16 @@ sd.default.channels = [1, 1]
 
 # Desired samplerate
 fs = int(48e3)
+    
+#========================[Open Radio Interface]============================
 
-# Buffersize and blocksize for parsing through audio
-buffersize = 20
-blocksize = 512
+ri = RadioInterface(args.radioport)
+
+#========================[Notify User of Start]============================
+
+print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
+
+ri.led(1, True)
 
 #=========================[Play/Record Loop]===============================
 
@@ -327,7 +327,7 @@ for itr in range(1, args.trials+1):
         # Queue for recording input
         qr = queue.Queue()
         # Queue for output WAVE file
-        q = queue.Queue(maxsize=buffersize)
+        q = queue.Queue(maxsize=args.buffersize)
          
         # Gather audio data in numpy array and audio samplerate
         fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
@@ -349,15 +349,15 @@ for itr in range(1, args.trials+1):
         # Pause the indicated amount to allow the radio to access the system
         time.sleep(args.pttwait)
          
-        for x in range(buffersize):
+        for x in range(args.buffersize):
              
-            data_slice = audio[blocksize*x:(blocksize*x)+blocksize]
+            data_slice = audio[args.blocksize*x:(args.blocksize*x)+args.blocksize]
              
             if data_slice.size == 0:
                 break
              
             # Save place of NumPy array slice for next loop
-            arr_place += blocksize
+            arr_place += args.blocksize
              
             # Pre-fill queue
             q.put_nowait(data_slice)
@@ -365,7 +365,7 @@ for itr in range(1, args.trials+1):
         # Output and input stream in one
         # Latency of 0 to cut down on delay
         stream = sd.Stream(
-            blocksize=blocksize, samplerate=fs, dtype='float32',
+            blocksize=args.blocksize, samplerate=fs, dtype='float32',
             callback=callback, finished_callback=event.set, latency=0)
          
         filename = 'Tc'+str(itr)+'.wav'
@@ -375,14 +375,14 @@ for itr in range(1, args.trials+1):
              
             with stream:
                  
-                timeout = blocksize * buffersize / fs
+                timeout = args.blocksize * args.buffersize / fs
                  
                 # For grabbing the next blocksize slice of the NumPy audio array
                 itrr = 0
                  
                 while data_slice.size != 0:
                      
-                    data_slice = audio[arr_place+(blocksize*itrr):arr_place+(blocksize*itrr)+blocksize]
+                    data_slice = audio[arr_place+(args.blocksize*itrr):arr_place+(args.blocksize*itrr)+args.blocksize]
                     itrr += 1
                      
                     q.put(data_slice, timeout=timeout)
@@ -414,7 +414,7 @@ for itr in range(1, args.trials+1):
 # Turn off LED on radiointerface
 ri.led(1, False)
 
-print('\nData collection complete, you may now stop data collection on the receiving end\n', flush=True)
+print('\n***Data collection complete, you may now stop data collection on the receiving end***\n', flush=True)
 
 #====================[Obtain Post Test Notes From User]====================
 
