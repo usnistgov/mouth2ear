@@ -145,14 +145,11 @@ parser.add_argument("-pw", "--pttwait", type=float, default=0.68,
                     help="The amount of time to wait in seconds between pushing the"+
                     " push to talk button and starting playback. This allows time "+
                     "for access to be granted on the system. Default value is 0.68 seconds")
-parser.add_argument(
-                    '-b', '--blocksize', type=int, default=512,
+parser.add_argument('-b', '--blocksize', type=int, default=512,
                     help='block size (default: %(default)s)')
-parser.add_argument(
-                    '-q', '--buffersize', type=int, default=20,
+parser.add_argument('-q', '--buffersize', type=int, default=20,
                     help='number of blocks used for buffering (default: %(default)s)')
-parser.add_argument(
-                    "-od", "--outdir", default="", help="Directory that is added to the "+
+parser.add_argument("-od", "--outdir", default="", help="Directory that is added to the "+
                     "output path for all files")
 args = parser.parse_args()
 if args.blocksize == 0:
@@ -263,7 +260,7 @@ tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
 with open(log_datadir, 'a') as file:
     file.write('>>One Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
-    file.write('\tFilename    : m2e_2loc_tx.py\n')
+    file.write('\tFilename    : m2e_1loc.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
     file.write('\tRx Device   : %s\n' % rec_dev)
     file.write('\tSystem      : %s\n' % system)
