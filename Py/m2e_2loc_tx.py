@@ -19,7 +19,7 @@ THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTY OF ANY KIND, EITHER
 EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY
 WARRANTY THAT THE SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
-FREEDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
+FREDDOM FROM INFRINGEMENT, AND ANY WARRANTY THAT THE DOCUMENTATION WILL
 CONFORM TO THE SOFTWARE, OR ANY WARRANTY THAT THE SOFTWARE WILL BE ERROR
 FREE. IN NO EVENT SHALL NIST BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT
 LIMITED TO, DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES, ARISING
@@ -168,7 +168,7 @@ sd.default.device=device_name
 #=======================[Initialize tx-data folder]========================   
 
 # Create tx-data folder
-tx_dat_fold = os.path.join(args.outdir,'tx-data')
+tx_dat_fold = os.path.join(args.outdir,'2loc_tx-data')
 os.makedirs(tx_dat_fold, exist_ok=True)
 
 #==========================[Get Test Start Time]===========================
@@ -182,10 +182,14 @@ time_n_date = datetime.datetime.now().replace(microsecond=0)
 root = tk.Tk()
 root.title("Test Information")
 
+# End the program if the window is exited out
+root.protocol("WM_DELETE_WINDOW", exit_prog)
+
 # Test type prompt
 l1 = tk.Label(root, text="Test Type")
 l1.grid(row=0, column=0, padx=10, pady=5)
 e1 = tk.Entry(root, bd=2, width=50)
+e1.insert(tk.END, '')
 e1.grid(row=1, column=0, padx=10, pady=5)
 e1.focus()
 
@@ -249,12 +253,15 @@ with open(datadir, 'w') as file:
 
 #====================[Write Log Entry With User Input]=====================
 
-# Add 'outdir' to path
+# Add 'outdir' to tests.log path
 log_datadir = os.path.join(args.outdir, 'tests.log')
+
+# Change time and date to proper format for tests.log
+tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
 
 # Open test.log and append with current test information
 with open(log_datadir, 'a') as file:
-    file.write('>>Tx Two Loc Test started at %s\n' % time_n_date)
+    file.write('>>Tx Two Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
     file.write('\tFilename    : m2e_2loc_tx.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
@@ -292,12 +299,15 @@ ri.led(1, True)
 
 #=======================[Play/Rec Initializations]=========================
 
-# Create audio recording directory
-audio_dir = os.path.join(tx_dat_fold, 'recorded_audio')
-td = str(time_n_date).replace(" ", "_")
-td = td.replace(":", "-")
-audio_dir = os.path.join(audio_dir, td)
-os.makedirs(audio_dir, exist_ok=True)
+# Create audio capture directory with current date/time
+td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
+capture_dir = os.path.join(tx_dat_fold, 'Tx_capture_'+td)
+os.makedirs(capture_dir, exist_ok=True)
+
+# Save testing audiofile to audio capture directory for future use/testing
+new_sr, new_wav = scipy.io.wavfile.read(args.audiofile)
+tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
+scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
 
 # Set for mono play/rec
 sd.default.channels = [1, 1]
@@ -358,8 +368,8 @@ for itr in range(1, args.trials+1):
             blocksize=blocksize, samplerate=fs, dtype='float32',
             callback=callback, finished_callback=event.set, latency=0)
          
-        filename = 'output'+str(itr)+'.wav'
-        filename = os.path.join(audio_dir, filename)
+        filename = 'Tc'+str(itr)+'.wav'
+        filename = os.path.join(capture_dir, filename)
          
         with sf.SoundFile(filename, mode='x', samplerate=fs, channels=1) as rec_file:
              
@@ -412,6 +422,9 @@ print('\nData collection complete, you may now stop data collection on the recei
 root = tk.Tk()
 root.title("Test Information")
 root.after(1, lambda: root.focus_force())
+
+# Prevent error if user exits
+root.protocol("WM_DELETE_WINDOW", post_test_notes)
 
 # Pre-test notes prompt
 label = tk.Label(root, text="Please enter post-test notes")
