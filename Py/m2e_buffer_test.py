@@ -47,7 +47,7 @@ import sounddevice as sd
 import soundfile as sf
 import tkinter as tk
 
-#============================[Helper Functions]============================
+#----------------------------[Helper Functions]----------------------------
 
 def find_device():
     
@@ -128,7 +128,7 @@ def callback(indata, outdata, frames, time, status):
         outdata[:,0] = data
 
 
-#===================[Parse the Command Line Arguments]=====================
+#--------------------[Parse the command line arguments]--------------------
 
 parser = argparse.ArgumentParser(
     description=__doc__)
@@ -137,43 +137,52 @@ parser.add_argument(
                     help='Choose audiofile to use for test. Defaults to test.wav')
 parser.add_argument(
                     '-t', '--trials', type=int, default=10,
-                    help='NUmber of trials to use for test. Defaults to 10')
+                    help='Number of trials to use for test. Defaults to 10')
 parser.add_argument("-r", "--radioport", default="",
                     help="Port to use for radio interface. Defaults to the first"+
                     " port where a radio interface is detected")
+parser.add_argument('-bgf', '--bgnoisefile', default='', help='If this is non empty '+
+                    'then it is used to read in a noise file to be mixed with the '+
+                    'test audio. Default is no background noise')
+parser.add_argument('-bgv', '--bgnoisevolume', type=float, default=0.1, help='Scale factor for '+
+                    'background noise. Defaults to 0.1')
 parser.add_argument("-pw", "--pttwait", type=float, default=0.68,
                     help="The amount of time to wait in seconds between pushing the"+
                     " push to talk button and starting playback. This allows time "+
                     "for access to be granted on the system. Default value is 0.68 seconds")
 parser.add_argument('-b', '--blocksize', type=int, default=512,
-                    help='block size (default: %(default)s)')
+                    help='Block size for transmitting audio (default: %(default)s)')
 parser.add_argument('-q', '--buffersize', type=int, default=20,
-                    help='number of blocks used for buffering (default: %(default)s)')
-parser.add_argument("-od", "--outdir", default="", help="Directory that is added to the "+
-                    "output path for all files")
+                    help='Number of blocks used for buffering audio (default: %(default)s)')
+parser.add_argument('-o', '--overplay', type=float, default=0.1, 
+                    help='The number of seconds to play silence after the audio is complete'+
+                    '. This allows for all of the audio to be recorded when there is delay'+
+                    ' in the system')
+parser.add_argument('-od', '--outdir', default='', help='Directory that is added to the '+
+                    'output path for all files')
 args = parser.parse_args()
 if args.blocksize == 0:
     parser.error('blocksize must not be zero')
 if args.buffersize < 1:
     parser.error('buffersize must be at least 1')
 
-#=========================[Setup Playback Device]==========================
+#-------------------------[Setup Playback Device]--------------------------
 
 device_name = find_device()
 print('\n'+device_name, flush=True)
 sd.default.device = device_name
 
-#=======================[Initialize 1loc_data Folder]======================
+#-----------------------[Initialize 1loc_data Folder]----------------------
 
 datadir = os.path.join(args.outdir, '1loc_data')
 os.makedirs(datadir, exist_ok=True)
 
-#==========================[Get Test Start Time]===========================
+#--------------------------[Get Test Start Time]---------------------------
 
 # Get start time, deleting microseconds
 time_n_date = datetime.datetime.now().replace(microsecond=0)
 
-#===================[Get Test Info and Notes From User]====================
+#--------------------[Get Test Info and Notes From User]-------------------
 
 # Window creation
 root = tk.Tk()
@@ -233,7 +242,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#====================[Print Test Type and Test Notes]======================
+#--------------------[Print Test Type and Test Notes]----------------------
 
 # Print info to screen
 print('\nTest type: %s\n' % test_type, flush=True)
@@ -248,7 +257,7 @@ with open(test_dir, 'w') as file:
     file.write('Rx Device : "%s"\n' % rec_dev) 
     
 
-#====================[Write Log Entry With User Input]=====================
+#--------------------[Write Log Entry With User Input]---------------------
 
 # Add 'outdir' to tests.log path
 log_datadir = os.path.join(args.outdir, 'tests.log')
@@ -265,6 +274,8 @@ with open(log_datadir, 'a') as file:
     file.write('\tRx Device   : %s\n' % rec_dev)
     file.write('\tSystem      : %s\n' % system)
     file.write("\tArguments   : 'Audiofile','%s'," % args.audiofile)
+    file.write("'BGNoiseFile','%s'," % args.bgnoisefile)
+    file.write("'BGNoiseVolume','%s'," % args.bgnoisevolume)
     file.write("'Blocksize','%s'," % args.blocksize)
     file.write("'Buffersize','%s'," % args.buffersize)
     file.write("'OutDir','%s'," % args.outdir)
@@ -274,8 +285,7 @@ with open(log_datadir, 'a') as file:
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
 
-#========================[Play/Rec Initializations]========================
-
+#------------------------[Play/Rec Initializations]------------------------
 
 # Set for mono play/rec
 sd.default.channels = [1, 1]
@@ -293,7 +303,7 @@ new_sr, new_wav = scipy.io.wavfile.read(args.audiofile)
 tx_audio = os.path.join(capture_dir, '1loc_audio.wav')
 scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
 
-#==========================[Notify User of Start]==========================
+#--------------------------[Notify User of Start]--------------------------
 
 print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 
@@ -301,7 +311,20 @@ print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 ri = RadioInterface(args.radioport)
 ri.led(1, True)
 
-#============================[Play/Record Loop]============================
+#---------------------------[Calculate OverPlay]---------------------------
+
+if (args.overplay != 0):
+    overplay = fs * args.overplay
+    
+#-----------------------[Get BGNoiseFile and Resample]---------------------
+
+if (args.bgnoisefile):
+    nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
+    rs = Fraction(fs/nfs)
+    nf = audio_float(nf)
+    nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+
+#----------------------------[Play/Record Loop]----------------------------
 
 for itr in range(1, args.trials+1):
     try:
@@ -319,7 +342,17 @@ for itr in range(1, args.trials+1):
         audio_dat = audio_float(audio_dat)
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
+
+        # Add OverPlay duration to audio
+        audio = numpy.pad(audio, (0, int(overplay)), mode='constant')
+
+        # Add BGNoiseFile
+        if (args.bgnoisefile):
+            if (nf.size != audio.size):
+                nf = numpy.resize(nf, audio.size)
+            audio = audio + nf*args.bgnoisevolume
         
+        # Thread for callback function
         event = threading.Event()
         
         # NumPy audio array placeholder
@@ -382,6 +415,28 @@ for itr in range(1, args.trials+1):
             # Add a pause after playing/recording to remove run to run dependencies
             time.sleep(3.1)
             
+        #-----------------------------[Data Processing]----------------------------
+
+        # Check if we run statistics on this trial
+        if np.any(check_trials == itr):
+            
+            print('Run %s of %s complete :' % (itr, args.trials), flush=True)
+            
+            proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+            proc_audio = audio_float(proc_audio)
+            
+            # Calculate RMS of received audio
+            rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+            
+            # Calculate Maximum of received audio
+            mx = round(np.max(proc_audio), 4)
+            
+            # Print RMS and Maximum
+            print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
+            
+            # TODO Check if levels are low and process if so
+            
+    # Catch errors or test cancelation
     except KeyboardInterrupt:
         parser.exit('\nInterrupted by user')
     except queue.Full:
@@ -390,14 +445,14 @@ for itr in range(1, args.trials+1):
     except Exception as e:
         parser.exit(type(e).__name__+': '+str(e))
         
-#=======================[Notify User of Completion]======================== 
+#-----------------------[Notify User of Completion]------------------------ 
 
 # Turn off LED on radiointerface
 ri.led(1, False)
 
 print('\nData collection completed\n', flush=True)
 
-#====================[Obtain Post Test Notes From User]====================
+#--------------------[Obtain Post Test Notes From User]--------------------
 
 # Window creation
 root = tk.Tk()
@@ -427,7 +482,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#======================[Write Post-Test Notes to File]=====================
+#----------------------[Write Post-Test Notes to File]---------------------
 
 with open(log_datadir, 'a') as file:
     # Add tabs for each newline in post_test string
