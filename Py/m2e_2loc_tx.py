@@ -36,6 +36,7 @@ import threading
 import argparse
 import datetime
 import queue
+import math
 import time
 import sys
 import os
@@ -49,7 +50,7 @@ import soundfile as sf
 import tkinter as tk
 import numpy as np
 
-#============================[Helper Functions]============================
+#----------------------------[Helper Functions]----------------------------
 
 def find_device():
     
@@ -131,7 +132,7 @@ def callback(indata, outdata, frames, time, status):
         #One column for mono output
         outdata[:,0] = data
 
-#====================[Parse the command line arguments]====================
+#--------------------[Parse the command line arguments]--------------------
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("-a", "--audiofile", default="test.wav" ,
@@ -161,7 +162,7 @@ parser.add_argument("-od", "--outdir", default="", help="Directory that is added
                     "output path for all files")
 args = parser.parse_args()
 
-#=========================[Setup Playback Device]==========================
+#-------------------------[Setup Playback Device]--------------------------
 
 device_name=find_device()
 
@@ -169,18 +170,18 @@ print('\n'+device_name,flush=True)
 
 sd.default.device=device_name
 
-#=======================[Initialize tx-data folder]========================   
+#-----------------------[Initialize tx-data folder]------------------------   
 
 # Create tx-data folder
 tx_dat_fold = os.path.join(args.outdir,'2loc_tx-data')
 os.makedirs(tx_dat_fold, exist_ok=True)
 
-#==========================[Get Test Start Time]===========================
+#--------------------------[Get Test Start Time]---------------------------
 
 # Get start time, deleting microseconds
 time_n_date = datetime.datetime.now().replace(microsecond=0)
 
-#===================[Get Test Info and Notes From User]====================
+#--------------------[Get Test Info and Notes From User]-------------------
 
 # Window creation
 root = tk.Tk()
@@ -240,7 +241,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#====================[Print Test Type and Test Notes]======================
+#--------------------[Print Test Type and Test Notes]----------------------
 
 # Print info to screen
 print('\nTest type: %s\n' % test_type, flush=True)
@@ -255,7 +256,7 @@ with open(datadir, 'w') as file:
     file.write('Rx Device : "%s"\n' % rec_dev) 
     
 
-#====================[Write Log Entry With User Input]=====================
+#--------------------[Write Log Entry With User Input]---------------------
 
 # Add 'outdir' to tests.log path
 log_datadir = os.path.join(args.outdir, 'tests.log')
@@ -282,16 +283,22 @@ with open(log_datadir, 'a') as file:
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
 
-#========================[Compute Check Trials]============================
+#-------------------------[Compute Check Trials]---------------------------
 
-# if (args.trials>10):
-#     check_trials = np.linspace(0, args.trials, 10)
-# else:
-#     check_trials = np.array([0, (args.trials/2)])
-#     if (check_trials[1]==0):
-#         check_trials[1] = 1
+if (args.trials > 10):
+    check_trials = np.arange(0, args.trials+1, 10)
+    check_trials[0] = 1
+else:
+    check_trials = np.array([1, args.trials])
 
-#=======================[Play/Rec Initializations]=========================
+#------------------------[Play/Rec Initializations]------------------------
+
+
+# Set for mono play/rec
+sd.default.channels = [1, 1]
+
+# Desired samplerate
+fs = int(48e3)
 
 # Create audio capture directory with current date/time
 td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
@@ -302,24 +309,26 @@ os.makedirs(capture_dir, exist_ok=True)
 new_sr, new_wav = scipy.io.wavfile.read(args.audiofile)
 tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
 scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
-
-# Set for mono play/rec
-sd.default.channels = [1, 1]
-
-# Desired samplerate
-fs = int(48e3)
     
-#========================[Open Radio Interface]============================
+#----------------------[Get BGNoiseFile and Resample]----------------------
+
+if (args.bgnoisefile):
+    nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
+    rs = Fraction(fs/nfs)
+    nf = audio_float(nf)
+    nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+
+#--------------------------[Open Radio Interface]--------------------------
 
 ri = RadioInterface(args.radioport)
 
-#========================[Notify User of Start]============================
+#--------------------------[Notify User of Start]--------------------------
 
 print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 
 ri.led(1, True)
 
-#=========================[Play/Record Loop]===============================
+#----------------------------[Play/Record Loop]----------------------------
 
 for itr in range(1, args.trials+1):
     try:
@@ -337,7 +346,14 @@ for itr in range(1, args.trials+1):
         audio_dat = audio_float(audio_dat)
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
-         
+
+        # Add BGNoiseFile
+        if (args.bgnoisefile):
+            if (nf.size != audio.size):
+                nf = np.resize(nf, audio.size)
+            audio = audio + nf*args.bgnoisevolume
+        
+        # Thread for callback function
         event = threading.Event()
          
         # NumPy audio array placeholder
@@ -372,7 +388,7 @@ for itr in range(1, args.trials+1):
         filename = os.path.join(capture_dir, filename)
          
         with sf.SoundFile(filename, mode='x', samplerate=fs, channels=1) as rec_file:
-             
+            
             with stream:
                  
                 timeout = args.blocksize * args.buffersize / fs
@@ -400,7 +416,29 @@ for itr in range(1, args.trials+1):
              
             # Add a pause after playing/recording to remove any run to run dependencies
             time.sleep(3.1)
-                 
+        
+        #-----------------------------[Data Processing]----------------------------
+
+        # Check if we run statistics on this trial
+        if np.any(check_trials == itr):
+            
+            print('Run %s of %s complete :' % (itr, args.trials), flush=True)
+            
+            proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+            proc_audio = audio_float(proc_audio)
+            
+            # Calculate RMS of received audio
+            rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+            
+            # Calculate Maximum of received audio
+            mx = round(np.max(proc_audio), 4)
+            
+            # Print RMS and Maximum
+            print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
+            
+            # TODO Check if the levels are low and process if so
+            
+    # Catch errors or test cancelation
     except KeyboardInterrupt:
         parser.exit('\nInterrupted by user')
     except queue.Full:
@@ -409,14 +447,14 @@ for itr in range(1, args.trials+1):
     except Exception as e:
         parser.exit(type(e).__name__ + ': ' + str(e))
         
-#=======================[Notify User of Completion]======================== 
+#-----------------------[Notify User of Completion]------------------------ 
 
 # Turn off LED on radiointerface
 ri.led(1, False)
 
 print('\n***Data collection complete, you may now stop data collection on the receiving end***\n', flush=True)
 
-#====================[Obtain Post Test Notes From User]====================
+#--------------------[Obtain Post Test Notes From User]--------------------
 
 # Window creation
 root = tk.Tk()
@@ -446,7 +484,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#======================[Write Post-Test Notes to File]=====================
+#----------------------[Write Post-Test Notes to File]---------------------
 
 with open(log_datadir, 'a') as file:
     # Add tabs for each newline in post_test string
