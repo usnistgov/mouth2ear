@@ -35,14 +35,17 @@ import argparse
 import datetime
 import numpy
 import queue
+import math
 import time
 import sys
 import os
 
+from sliding_delay import sliding_delay_estimates
 from radioInterface import RadioInterface
 from tkinter import scrolledtext
 from fractions import Fraction
 
+import matplotlib.pyplot as plt
 import sounddevice as sd
 import soundfile as sf
 import tkinter as tk
@@ -126,7 +129,6 @@ def callback(indata, outdata, frames, time, status):
     else:
         #One column for mono output
         outdata[:,0] = data
-
 
 #--------------------[Parse the command line arguments]--------------------
 
@@ -285,6 +287,15 @@ with open(log_datadir, 'a') as file:
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
 
+
+#-------------------------[Compute Check Trials]---------------------------
+
+if (args.trials > 10):
+    check_trials = numpy.arange(0, args.trials+1, 10)
+    check_trials[0] = 1
+else:
+    check_trials = numpy.array([1, args.trials])
+
 #------------------------[Play/Rec Initializations]------------------------
 
 # Set for mono play/rec
@@ -310,6 +321,7 @@ print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 # Open Radio Interface
 ri = RadioInterface(args.radioport)
 ri.led(1, True)
+dly_its = []
 
 #---------------------------[Calculate OverPlay]---------------------------
 
@@ -417,8 +429,12 @@ for itr in range(1, args.trials+1):
             
         #-----------------------------[Data Processing]----------------------------
 
+        # Get latest run Rx audio
+        proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+        proc_audio = audio_float(proc_audio)
+        
         # Check if we run statistics on this trial
-        if np.any(check_trials == itr):
+        if numpy.any(check_trials == itr):
             
             print('Run %s of %s complete :' % (itr, args.trials), flush=True)
             
@@ -426,16 +442,24 @@ for itr in range(1, args.trials+1):
             proc_audio = audio_float(proc_audio)
             
             # Calculate RMS of received audio
-            rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+            rms = round(math.sqrt(numpy.mean(proc_audio**2)), 4)
             
             # Calculate Maximum of received audio
-            mx = round(np.max(proc_audio), 4)
+            mx = round(numpy.max(proc_audio), 4)
             
             # Print RMS and Maximum
             print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
             
             # TODO Check if levels are low and process if so
-            
+        
+        # Find delay for plots
+        new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
+        
+        new_delay = numpy.array(new_delay)
+        numpy.multiply(new_delay, (1e-3))
+
+        dly_its.append(new_delay)
+        
     # Catch errors or test cancelation
     except KeyboardInterrupt:
         parser.exit('\nInterrupted by user')
@@ -451,6 +475,39 @@ for itr in range(1, args.trials+1):
 ri.led(1, False)
 
 print('\nData collection completed\n', flush=True)
+
+#----------------------------[Generate Plots]------------------------------
+
+# Get mean of each row in dly_its
+its_dly_mean = numpy.mean(dly_its, axis=1)
+
+# Overall mean delay
+ovrl_dly = numpy.mean(its_dly_mean)
+
+# Get standard deviation
+std_delay = numpy.std(dly_its, dtype=numpy.float64)
+std_delay = std_delay*(1e3)
+
+# Print StD to terminal
+print("StD: %.2fus\n" % std_delay, flush=True)
+
+# Create trial scatter plot
+plt.figure() 
+x2 = range(1, len(dly_its)+1)
+plt.plot(x2, dly_its, 'o')
+plt.xlabel("Trial Number")
+plt.ylabel("Delay(ms)")
+
+# Create histogram for mean
+plt.figure()
+uniq = numpy.unique(its_dly_mean)
+dlymin = numpy.amin(its_dly_mean)
+dlymax = numpy.amax(its_dly_mean)
+plt.hist(its_dly_mean, bins=len(uniq), range=(dlymin, dlymax), rwidth=0.5)
+plt.title("Mean: %.2fms" % ovrl_dly)
+plt.xlabel("Delay(ms)")
+plt.ylabel("Frequency of indicated delay")
+plt.show()
 
 #--------------------[Obtain Post Test Notes From User]--------------------
 
