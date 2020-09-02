@@ -40,7 +40,7 @@ To run the test, simply enter `python m2e_1loc.py` in a terminal opened to the t
 * `-o 1.2` adds 1.2 seconds of silence after the audio is played (default is 0.1 seconds)
 ## Mouth to Ear 2 Location
 
-### Two location transmitter side
+### Transmitter side
 To run the Tx portion of the test, simply use `python m2e_2loc_tx.py` in a terminal opened to the top level directory. Please enter `python m2e_2loc_tx.py -h` to learn more.
 
 **ex:**
@@ -50,7 +50,7 @@ To run the Tx portion of the test, simply use `python m2e_2loc_tx.py` in a termi
 * `-b 1024` uses a blocksize of 1024 for the audio transmitting (default is 512, use powers of 2)
 * `-q 30` uses 30 blocks for buffering audio (default is 20)
 
-### Two location receiver side
+### Receiver side
 To run the Rx portion of the test, simply use `python m2e_2loc_rx.py` in a terminal opened to the top level directory. Please enter `python m2e_2loc_rx.py -h` to learn more.
 
 **ex:**
