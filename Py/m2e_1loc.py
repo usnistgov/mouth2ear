@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 m2e_buffer_test.py runs a mouth-to-ear latency test. Without the optional arguments, this test
 will run 10 trials playing test.wav into the radio.
