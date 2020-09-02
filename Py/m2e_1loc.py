@@ -37,6 +37,7 @@ import numpy
 import queue
 import math
 import time
+import csv
 import sys
 import os
 
@@ -156,7 +157,7 @@ parser.add_argument('-b', '--blocksize', type=int, default=512,
                     help='Block size for transmitting audio (default: %(default)s)')
 parser.add_argument('-q', '--buffersize', type=int, default=20,
                     help='Number of blocks used for buffering audio (default: %(default)s)')
-parser.add_argument('-o', '--overplay', type=float, default=0.1, 
+parser.add_argument('-o', '--overplay', type=float, default=1, 
                     help='The number of seconds to play silence after the audio is complete'+
                     '. This allows for all of the audio to be recorded when there is delay'+
                     ' in the system')
@@ -283,7 +284,8 @@ with open(log_datadir, 'a') as file:
     file.write("'OutDir','%s'," % args.outdir)
     file.write("'PTTWait','%s'," % args.pttwait)
     file.write("'RadioPort','%s'," % args.radioport)
-    file.write("'Trials','%s'\n" % args.trials)
+    file.write("'Trials','%s'," % args.trials)
+    file.write("'Overplay','%s'\n" % args.overplay)
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
 
@@ -508,6 +510,15 @@ plt.title("Mean: %.2fms" % ovrl_dly)
 plt.xlabel("Delay(ms)")
 plt.ylabel("Frequency of indicated delay")
 plt.show()
+
+# Write to csv file
+csv_path = os.path.join(capture_dir, td+'.csv')
+
+with open(csv_path, 'w', newline='') as csv_file:
+    writer = csv.writer(csv_file)
+    writer.writerow(["Mean Delay Per Trial (ms)"])
+    for i in range(len(its_dly_mean)):
+        writer.writerow([its_dly_mean[i]])
 
 #--------------------[Obtain Post Test Notes From User]--------------------
 
