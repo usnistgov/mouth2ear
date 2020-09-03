@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 m2e_buffer_test.py runs a mouth-to-ear latency test. Without the optional arguments, this test
 will run 10 trials playing test.wav into the radio.
@@ -196,45 +196,45 @@ root.protocol("WM_DELETE_WINDOW", exit_prog)
 
 # Test type prompt
 l1 = tk.Label(root, text="Test Type")
-l1.grid(row=0, column=0, padx=10, pady=5)
+l1.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 e1 = tk.Entry(root, bd=2, width=50)
 e1.insert(tk.END, '')
-e1.grid(row=1, column=0, padx=10, pady=5)
+e1.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
 e1.focus()
 
 # Transmit device prompt
 l2 = tk.Label(root, text="Transmit Device")
-l2.grid(row=2, column=0, padx=10, pady=5)
+l2.grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
 e2 = tk.Entry(root, bd=2)
-e2.grid(row=3, column=0, padx=10, pady=5)
+e2.grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Receive device prompt
 l3 = tk.Label(root, text="Receive Device")
-l3.grid(row=4, column=0, padx=10, pady=5)
+l3.grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
 e3 = tk.Entry(root, bd=2)
-e3.grid(row=5, column=0, padx=10, pady=5)
+e3.grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
 
 # System prompt
 l4 = tk.Label(root, text="System")
-l4.grid(row=6, column=0, padx=10, pady=5)
+l4.grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
 e4 = tk.Entry(root, bd=2, width=60)
-e4.grid(row=7, column=0, padx=10, pady=5)
+e4.grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Test location prompt
 l5 = tk.Label(root, text="Test Location")
-l5.grid(row=8, column=0, padx=10, pady=5)
+l5.grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
 e5 = tk.Entry(root, bd=2, width=100)
-e5.grid(row=9, column=0, padx=10, pady=5)
+e5.grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Pre-test notes prompt
 l6 = tk.Label(root, text="Please enter notes on pre-test conditions")
-l6.grid(row=10, column=0, padx=10, pady=5)
+l6.grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
 e6 = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
-e6.grid(row=11, column=0, padx=10, pady=5)
+e6.grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
 
 # 'Submit' and 'Cancel' buttons
 button_frame = tk.Frame(root)
-button_frame.grid(row=12, column=0)
+button_frame.grid(row=12, column=0, sticky=tk.E)
 
 button = tk.Button(button_frame, text="Submit", command=coll_vars)
 button.grid(row=0, column=0, padx=10, pady=10)
@@ -495,8 +495,8 @@ print("StD: %.2fus\n" % std_delay, flush=True)
 
 # Create trial scatter plot
 plt.figure() 
-x2 = range(1, len(dly_its)+1)
-plt.plot(x2, dly_its, 'o')
+x2 = range(1, len(its_dly_mean)+1)
+plt.plot(x2, its_dly_mean, 'o', color='blue')
 plt.xlabel("Trial Number")
 plt.ylabel("Delay(ms)")
 
@@ -532,14 +532,14 @@ root.protocol("WM_DELETE_WINDOW", post_test_notes)
 
 # Pre-test notes prompt
 label = tk.Label(root, text="Please enter post-test notes")
-label.grid(row=0, column=0, padx=10, pady=5)
+label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
 entry.grid(row=1, column=0, padx=10, pady=5)
 entry.focus()
 
 # 'Submit' and 'Cancel' buttons
 button_frame = tk.Frame(root)
-button_frame.grid(row=2, column=0)
+button_frame.grid(row=2, column=0, sticky=tk.E)
 
 button = tk.Button(button_frame, text="Submit", command=post_test_notes)
 button.grid(row=0, column=0, padx=10, pady=10)
