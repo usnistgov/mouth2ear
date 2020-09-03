@@ -13,7 +13,7 @@ The purpose of this software is to measure the mouth-to-ear (M2E) latency of a p
 
 ### Python
 
-First you'll need to install Python. There are many different distributions, and it would be a good idea to download one that comes with NumPy, SciPy, and Matplotlib. If your Python version does not come with these, you'll need to download them seperately.
+First you'll need to install Python. There are many different distributions, and it would be a good idea to download one that comes with NumPy, SciPy, and Matplotlib so that you don't have to download those separately. If your Python version does not come with these, you'll need to download them seperately.
 
 Anaconda would be a good distribution to think about, although it would be a bit overkill:
 [Anaconda](https://www.anaconda.com/products/individual)
