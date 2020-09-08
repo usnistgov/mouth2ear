@@ -40,6 +40,10 @@ class RadioInterface:
             #open port
             self._openPort(port)
     
+    def __enter__(self):
+        
+        return self
+    
     def ptt(self,state,num=1):
         ''' 
             PTT - change the push-to-talk status of the radio interface
@@ -246,6 +250,11 @@ class RadioInterface:
         
         #flush and close text wrapper
         self.textin.close()
+    
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        
+        self.ptt(False)
+        self.led(1, False)
     
     def _openPort(self,port):
 
