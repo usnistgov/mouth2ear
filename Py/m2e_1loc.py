@@ -33,6 +33,7 @@ import scipy.signal
 import threading
 import argparse
 import datetime
+import signal
 import numpy
 import queue
 import math
@@ -52,6 +53,11 @@ import soundfile as sf
 import tkinter as tk
 
 #----------------------------[Helper Functions]----------------------------
+
+def sig_handler(signal, frame):
+    """Catch user's exit (CTRL+C) from program and collect post test notes"""
+    obtain_post_test()
+    sys.exit(1)
 
 def find_device():
     
@@ -131,6 +137,51 @@ def callback(indata, outdata, frames, time, status):
         #One column for mono output
         outdata[:,0] = data
 
+
+def obtain_post_test():
+    """
+        Gather user's post test notes.
+        Runs if user presses CTRL+c or at the end of program
+    """
+    #--------------------[Obtain Post Test Notes From User]--------------------
+    
+    # Window creation
+    global root
+    root = tk.Tk()
+    root.title("Test Information")
+    root.after(1, lambda: root.focus_force())
+    
+    # Prevent error if user exits
+    root.protocol("WM_DELETE_WINDOW", post_test_notes)
+    
+    # Pre-test notes prompt
+    label = tk.Label(root, text="Please enter post-test notes")
+    label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+    global entry
+    entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
+    entry.grid(row=1, column=0, padx=10, pady=5)
+    entry.focus()
+    
+    # 'Submit' and 'Cancel' buttons
+    button_frame = tk.Frame(root)
+    button_frame.grid(row=2, column=0, sticky=tk.E)
+    
+    button = tk.Button(button_frame, text="Submit", command=post_test_notes)
+    button.grid(row=0, column=0, padx=10, pady=10)
+    
+    button = tk.Button(button_frame, text="Cancel", command=exit_prog)
+    button.grid(row=0, column=1, padx=10, pady=10)
+    
+    # Run Tkinter window
+    root.mainloop()
+    
+    #----------------------[Write Post-Test Notes to File]---------------------
+    
+    with open(log_datadir, 'a') as file:
+        # Add tabs for each newline in post_test string
+        file.write("===Post-Test Notes===%s" % '\t'.join(('\n'+post_test.lstrip()).splitlines(True)))
+        file.write("===End Test===\n\n\n")
+        
 #--------------------[Parse the command line arguments]--------------------
 
 parser = argparse.ArgumentParser(
@@ -169,6 +220,9 @@ if args.blocksize == 0:
 if args.buffersize < 1:
     parser.error('buffersize must be at least 1')
 
+# Signal handler for graceful shutdown in case of SIGINT
+signal.signal(signal.SIGINT, sig_handler)
+
 #-------------------------[Setup Playback Device]--------------------------
 
 device_name = find_device()
@@ -185,6 +239,20 @@ os.makedirs(datadir, exist_ok=True)
 # Get start time, deleting microseconds
 time_n_date = datetime.datetime.now().replace(microsecond=0)
 
+#-----------------------[Obtain Previous Test Notes]-----------------------
+
+try:
+    with open("test-type.txt", 'r') as prev_test:
+        testing = prev_test.readline().split('"')[1]
+        transmit = prev_test.readline().split('"')[1]
+        receive = prev_test.readline().split('"')[1]
+        system = prev_test.readline().split('"')[1]
+except FileNotFoundError:
+    testing = ""
+    transmit = ""
+    receive = ""
+    system = ""
+
 #--------------------[Get Test Info and Notes From User]-------------------
 
 # Window creation
@@ -199,6 +267,7 @@ l1 = tk.Label(root, text="Test Type")
 l1.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 e1 = tk.Entry(root, bd=2, width=50)
 e1.insert(tk.END, '')
+e1.insert(0, testing)
 e1.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
 e1.focus()
 
@@ -206,18 +275,21 @@ e1.focus()
 l2 = tk.Label(root, text="Transmit Device")
 l2.grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
 e2 = tk.Entry(root, bd=2)
+e2.insert(0, transmit)
 e2.grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Receive device prompt
 l3 = tk.Label(root, text="Receive Device")
 l3.grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
 e3 = tk.Entry(root, bd=2)
+e3.insert(0, receive)
 e3.grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
 
 # System prompt
 l4 = tk.Label(root, text="System")
 l4.grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
 e4 = tk.Entry(root, bd=2, width=60)
+e4.insert(0, system)
 e4.grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Test location prompt
@@ -321,160 +393,160 @@ scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
 print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 
 # Open Radio Interface
-ri = RadioInterface(args.radioport)
-ri.led(1, True)
-dly_its = []
-
-#---------------------------[Calculate OverPlay]---------------------------
-
-if (args.overplay != 0):
-    overplay = fs * args.overplay
+with RadioInterface(args.radioport) as ri:
+    ri.led(1, True)
+    dly_its = []
     
-#-----------------------[Get BGNoiseFile and Resample]---------------------
-
-if (args.bgnoisefile):
-    nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
-    rs = Fraction(fs/nfs)
-    nf = audio_float(nf)
-    nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
-
-#----------------------------[Play/Record Loop]----------------------------
-
-for itr in range(1, args.trials+1):
-    try:
+    #---------------------------[Calculate OverPlay]---------------------------
+    
+    if (args.overplay != 0):
+        overplay = fs * args.overplay
         
-        # Queue for recording input
-        qr = queue.Queue()
-        # Queue for output WAVE file
-        q = queue.Queue(maxsize=args.buffersize)
-        
-        # Gather audio data in numpy array and audio samplerate
-        fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
-        # Calculate resample factors
-        rs_factor = Fraction(fs/fs_file)
-        # Convert to float sound array
-        audio_dat = audio_float(audio_dat)
-        # Resample audio
-        audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
-
-        # Add OverPlay duration to audio
-        audio = numpy.pad(audio, (0, int(overplay)), mode='constant')
-
-        # Add BGNoiseFile
-        if (args.bgnoisefile):
-            if (nf.size != audio.size):
-                nf = numpy.resize(nf, audio.size)
-            audio = audio + nf*args.bgnoisevolume
-        
-        # Thread for callback function
-        event = threading.Event()
-        
-        # NumPy audio array placeholder
-        arr_place = 0
-        
-        # Press the push to talk button
-        ri.ptt(True)
-        
-        # Pause the indicated amount to allow the radio to access the system
-        time.sleep(args.pttwait)
-        
-        for x in range(args.buffersize):
+    #-----------------------[Get BGNoiseFile and Resample]---------------------
+    
+    if (args.bgnoisefile):
+        nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
+        rs = Fraction(fs/nfs)
+        nf = audio_float(nf)
+        nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+    
+    #----------------------------[Play/Record Loop]----------------------------
+    
+    for itr in range(1, args.trials+1):
+        try:
             
-            data_slice = audio[args.blocksize*x:(args.blocksize*x)+args.blocksize]
+            # Queue for recording input
+            qr = queue.Queue()
+            # Queue for output WAVE file
+            q = queue.Queue(maxsize=args.buffersize)
             
-            if data_slice.size == 0:
-                break
+            # Gather audio data in numpy array and audio samplerate
+            fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
+            # Calculate resample factors
+            rs_factor = Fraction(fs/fs_file)
+            # Convert to float sound array
+            audio_dat = audio_float(audio_dat)
+            # Resample audio
+            audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
+    
+            # Add OverPlay duration to audio
+            audio = numpy.pad(audio, (0, int(overplay)), mode='constant')
+    
+            # Add BGNoiseFile
+            if (args.bgnoisefile):
+                if (nf.size != audio.size):
+                    nf = numpy.resize(nf, audio.size)
+                audio = audio + nf*args.bgnoisevolume
             
-            # Save place of NumPy array slice for next loop
-            arr_place += args.blocksize
+            # Thread for callback function
+            event = threading.Event()
             
-            # Pre-fill queue
-            q.put_nowait(data_slice)  
-        
-        # Output and input stream in one
-        # Latency of zero to try and cut down delay    
-        stream = sd.Stream(   
-            blocksize=args.blocksize, samplerate=fs,
-            dtype='float32', callback=callback, finished_callback=event.set,
-            latency=0)
-        
-        filename = '1loc_Rx'+str(itr)+'.wav'
-        filename = os.path.join(capture_dir, filename)
-        
-        with sf.SoundFile(filename, mode='x', samplerate=fs,
-                          channels=1) as rec_file:
-            with stream:
-                timeout = args.blocksize * args.buffersize / fs
+            # NumPy audio array placeholder
+            arr_place = 0
+            
+            # Press the push to talk button
+            ri.ptt(True)
+            
+            # Pause the indicated amount to allow the radio to access the system
+            time.sleep(args.pttwait)
+            
+            for x in range(args.buffersize):
                 
-                # For grabbing next blocksize slice of the NumPy audio array
-                itrr = 0
+                data_slice = audio[args.blocksize*x:(args.blocksize*x)+args.blocksize]
                 
-                while data_slice.size != 0:
+                if data_slice.size == 0:
+                    break
+                
+                # Save place of NumPy array slice for next loop
+                arr_place += args.blocksize
+                
+                # Pre-fill queue
+                q.put_nowait(data_slice)  
+            
+            # Output and input stream in one
+            # Latency of zero to try and cut down delay    
+            stream = sd.Stream(   
+                blocksize=args.blocksize, samplerate=fs,
+                dtype='float32', callback=callback, finished_callback=event.set,
+                latency=0)
+            
+            filename = '1loc_Rx'+str(itr)+'.wav'
+            filename = os.path.join(capture_dir, filename)
+            
+            with sf.SoundFile(filename, mode='x', samplerate=fs,
+                              channels=1) as rec_file:
+                with stream:
+                    timeout = args.blocksize * args.buffersize / fs
                     
-                    data_slice = audio[arr_place+(args.blocksize*itrr):arr_place+(args.blocksize*itrr)+args.blocksize]
-                    itrr += 1
+                    # For grabbing next blocksize slice of the NumPy audio array
+                    itrr = 0
                     
-                    q.put(data_slice, timeout=timeout)
+                    while data_slice.size != 0:
+                        
+                        data_slice = audio[arr_place+(args.blocksize*itrr):arr_place+(args.blocksize*itrr)+args.blocksize]
+                        itrr += 1
+                        
+                        q.put(data_slice, timeout=timeout)
+                        rec_file.write(qr.get())
+                    # Wait until playback is finished
+                    event.wait()  
+                    
+                # Make sure to write any audio data still left in the recording queue
+                while (qr.empty() != True):
                     rec_file.write(qr.get())
-                # Wait until playback is finished
-                event.wait()  
                 
-            # Make sure to write any audio data still left in the recording queue
-            while (qr.empty() != True):
-                rec_file.write(qr.get())
-            
-            # Release the push to talk button
-            ri.ptt(False)
-            
-            # Add a pause after playing/recording to remove run to run dependencies
-            time.sleep(3.1)
-            
-        #-----------------------------[Data Processing]----------------------------
-
-        # Get latest run Rx audio
-        proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
-        proc_audio = audio_float(proc_audio)
-        
-        # Check if we run statistics on this trial
-        if numpy.any(check_trials == itr):
-            
-            print('Run %s of %s complete :' % (itr, args.trials), flush=True)
-            
+                # Release the push to talk button
+                ri.ptt(False)
+                
+                # Add a pause after playing/recording to remove run to run dependencies
+                time.sleep(3.1)
+                
+            #-----------------------------[Data Processing]----------------------------
+    
+            # Get latest run Rx audio
             proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
             proc_audio = audio_float(proc_audio)
             
-            # Calculate RMS of received audio
-            rms = round(math.sqrt(numpy.mean(proc_audio**2)), 4)
+            # Check if we run statistics on this trial
+            if numpy.any(check_trials == itr):
+                
+                print('Run %s of %s complete :' % (itr, args.trials), flush=True)
+                
+                proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+                proc_audio = audio_float(proc_audio)
+                
+                # Calculate RMS of received audio
+                rms = round(math.sqrt(numpy.mean(proc_audio**2)), 4)
+                
+                # Calculate Maximum of received audio
+                mx = round(numpy.max(proc_audio), 4)
+                
+                # Print RMS and Maximum
+                print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
+                
+                # TODO Check if levels are low and process if so
             
-            # Calculate Maximum of received audio
-            mx = round(numpy.max(proc_audio), 4)
+            # Find delay for plots
+            new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
             
-            # Print RMS and Maximum
-            print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
+            new_delay = numpy.array(new_delay)
+            numpy.multiply(new_delay, (1e-3))
+    
+            dly_its.append(new_delay)
             
-            # TODO Check if levels are low and process if so
-        
-        # Find delay for plots
-        new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
-        
-        new_delay = numpy.array(new_delay)
-        numpy.multiply(new_delay, (1e-3))
-
-        dly_its.append(new_delay)
-        
-    # Catch errors or test cancelation
-    except KeyboardInterrupt:
-        parser.exit('\nInterrupted by user')
-    except queue.Full:
-        # A timeout occurred, i.e. there was an error in the callback
-        parser.exit(1)
-    except Exception as e:
-        parser.exit(type(e).__name__+': '+str(e))
-        
-#-----------------------[Notify User of Completion]------------------------ 
-
-# Turn off LED on radiointerface
-ri.led(1, False)
+        # Catch errors or test cancelation
+        except KeyboardInterrupt:
+            parser.exit('\nInterrupted by user')
+        except queue.Full:
+            # A timeout occurred, i.e. there was an error in the callback
+            parser.exit(1)
+        except Exception as e:
+            parser.exit(type(e).__name__+': '+str(e))
+            
+    #-----------------------[Notify User of Completion]------------------------ 
+    
+    # Turn off LED on radiointerface
+    ri.led(1, False)
 
 print('\nData collection completed\n', flush=True)
 
@@ -519,40 +591,7 @@ with open(csv_path, 'w', newline='') as csv_file:
     writer.writerow(["Mean Delay Per Trial (ms)"])
     for i in range(len(its_dly_mean)):
         writer.writerow([its_dly_mean[i]])
-
-#--------------------[Obtain Post Test Notes From User]--------------------
-
-# Window creation
-root = tk.Tk()
-root.title("Test Information")
-root.after(1, lambda: root.focus_force())
-
-# Prevent error if user exits
-root.protocol("WM_DELETE_WINDOW", post_test_notes)
-
-# Pre-test notes prompt
-label = tk.Label(root, text="Please enter post-test notes")
-label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
-entry.grid(row=1, column=0, padx=10, pady=5)
-entry.focus()
-
-# 'Submit' and 'Cancel' buttons
-button_frame = tk.Frame(root)
-button_frame.grid(row=2, column=0, sticky=tk.E)
-
-button = tk.Button(button_frame, text="Submit", command=post_test_notes)
-button.grid(row=0, column=0, padx=10, pady=10)
-
-button = tk.Button(button_frame, text="Cancel", command=exit_prog)
-button.grid(row=0, column=1, padx=10, pady=10)
-
-# Run Tkinter window
-root.mainloop()
-
-#----------------------[Write Post-Test Notes to File]---------------------
-
-with open(log_datadir, 'a') as file:
-    # Add tabs for each newline in post_test string
-    file.write("===Post-Test Notes===%s" % '\t'.join(('\n'+post_test.lstrip()).splitlines(True)))
-    file.write("===End Test===\n\n\n")
+ 
+#------------------------[Obtain Post Test Notes]--------------------------
+       
+obtain_post_test()
