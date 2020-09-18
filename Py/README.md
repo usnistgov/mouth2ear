@@ -14,7 +14,7 @@ The purpose of this software is to measure the mouth-to-ear (M2E) latency of a p
 ### Python
 
 First you'll need to install Python. There are many different distributions, but it's recommended that you download from [Python.org](https://www.python.org/downloads/).  
-After a successful install of Python you'll need Matplotlib, SciPy, and pySerial. Each can be downloaded with "pip":
+After a successful install of Python you'll need Matplotlib, SciPy, and pySerial. Each can be downloaded with "pip":  
 `python -m pip install -U matplotlib`  
 `python -m pip install scipy`  
 `pip install pyserial`
