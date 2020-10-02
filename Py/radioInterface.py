@@ -76,10 +76,10 @@ class RadioInterface:
         #determine LED state string
         if(state):
             ststr='on'
-            print("state is on")
+            print("state is on", flush=True)
         else:
             ststr='off'
-            print("state is off")
+            print("state is off", flush=True)
         #send command
         self._command(f"LED {num} {ststr}")
         
@@ -300,6 +300,3 @@ class RadioInterface:
             if(mi<=0):
                 #throw error
                 raise CommandError('Command response timeout')
-            
-        
-
