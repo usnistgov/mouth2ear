@@ -32,26 +32,48 @@ USE OF, THE SOFTWARE OR SERVICE PROVIDED HEREUNDER.
 
 import scipy.io.wavfile
 import scipy.signal
-import threading
 import argparse
 import datetime
 import signal
-import queue
 import math
 import time
 import sys
 import os
 
 from radioInterface import RadioInterface
+from play_record import play_record
 from tkinter import scrolledtext
 from fractions import Fraction
 
 import sounddevice as sd
-import soundfile as sf
 import tkinter as tk
 import numpy as np
 
 #----------------------------[Helper Functions]----------------------------
+
+def single_test():
+    """Perform a single test to check audio equipment. Auto deletes recorded file"""
+    
+    if os.path.exists("temp0.wav"):
+        os.remove("temp0.wav")
+    # Close tkinter window
+    root.destroy()
+    fs = int(48e3)
+    # Gather audio data in numpy array and audio samplerate
+    fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
+    # Calculate resample factors
+    rs_factor = Fraction(fs/fs_file)
+    # Convert to float sound array
+    audio_dat = audio_float(audio_dat)
+    # Resample audio
+    audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
+    with RadioInterface(args.radioport) as ri:
+        ri.led(1, True)
+        ri.ptt(True)
+        temp_file = play_record(audio, args.buffersize, args.blocksize, wav_name='temp')
+        ri.ptt(False)
+        os.remove(temp_file)
+    sys.exit(1)
 
 def sig_handler(signal, frame):
     """Catch user's exit (CTRL+C) from program and collect post test notes"""
@@ -113,31 +135,6 @@ def audio_float(dat):
     if(dat.dtype is np.dtype('float32')):
         return dat        
 
-def callback(indata, outdata, frames, time, status):
-    """Callback function for playing/recording audio
-       Plays entire audio file piece by piece
-    """
-    
-    #Record the output
-    qr.put_nowait(indata.copy())
-     
-    if status.output_underflow:
-        print('Output underflow: may need to increase blocksize', file=sys.stderr)
-        raise sd.CallbackAbort
-    assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: may need to increase buffersize', file=sys.stderr)
-        raise sd.CallbackAbort
-    if data.size < outdata.size:
-        outdata[:len(data),0] = data
-        outdata[len(data):] = 0
-        raise sd.CallbackStop
-    else:
-        #One column for mono output
-        outdata[:,0] = data
-
 def obtain_post_test():
     """
         Gather user's post test notes.
@@ -185,41 +182,46 @@ def obtain_post_test():
 #--------------------[Parse the command line arguments]--------------------
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("-a", "--audiofile", default="test.wav" ,
+parser.add_argument('-a', '--audiofile', default='test.wav' ,
                     help="Audiofile to use for test. Defaults to test.wav")
-parser.add_argument("-t", "--trials", type=int, default=10,
+parser.add_argument('-t', '--trials', type=int, default=10,
                     help="Number of trials to use for test. Defaults to 10")
-parser.add_argument("-r", "--radioport", default="",
+parser.add_argument('-r', '--radioport', default='',
                     help="Port to use for radio interface. Defaults to the first"+
                     " port where a radio interface is detected")
-parser.add_argument("-bf", "--bgnoisefile", default="", help="If this is non empty then it is"+
+parser.add_argument('-bf', '--bgnoisefile', default='', help="If this is non empty then it is"+
                     " used to read in a noise file to be mixed with the test audio. "+
                     "Default is no background noise")
-parser.add_argument("-bg", "--bgnoisevolume", type=float, default=0.1,
+parser.add_argument('-bg', '--bgnoisevolume', type=float, default=0.1,
                     help="Scale factor for background noise. Defaults to 0.1")
-parser.add_argument("-as", "--audioskip", type=float, default=0.0,
+parser.add_argument('-as', '--audioskip', type=float, default=0.0,
                     help="Number of seconds at the beginning of the audio clip"+
                     " to skip during playback. Defaults to 0.0")
 parser.add_argument('-b', '--blocksize', type=int, default=512,
                     help='block size (default: %(default)s)')
 parser.add_argument('-q', '--buffersize', type=int, default=20,
                     help='number of blocks used for buffering (default: %(default)s)')
-parser.add_argument("-pw", "--pttwait", type=float, default=0.68,
+parser.add_argument('-pw', '--pttwait', type=float, default=0.68,
                     help="The amount of time to wait in seconds between pushing the"+
                     " push to talk button and starting playback. This allows time "+
                     "for access to be granted on the system. Default value is 0.68 seconds")
-parser.add_argument("-od", "--outdir", default="", help="Directory that is added to the "+
+parser.add_argument('-od', '--outdir', default='', help="Directory that is added to the "+
                     "output path for all files")
 args = parser.parse_args()
 
 # Signal handler for graceful shutdown in case of SIGINT
 signal.signal(signal.SIGINT, sig_handler)
 
+# Add 'outdir' to tests.log path
+log_datadir = os.path.join(args.outdir, 'tests.log')
+
 #-------------------------[Setup Playback Device]--------------------------
 
 device_name=find_device()
 print('\n'+device_name,flush=True)
 sd.default.device=device_name
+# Set for mono play/rec
+sd.default.channels = [1, 1]
 
 #-----------------------[Initialize tx-data folder]------------------------   
 
@@ -301,6 +303,12 @@ e6.grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
 button_frame = tk.Frame(root)
 button_frame.grid(row=12, column=0, sticky=tk.E)
 
+exit_frame = tk.Frame(root)
+exit_frame.grid(row=12, column=0, sticky=tk.W)
+
+button = tk.Button(exit_frame, text="Test", command=single_test)
+button.grid(row=0, column=0, padx=10, pady=10)
+
 button = tk.Button(button_frame, text="Submit", command=coll_vars)
 button.grid(row=0, column=0, padx=10, pady=10)
 
@@ -326,9 +334,6 @@ with open(datadir, 'w') as file:
     
 
 #--------------------[Write Log Entry With User Input]---------------------
-
-# Add 'outdir' to tests.log path
-log_datadir = os.path.join(args.outdir, 'tests.log')
 
 # Change time and date to proper format for tests.log
 tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
@@ -362,10 +367,6 @@ else:
 
 #------------------------[Play/Rec Initializations]------------------------
 
-
-# Set for mono play/rec
-sd.default.channels = [1, 1]
-
 # Desired samplerate
 fs = int(48e3)
 
@@ -387,6 +388,21 @@ if (args.bgnoisefile):
     nf = audio_float(nf)
     nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
 
+# Gather audio data in numpy array and audio samplerate
+fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
+# Calculate resample factors
+rs_factor = Fraction(fs/fs_file)
+# Convert to float sound array
+audio_dat = audio_float(audio_dat)
+# Resample audio
+audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
+
+# Add BGNoiseFile
+if (args.bgnoisefile):
+    if (nf.size != audio.size):
+        nf = np.resize(nf, audio.size)
+    audio = audio + nf*args.bgnoisevolume
+
 #--------------------------[Open Radio Interface]--------------------------
 
 with RadioInterface(args.radioport) as ri:
@@ -400,126 +416,41 @@ with RadioInterface(args.radioport) as ri:
     #----------------------------[Play/Record Loop]----------------------------
     
     for itr in range(1, args.trials+1):
-        try:
-             
-            # Queue for recording input
-            qr = queue.Queue()
-            # Queue for output WAVE file
-            q = queue.Queue(maxsize=args.buffersize)
-             
-            # Gather audio data in numpy array and audio samplerate
-            fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
-            # Calculate resample factors
-            rs_factor = Fraction(fs/fs_file)
-            # Convert to float sound array
-            audio_dat = audio_float(audio_dat)
-            # Resample audio
-            audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
-    
-            # Add BGNoiseFile
-            if (args.bgnoisefile):
-                if (nf.size != audio.size):
-                    nf = np.resize(nf, audio.size)
-                audio = audio + nf*args.bgnoisevolume
+
+        # Press the push to talk button
+        ri.ptt(True)
+        
+        # Pause the indicated amount to allow the radio to access the system
+        time.sleep(args.pttwait)
+        
+        filename = play_record(audio, args.buffersize, args.blocksize, capture_dir, 'Tc', itr)
+                     
+        # Release the PTT button
+        ri.ptt(False)
+         
+        # Add a pause after playing/recording to remove any run to run dependencies
+        time.sleep(3.1)
             
-            # Thread for callback function
-            event = threading.Event()
-             
-            # NumPy audio array placeholder
-            arr_place = 0
-             
-            # Press the push to talk button
-            ri.ptt(True)
-             
-            # Pause the indicated amount to allow the radio to access the system
-            time.sleep(args.pttwait)
-             
-            for x in range(args.buffersize):
-                 
-                data_slice = audio[args.blocksize*x:(args.blocksize*x)+args.blocksize]
-                 
-                if data_slice.size == 0:
-                    break
-                 
-                # Save place of NumPy array slice for next loop
-                arr_place += args.blocksize
-                 
-                # Pre-fill queue
-                q.put_nowait(data_slice)
-                 
-            # Output and input stream in one
-            # Latency of 0 to cut down on delay
-            stream = sd.Stream(
-                blocksize=args.blocksize, samplerate=fs, dtype='float32',
-                callback=callback, finished_callback=event.set, latency=0)
-             
-            filename = 'Tc'+str(itr)+'.wav'
-            filename = os.path.join(capture_dir, filename)
-             
-            with sf.SoundFile(filename, mode='x', samplerate=fs, channels=1) as rec_file:
-                
-                with stream:
-                     
-                    timeout = args.blocksize * args.buffersize / fs
-                     
-                    # For grabbing the next blocksize slice of the NumPy audio array
-                    itrr = 0
-                     
-                    while data_slice.size != 0:
-                         
-                        data_slice = audio[arr_place+(args.blocksize*itrr):arr_place+(args.blocksize*itrr)+args.blocksize]
-                        itrr += 1
-                         
-                        q.put(data_slice, timeout=timeout)
-                        rec_file.write(qr.get())
-                     
-                    # Wait until playback is finished    
-                    event.wait()
-                     
-                # Make sure to write any audio data still left in the recording queue
-                while (qr.empty() != True):
-                    rec_file.write(qr.get())
-                     
-                # Release the PTT button
-                ri.ptt(False)
-                 
-                # Add a pause after playing/recording to remove any run to run dependencies
-                time.sleep(3.1)
+        #-----------------------------[Data Processing]----------------------------
+
+        # Check if we run statistics on this trial
+        if np.any(check_trials == itr):
             
-            #-----------------------------[Data Processing]----------------------------
-    
-            # Check if we run statistics on this trial
-            if np.any(check_trials == itr):
-                
-                print('Run %s of %s complete :' % (itr, args.trials), flush=True)
-                
-                proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
-                proc_audio = audio_float(proc_audio)
-                
-                # Calculate RMS of received audio
-                rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
-                
-                # Calculate Maximum of received audio
-                mx = round(np.max(proc_audio), 4)
-                
-                # Print RMS and Maximum
-                print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
-                
-                # TODO Check if the levels are low and process if so
-                
-        # Catch errors or test cancelation
-        except KeyboardInterrupt:
-            parser.exit('\nInterrupted by user')
-        except queue.Full:
-            # A timeout occurred, i.e. there was an error in the callback
-            parser.exit(1)
-        except Exception as e:
-            parser.exit(type(e).__name__ + ': ' + str(e))
+            print('Run %s of %s complete :' % (itr, args.trials), flush=True)
             
-    #-----------------------[Notify User of Completion]------------------------ 
-    
-    # Turn off LED on radiointerface
-    ri.led(1, False)
+            proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+            proc_audio = audio_float(proc_audio)
+            
+            # Calculate RMS of received audio
+            rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+            
+            # Calculate Maximum of received audio
+            mx = round(np.max(proc_audio), 4)
+            
+            # Print RMS and Maximum
+            print('\tMax : %s\n\tRMS : %s\n\n' % (mx, rms), flush=True)
+            
+#-----------------------[Notify User of Completion]------------------------ 
 
 print('\n***Data collection complete, you may now stop data collection on the receiving end***\n', flush=True)
 
