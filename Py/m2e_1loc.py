@@ -57,8 +57,7 @@ def single_test():
     
     if os.path.exists("temp0.wav"):
         os.remove("temp0.wav")
-    # Close tkinter window
-    root.destroy()
+
     fs = int(48e3)
     # Gather audio data in numpy array and audio samplerate
     fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
@@ -74,8 +73,7 @@ def single_test():
         temp_file = play_record(audio, args.buffersize, args.blocksize, wav_name='temp')
         ri.ptt(False)
         os.remove(temp_file)
-    sys.exit(1)
-
+    
 def sig_handler(signal, frame):
     """Catch user's exit (CTRL+C) from program and collect post test notes"""
     obtain_post_test()
@@ -241,9 +239,9 @@ time_n_date = datetime.datetime.now().replace(microsecond=0)
 try:
     with open("test-type.txt", 'r') as prev_test:
         testing = prev_test.readline().split('"')[1]
+        system = prev_test.readline().split('"')[1]
         transmit = prev_test.readline().split('"')[1]
         receive = prev_test.readline().split('"')[1]
-        system = prev_test.readline().split('"')[1]
 except FileNotFoundError:
     testing = ""
     transmit = ""
