@@ -60,7 +60,7 @@ import sounddevice as sd
 import soundfile as sf
 import tkinter as tk
 
-#============================[Helper Functions]============================
+#----------------------------[Helper Functions]----------------------------
 
 def find_device():
     
@@ -112,14 +112,14 @@ def callback(indata, frames, time, status):
         print(status, file=sys.stderr, flush=True)
     q.put(indata.copy())
 
-#====================[Parse the command line argument]====================
+#--------------------[Parse the command line argument]--------------------
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("-od", "--outdir", default="", help="Directory that is "+
                     "added to the output path for all files.")
 args = parser.parse_args()
 
-#=========================[Setup Playback Device]==========================
+#-------------------------[Setup Playback Device]--------------------------
 
 device_name=find_device()
 
@@ -127,18 +127,32 @@ print('\n'+device_name,flush=True)
 
 sd.default.device=device_name
 
-#=======================[Initialize Rx-Data Folder]========================    
+#-----------------------[Initialize Rx-Data Folder]------------------------    
 
 # Create rx-data folder
 rx_dat_fold = os.path.join(args.outdir,'2loc_rx-data')
 os.makedirs(rx_dat_fold, exist_ok=True)
 
-#==========================[Get Test Start Time]===========================
+#--------------------------[Get Test Start Time]---------------------------
 
 # Get start time, deleting microseconds
 time_n_date = datetime.datetime.now().replace(microsecond=0)
 
-#===================[Get Test Info and Notes From User]====================
+#-----------------------[Obtain Previous Test Notes]-----------------------
+
+try:
+    with open("test-type.txt", 'r') as prev_test:
+        testing = prev_test.readline().split('"')[1]
+        system = prev_test.readline().split('"')[1]
+        transmit = prev_test.readline().split('"')[1]
+        receive = prev_test.readline().split('"')[1]
+except FileNotFoundError:
+    testing = ""
+    transmit = ""
+    receive = ""
+    system = ""
+
+#--------------------[Get Test Info and Notes From User]-------------------
 
 # Window creation
 root = tk.Tk()
@@ -149,44 +163,52 @@ root.protocol("WM_DELETE_WINDOW", exit_prog)
 
 # Test type prompt
 l1 = tk.Label(root, text="Test Type")
-l1.grid(row=0, column=0, padx=10, pady=5)
+l1.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 e1 = tk.Entry(root, bd=2, width=50)
-e1.grid(row=1, column=0, padx=10, pady=5)
+e1.insert(tk.END, '')
+e1.insert(0, testing)
+e1.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
 e1.focus()
 
 # Transmit device prompt
 l2 = tk.Label(root, text="Transmit Device")
-l2.grid(row=2, column=0, padx=10, pady=5)
+l2.grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
 e2 = tk.Entry(root, bd=2)
-e2.grid(row=3, column=0, padx=10, pady=5)
+e2.insert(0, transmit)
+e2.grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Receive device prompt
 l3 = tk.Label(root, text="Receive Device")
-l3.grid(row=4, column=0, padx=10, pady=5)
+l3.grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
 e3 = tk.Entry(root, bd=2)
-e3.grid(row=5, column=0, padx=10, pady=5)
+e3.insert(0, receive)
+e3.grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
 
 # System prompt
 l4 = tk.Label(root, text="System")
-l4.grid(row=6, column=0, padx=10, pady=5)
+l4.grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
 e4 = tk.Entry(root, bd=2, width=60)
-e4.grid(row=7, column=0, padx=10, pady=5)
+e4.insert(0, system)
+e4.grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Test location prompt
 l5 = tk.Label(root, text="Test Location")
-l5.grid(row=8, column=0, padx=10, pady=5)
+l5.grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
 e5 = tk.Entry(root, bd=2, width=100)
-e5.grid(row=9, column=0, padx=10, pady=5)
+e5.grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Pre-test notes prompt
 l6 = tk.Label(root, text="Please enter notes on pre-test conditions")
-l6.grid(row=10, column=0, padx=10, pady=5)
+l6.grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
 e6 = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
-e6.grid(row=11, column=0, padx=10, pady=5)
+e6.grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
 
 # 'Submit' and 'Cancel' buttons
 button_frame = tk.Frame(root)
-button_frame.grid(row=12, column=0)
+button_frame.grid(row=12, column=0, sticky=tk.E)
+
+exit_frame = tk.Frame(root)
+exit_frame.grid(row=12, column=0, sticky=tk.W)
 
 button = tk.Button(button_frame, text="Submit", command=coll_vars)
 button.grid(row=0, column=0, padx=10, pady=10)
@@ -197,7 +219,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#====================[Print Test Type and Test Notes]=======================
+#--------------------[Print Test Type and Test Notes]----------------------
 
 # Print info to screen
 print('\nTest type: %s\n' % test_type, flush=True)
@@ -206,12 +228,12 @@ print('Pre test notes:\n%s' % test_notes, flush=True)
 # Write info to .txt file
 datadir = os.path.join(args.outdir,'test-type.txt')
 with open(datadir, 'w') as file:
-    file.write("Test Type : '%s'\n" % test_type)
-    file.write("System    : '%s'\n" % system)
-    file.write("Tx Device : '%s'\n" % tran_dev)
-    file.write("Rx Device : '%s'\n" % rec_dev) 
+    file.write('Test Type : "%s"\n' % test_type)
+    file.write('System    : "%s"\n' % system)
+    file.write('Tx Device : "%s"\n' % tran_dev)
+    file.write('Rx Device : "%s"\n' % rec_dev) 
     
-#====================[Write Log Entry With User Input]======================
+#--------------------[Write Log Entry With User Input]---------------------
 
 # Add 'outdir' to path
 log_datadir = os.path.join(args.outdir, 'tests.log')
@@ -231,7 +253,7 @@ with open(log_datadir, 'a') as file:
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
     
-#==================[Initialize variables for recording]=====================
+#-------------------[Initialize variables for recording]-------------------
     
 # queue for recording
 q = queue.Queue()
@@ -243,11 +265,11 @@ fs = int(48e3)
 td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
 filename = os.path.join(rx_dat_fold, 'Rx_capture_'+td+'.wav')
 
-#=========================[Notify User of Start]============================
+#--------------------------[Notify User of Start]--------------------------
 
 print('Storing audio data in \n\t"%s"\n' % rx_dat_fold, flush=True)
 
-#=============================[Recording Loop]==============================
+#-----------------------------[Recording Loop]-----------------------------
 
 try:
 
@@ -269,7 +291,7 @@ except Exception as e:
     parser.exit(type(e).__name__ + ': ' + str(e))
 
 
-#====================[Obtain Post Test Notes From User]=====================
+#--------------------[Obtain Post Test Notes From User]--------------------
 
 # Window creation
 root = tk.Tk()
@@ -299,7 +321,7 @@ button.grid(row=0, column=1, padx=10, pady=10)
 # Run Tkinter window
 root.mainloop()
 
-#======================[Write Post-Test Notes to File]======================
+#----------------------[Write Post-Test Notes to File]---------------------
 
 with open(log_datadir, 'a') as file:
     # Add tabs for each newline in post_test string
