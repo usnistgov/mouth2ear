@@ -49,6 +49,8 @@ function m2e_2loc_rx(varargin)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
+%% ========================[Parse Input Arguments]========================
+
 %create new input parser
 p=inputParser();
 
@@ -60,6 +62,8 @@ p.CaseSensitive= true;
 
 %parse inputs
 parse(p,varargin{:});
+
+%% ========================[Setup Audio Interface]========================
 
 %use a sample rate of 48 kHz
 fs=48e3;
@@ -76,9 +80,13 @@ fprintf('Using "%s" for audio test\n',dev_name);
 %get buffer size
 bsz=RecObj. SamplesPerFrame;
 
+%% ===========================[Read git status]===========================
+
 %get git status
 git_status=gitStatus();
-    
+
+%% ==================[Initialize file and folder names]==================
+
 %folder name for tx data
 rx_dat_fold=fullfile(p.Results.OutDir,'rx-data');
 
@@ -91,12 +99,14 @@ test_name=fullfile(p.Results.OutDir,'test-type.txt');
 %make data direcotry
 [~,~,~]=mkdir(rx_dat_fold);
 
+%% =========================[Get Test Start Time]=========================
 
 %get start time
 dt_start=datetime('now','Format','dd-MMM-yyyy_HH-mm-ss');
 %get a string to represent the current date in the filename
 dtn=char(dt_start);
 
+%% ==================[Get Test info and notes from user]==================
 
 %open test type file
 init_tstinfo=readTestState(test_name);
@@ -144,12 +154,25 @@ else
     writeTestState(test_name,test_info);
 end
 
+%% ===============[Print Log entry so it is easily copyable]===============
+
 %get notes from response
 pre_note_array=resp{end};
-%get strings from output add a tabs and newlines
-pre_note_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+
+%get strings from output add newlines only
+pre_note_strings=cellfun(@(s)[s,newline],cellstr(pre_note_array),'UniformOutput',false);
 %get a single string from response
 pre_notes=horzcat(pre_note_strings{:});
+
+%print
+fprintf('Pre test notes:\n%s\n',pre_notes);
+
+%% ===============[Parse User response and write log entry]===============
+
+%get strings from output add a tabs and newlines
+pre_note_tab_strings=cellfun(@(s)[char(9),s,newline],cellstr(pre_note_array),'UniformOutput',false);
+%get a single string from response
+pre_notesT=horzcat(pre_note_tab_strings{:});
 
 %check dirty status
 if(git_status.Dirty)
@@ -185,9 +208,11 @@ fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write system under test
 fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
 %write pre test notes
-fprintf(logf,'===Pre-Test Notes===\n%s',pre_notes);
+fprintf(logf,'===Pre-Test Notes===\n%s',pre_notesT);
 %close log file
 fclose(logf);
+
+%% =======================[Filenames for data files]=======================
 
 %generate base file name to use for all files
 base_filename=sprintf('Rx_capture_%s',dtn);
@@ -201,8 +226,12 @@ info_filename=fullfile(rx_dat_fold,sprintf('Rx_info_%s.mat',dtn));
 %generate filename for error data
 error_filename=fullfile(rx_dat_fold,sprintf('%s_ERROR.mat',base_filename));
 
+%% ======================[Generate oncleanup object]======================
+
 %add cleanup function
 co=onCleanup(@()cleanFun(error_filename,info_filename,log_name));
+
+%% ========================[Notify user of start]========================
 
 %print name and location of run
 fprintf('Storing data in:\n\t''%s''\n',audio_filename);
@@ -213,6 +242,8 @@ RecWriter=dsp.AudioFileWriter(audio_filename,'FileFormat','WAV','SampleRate',fs,
 %print instructions
 fprintf('Recording data. Turn down timecode audio volume to stop.\n\n');
 
+%% ===========================[Initialize data]===========================
+
 %zerro  over runs
 overRun=0;
 
@@ -222,7 +253,7 @@ done=0;
 %number of loops to wait before checking loudness
 wait=round(3*fs/bsz); %about 3 seconds
 
-%loop while plot is open
+%% ============================[Recording Loop]============================
 while(~done)
     %read audio data
     [datout,or]=RecObj();
@@ -246,6 +277,7 @@ while(~done)
     overRun=overRun+or;
 end
 
+%% ======================[Check for buffer issues]======================
 
 %check for buffer over runs
 if(any(overRun))
@@ -254,8 +286,11 @@ else
     fprintf('There were no buffer over runs\n');
 end
 
-%we are done, beep to let the user know
+%% =========================[Beep to alert user]=========================
+
 beep
+
+%% ========================[Save Data and cleanup]========================
 
 %save extra info in .mat file
 save(info_filename,'dev_name','git_status','overRun','pre_notes','fs');
@@ -270,6 +305,11 @@ release(RecWriter);
 fprintf('Audio data saved to:\n\t''%s''\n',audio_filename);
 fprintf('Info saved to:\n\t''%s''\n',info_filename);
 
+
+%% ==========================[Cleanup Function]==========================
+%This is called when cleanup object co is deleted (Function exits for any
+%reason other than CTRL-C). This ensures that the log entries are propperly
+%closed and that there is a chance to add notes on what went wrong.
 
 function cleanFun(err_name,good_name,log_name)
 %check if error .m file exists
