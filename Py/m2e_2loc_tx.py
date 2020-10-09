@@ -37,6 +37,7 @@ import datetime
 import signal
 import math
 import time
+import git
 import sys
 import os
 
@@ -316,6 +317,15 @@ root.mainloop()
 tx_dat_fold = os.path.join(args.outdir,'2loc_tx-data')
 os.makedirs(tx_dat_fold, exist_ok=True)
 
+#----------------------------[Get Git Hash]--------------------------------
+
+sha = ""
+try:
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+except git.exc.InvalidGitRepositoryError:
+    sha = "No Git Hash Found"
+
 #--------------------[Print Test Type and Test Notes]----------------------
 
 # Print info to screen
@@ -340,6 +350,7 @@ tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
 with open(log_datadir, 'a') as file:
     file.write('>>Tx Two Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
+    file.write('\tGit Hash    : %s\n' % sha)
     file.write('\tFilename    : m2e_2loc_tx.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
     file.write('\tRx Device   : %s\n' % rec_dev)
