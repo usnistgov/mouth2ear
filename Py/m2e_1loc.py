@@ -36,6 +36,7 @@ import signal
 import math
 import time
 import csv
+import git
 import sys
 import os
 
@@ -323,6 +324,15 @@ root.mainloop()
 datadir = os.path.join(args.outdir, '1loc_data')
 os.makedirs(datadir, exist_ok=True)
 
+#----------------------------[Get Git Hash]--------------------------------
+
+sha = ""
+try:
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+except git.exc.InvalidGitRepositoryError:
+    sha = "No Git Hash Found"
+
 #--------------------[Print Test Type and Test Notes]----------------------
 
 # Print info to screen
@@ -347,6 +357,7 @@ tnd = time_n_date.strftime("%d-%b-%Y %H:%M:%S")
 with open(log_datadir, 'a') as file:
     file.write('>>One Loc Test started at %s\n' % tnd)
     file.write('\tTest Type   : %s\n' % test_type)
+    file.write('\tGit Hash    : %s\n' % sha)
     file.write('\tFilename    : m2e_1loc.py\n')
     file.write('\tTx Device   : %s\n' % tran_dev)
     file.write('\tRx Device   : %s\n' % rec_dev)
@@ -473,10 +484,9 @@ with RadioInterface(args.radioport) as ri:
         # Find delay for plots
         new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
         
-        new_delay = np.array(new_delay)
-        np.multiply(new_delay, (1e-3))
-
-        dly_its.append(new_delay)
+        newest_delay = np.multiply(new_delay, 1e-3)
+        
+        dly_its.append(newest_delay)
             
             
 #-----------------------[Notify User of Completion]------------------------ 
@@ -493,7 +503,7 @@ ovrl_dly = np.mean(its_dly_mean)
 
 # Get standard deviation
 std_delay = np.std(dly_its, dtype=np.float64)
-std_delay = std_delay*(1e3)
+std_delay = std_delay*(1e6)
 
 # Print StD to terminal
 print("StD: %.2fus\n" % std_delay, flush=True)
@@ -503,7 +513,7 @@ plt.figure()
 x2 = range(1, len(its_dly_mean)+1)
 plt.plot(x2, its_dly_mean, 'o', color='blue')
 plt.xlabel("Trial Number")
-plt.ylabel("Delay(ms)")
+plt.ylabel("Delay(s)")
 
 # Create histogram for mean
 plt.figure()
@@ -511,8 +521,8 @@ uniq = np.unique(its_dly_mean)
 dlymin = np.amin(its_dly_mean)
 dlymax = np.amax(its_dly_mean)
 plt.hist(its_dly_mean, bins=len(uniq), range=(dlymin, dlymax), rwidth=0.5)
-plt.title("Mean: %.2fms" % ovrl_dly)
-plt.xlabel("Delay(ms)")
+plt.title("Mean: %.5fs" % ovrl_dly)
+plt.xlabel("Delay(s)")
 plt.ylabel("Frequency of indicated delay")
 plt.show()
 
@@ -521,7 +531,7 @@ csv_path = os.path.join(capture_dir, td+'.csv')
 
 with open(csv_path, 'w', newline='') as csv_file:
     writer = csv.writer(csv_file)
-    writer.writerow(["Mean Delay Per Trial (ms)"])
+    writer.writerow(["Mean Delay Per Trial (seconds)"])
     for i in range(len(its_dly_mean)):
         writer.writerow([its_dly_mean[i]])
  
