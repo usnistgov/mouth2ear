@@ -30,6 +30,7 @@ USE OF, THE SOFTWARE OR SERVICE PROVIDED HEREUNDER.
 
 import scipy.io.wavfile
 import scipy.signal
+import traceback
 import argparse
 import datetime
 import signal
@@ -136,7 +137,8 @@ def audio_float(dat):
 def obtain_post_test():
     """
         Gather user's post test notes.
-        Runs if user presses CTRL+c or at the end of program
+        Runs if user presses CTRL+c, at the end of program
+        or if error occurs.
     """
     #--------------------[Obtain Post Test Notes From User]--------------------
     
@@ -179,13 +181,12 @@ def obtain_post_test():
         
 #--------------------[Parse the command line arguments]--------------------
 
-parser = argparse.ArgumentParser(
-    description=__doc__)
+parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument(
                     '-a', '--audiofile', default='test.wav',
                     help="Choose audiofile to use for test. Defaults to test.wav")
 parser.add_argument(
-                    '-t', '--trials', type=int, default=10,
+                    '-t', '--trials', type=int, default=100,
                     help="Number of trials to use for test. Defaults to 10")
 parser.add_argument('-r', '--radioport', default='',
                     help="Port to use for radio interface. Defaults to the first"+
@@ -406,11 +407,6 @@ print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 with RadioInterface(args.radioport) as ri:
     ri.led(1, True)
     dly_its = []
-    
-    #---------------------------[Calculate OverPlay]---------------------------
-    
-    if (args.overplay != 0):
-        overplay = fs * args.overplay
         
     #-----------------------[Get BGNoiseFile and Resample]---------------------
     
@@ -431,9 +427,6 @@ with RadioInterface(args.radioport) as ri:
     # Resample audio
     audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
 
-    # Add OverPlay duration to audio
-    audio = np.pad(audio, (0, int(overplay)), mode='constant')
-
     # Add BGNoiseFile
     if (args.bgnoisefile):
         if (nf.size != audio.size):
@@ -442,52 +435,65 @@ with RadioInterface(args.radioport) as ri:
     
     #----------------------------[Play/Record Loop]----------------------------
     
-    for itr in range(1, args.trials+1):
-      
-        # Press the push to talk button
-        ri.ptt(True)
-
-        # Pause the indicated amount to allow the radio to access the system
-        time.sleep(args.pttwait)
-
-        # Play Record
-        filename = play_record(audio, args.buffersize, args.blocksize, capture_dir, '1loc_Rx', itr)
-
-        # Release the push to talk button
-        ri.ptt(False)
+    try:
         
-        # Add a pause after playing/recording to remove run to run dependencies
-        time.sleep(3.1)
+        for itr in range(1, args.trials+1):
+          
+            # Press the push to talk button
+            ri.ptt(True)
+    
+            # Pause the indicated amount to allow the radio to access the system
+            time.sleep(args.pttwait)
+    
+            # Create audiofile name/path for recording
+            audioname = '1loc_Rx'+str(itr)+'.wav'
+            audioname = os.path.join(capture_dir, audioname)
+    
+            # Play Record
+            filename = play_record(audio, args.buffersize, args.blocksize, audioname, args.overplay)
+    
+            # Release the push to talk button
+            ri.ptt(False)
+            
+            # Add a pause after playing/recording to remove run to run dependencies
+            time.sleep(3.1)
+                    
+            #-----------------------------[Data Processing]----------------------------
+    
+            # Get latest run Rx audio
+            proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+            proc_audio = audio_float(proc_audio)
+            
+            # Check if we run statistics on this trial
+            if np.any(check_trials == itr):
                 
-        #-----------------------------[Data Processing]----------------------------
+                print("\nRun %s of %s complete :" % (itr, args.trials), flush=True)
+                
+                # Calculate RMS of received audio
+                rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+                
+                # Calculate Maximum of received audio
+                mx = round(np.max(proc_audio), 4)
+                
+                # Print RMS and Maximum
+                print("\tMax : %s\n\tRMS : %s\n\n" % (mx, rms), flush=True)
+                
+                # TODO Check if levels are low and process if so
+            
+            # Find delay for plots
+            new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
+            
+            newest_delay = np.multiply(new_delay, 1e-3)
+            
+            dly_its.append(newest_delay)
 
-        # Get latest run Rx audio
-        proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
-        proc_audio = audio_float(proc_audio)
-        
-        # Check if we run statistics on this trial
-        if np.any(check_trials == itr):
-            
-            print("\nRun %s of %s complete :" % (itr, args.trials), flush=True)
-            
-            # Calculate RMS of received audio
-            rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
-            
-            # Calculate Maximum of received audio
-            mx = round(np.max(proc_audio), 4)
-            
-            # Print RMS and Maximum
-            print("\tMax : %s\n\tRMS : %s\n\n" % (mx, rms), flush=True)
-            
-            # TODO Check if levels are low and process if so
-        
-        # Find delay for plots
-        new_delay = sliding_delay_estimates(proc_audio, audio, fs)[0]
-        
-        newest_delay = np.multiply(new_delay, 1e-3)
-        
-        dly_its.append(newest_delay)
-            
+    except Exception:
+        e = sys.exc_info()
+        print(f"Error Return Type: {type(e)}")
+        print(f"Error Class: {e[0]}")
+        print(f"Error Message: {e[1]}")
+        print(f"Error Traceback: {traceback.format_tb(e[2])}")
+        obtain_post_test()   
             
 #-----------------------[Notify User of Completion]------------------------ 
 
