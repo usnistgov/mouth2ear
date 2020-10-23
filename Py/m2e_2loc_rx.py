@@ -107,6 +107,51 @@ def exit_prog():
     
     sys.exit(1)
 
+def obtain_post_test():
+    """
+        Gather user's post test notes.
+        Runs if user presses CTRL+c, at the end of program
+        or if error occurs
+    """
+    #--------------------[Obtain Post Test Notes From User]--------------------
+    
+    # Window creation
+    global root
+    root = tk.Tk()
+    root.title("Test Information")
+    root.after(1, lambda: root.focus_force())
+    
+    # Prevent error if user exits
+    root.protocol("WM_DELETE_WINDOW", post_test_notes)
+    
+    # Pre-test notes prompt
+    label = tk.Label(root, text="Please enter post-test notes")
+    label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+    global entry
+    entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
+    entry.grid(row=1, column=0, padx=10, pady=5)
+    entry.focus()
+    
+    # 'Submit' and 'Cancel' buttons
+    button_frame = tk.Frame(root)
+    button_frame.grid(row=2, column=0, sticky=tk.E)
+    
+    button = tk.Button(button_frame, text="Submit", command=post_test_notes)
+    button.grid(row=0, column=0, padx=10, pady=10)
+    
+    button = tk.Button(button_frame, text="Cancel", command=exit_prog)
+    button.grid(row=0, column=1, padx=10, pady=10)
+    
+    # Run Tkinter window
+    root.mainloop()
+    
+    #----------------------[Write Post-Test Notes to File]---------------------
+    
+    with open(log_datadir, 'a') as file:
+        # Add tabs for each newline in post_test string
+        file.write("===Post-Test Notes===%s" % '\t'.join(('\n'+post_test.lstrip()).splitlines(True)))
+        file.write("===End Test===\n\n\n")
+
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
     
@@ -300,42 +345,9 @@ try:
 except KeyboardInterrupt:
     print('\nRecording finished')
 except Exception as e:
-    parser.exit(type(e).__name__ + ': ' + str(e))
+    obtain_post_test()
+    sys.exit(type(e).__name__ + ': ' + str(e))
 
+#-------------------[Recording Successful: Gather Notes]-------------------
 
-#--------------------[Obtain Post Test Notes From User]--------------------
-
-# Window creation
-root = tk.Tk()
-root.title("Test Information")
-root.after(1, lambda: root.focus_force())
-
-# Prevent error if user exits
-root.protocol("WM_DELETE_WINDOW", post_test_notes)
-
-# Pre-test notes prompt
-label = tk.Label(root, text="Please enter post-test notes")
-label.grid(row=0, column=0, padx=10, pady=5)
-entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
-entry.grid(row=1, column=0, padx=10, pady=5)
-entry.focus()
-
-# 'Submit' and 'Cancel' buttons
-button_frame = tk.Frame(root)
-button_frame.grid(row=2, column=0)
-
-button = tk.Button(button_frame, text="Submit", command=post_test_notes)
-button.grid(row=0, column=0, padx=10, pady=10)
-
-button = tk.Button(button_frame, text="Cancel", command=exit_prog)
-button.grid(row=0, column=1, padx=10, pady=10)
-
-# Run Tkinter window
-root.mainloop()
-
-#----------------------[Write Post-Test Notes to File]---------------------
-
-with open(log_datadir, 'a') as file:
-    # Add tabs for each newline in post_test string
-    file.write("===Post-Test Notes===%s" % '\t'.join(('\n'+post_test.lstrip()).splitlines(True)))
-    file.write("===End Test===\n\n\n")
+obtain_post_test()
