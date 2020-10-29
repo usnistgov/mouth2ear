@@ -11,7 +11,9 @@ try
     fprintf(fid,'%d\n',dly_vals);
     fclose(fid);
 catch ME
-    fclose(fid);
+    if(exist('fid','var'))
+        fclose(fid);
+    end
     rethrow(ME);
 end
 
