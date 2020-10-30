@@ -7,7 +7,7 @@ dly_vals = cellfun(@mean,dat.dly_its);
 
 try
     fid= fopen(outname,'w');
-    fprintf(fid,'Mean Delay Per Trial (ms)\n');
+    fprintf(fid,'Mean Delay Per Trial (s)\n');
     fprintf(fid,'%d\n',dly_vals);
     fclose(fid);
 catch ME
