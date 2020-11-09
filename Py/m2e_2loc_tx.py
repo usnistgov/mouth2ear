@@ -71,7 +71,7 @@ def single_test():
     with RadioInterface(args.radioport) as ri:
         ri.led(1, True)
         ri.ptt(True)
-        temp_file = play_record(audio, args.buffersize, args.blocksize, wav_name='temp')
+        temp_file = play_record(audio, args.buffersize, args.blocksize, filename='temp0.wav')
         ri.ptt(False)
         os.remove(temp_file)
 
@@ -384,11 +384,6 @@ fs = int(48e3)
 td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
 capture_dir = os.path.join(tx_dat_fold, 'Tx_capture_'+td)
 os.makedirs(capture_dir, exist_ok=True)
-
-# Save testing audiofile to audio capture directory for future use/testing
-new_sr, new_wav = scipy.io.wavfile.read(args.audiofile)
-tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
-scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
     
 #----------------------[Get BGNoiseFile and Resample]----------------------
 
@@ -406,6 +401,10 @@ rs_factor = Fraction(fs/fs_file)
 audio_dat = audio_float(audio_dat)
 # Resample audio
 audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
+
+# Save testing audiofile to audio capture directory for future use/testing
+tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
+scipy.io.wavfile.write(tx_audio, fs, audio)
 
 # Add BGNoiseFile
 if (args.bgnoisefile):
