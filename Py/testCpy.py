@@ -16,12 +16,12 @@ if platform.system()=='Windows':
         
         #check return code
         if(result.returncode):
-            info=result.sterr.decode('UTF-8')
+            info=result.stderr.decode('UTF-8')
             
-            if('the device is not ready' in info.tolower()):
+            if('the device is not ready' in info.lower()):
                 raise RuntimeError('Device is not ready')
             else:
-                raise RuntimeError(f'Could not get volume info vol returnd {res.returncode}')
+                raise RuntimeError(f'Could not get volume info vol returnd {res.returncode} \'{info.strip()}\'')
         
         #find drive serial number
         m=re.search('^\W*Volume Serial Number is\W*(?P<ser>(?:\w+-?)+)',result.stdout.decode('UTF-8'),re.MULTILINE)
@@ -48,13 +48,13 @@ if platform.system()=='Windows':
                 res=subprocess.run(f'vol {m.group("drive")}',shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 
                 if(res.returncode):
-                    info=res.sterr.decode('UTF-8')
+                    info=res.stderr.decode('UTF-8')
                     
-                    if('the device is not ready' in info.tolower()):
+                    if('the device is not ready' in info.lower()):
                         #drive is not ready, skip
                         continue
                     else:
-                        raise RuntimeError(f'command returnd {res.returncode} for drive \'{m.group("drive")}\'')
+                        raise RuntimeError(f'command returnd {res.returncode} for drive \'{m.group("drive")}\' \'{info.strip()}\'')
                 
                 #find drive label
                 m_label=re.search(m.group('drive').rstrip(':')+'\W*(?P<sep>\w+)\W*(?P<label>.*?)\W*$',res.stdout.decode('UTF-8'),re.MULTILINE)
