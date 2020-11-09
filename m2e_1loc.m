@@ -314,6 +314,11 @@ pre_notes=horzcat(pre_note_strings{:});
 %print
 fprintf('Pre test notes:\n%s\n',pre_notes);
 
+
+%% ========================[Open Radio Interface]========================
+%radio interface oppened here so that we can add version to the log
+ri=radioInterface(p.Results.RadioPort);
+
 %% ===============[Parse User response and write log entry]===============
 
 %get strings from output add a tabs and newlines
@@ -354,6 +359,10 @@ fprintf(logf, '\tRx Device  : %s\n',test_info.RxDevice);
 fprintf(logf, '\tSystem     : %s\n',test_info.System);
 %write system under test 
 fprintf(logf, '\tArguments     : %s\n',extractArgs(p,ST(I).file));
+%write radioInterface version
+fprintf(logf, '\tRIversion     : %s\n',ri.getVersion());
+%write radioInterface ID
+fprintf(logf, '\tRI ID         : %s\n',ri.getID());
 %write pre test notes
 fprintf(logf,'===Pre-Test Notes===\n%s',pre_notesT);
 %close log file
@@ -377,10 +386,6 @@ error_filename=fullfile(dat_fold,sprintf('%s_ERROR.mat',base_filename));
 %add cleanup function
 co=onCleanup(@()cleanFun(error_filename,data_filename,log_name));
 
-%% ========================[Open Radio Interface]========================
-
-%open radio interface
-ri=radioInterface(p.Results.RadioPort);
 
 %% ========================[Notify user of start]========================
 
