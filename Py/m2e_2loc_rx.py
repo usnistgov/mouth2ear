@@ -202,11 +202,13 @@ try:
         system = prev_test.readline().split('"')[1]
         transmit = prev_test.readline().split('"')[1]
         receive = prev_test.readline().split('"')[1]
+        locate = prev_test.readline().split('"')[1]
 except FileNotFoundError:
     testing = ""
     transmit = ""
     receive = ""
     system = ""
+    locate = ""
 
 #--------------------[Get Test Info and Notes From User]-------------------
 
@@ -251,6 +253,7 @@ e4.grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
 l5 = tk.Label(root, text="Test Location")
 l5.grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
 e5 = tk.Entry(root, bd=2, width=100)
+e5.insert(0, locate)
 e5.grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
 
 # Pre-test notes prompt
@@ -287,7 +290,8 @@ with open(datadir, 'w') as file:
     file.write('Test Type : "%s"\n' % test_type)
     file.write('System    : "%s"\n' % system)
     file.write('Tx Device : "%s"\n' % tran_dev)
-    file.write('Rx Device : "%s"\n' % rec_dev) 
+    file.write('Rx Device : "%s"\n' % rec_dev)
+    file.write('Test Loc  : "%s"\n' % test_loc) 
     
 #--------------------[Write Log Entry With User Input]---------------------
 
