@@ -1,5 +1,5 @@
 classdef radioInterface < handle
-    %RADIOINTERFACE class to interface to raido push-to-talk button
+    %RADIOINTERFACE class to interface to radio push-to-talk button
     %
     %   RADIOINTERFACE('PORT') creates a RADIOINTERFACE object using the
     %   serial port specified by PORT. The port must be connected to a
@@ -12,11 +12,14 @@ classdef radioInterface < handle
     %   ptt         - change the push-to-talk status
     %   led         - turn on or off LED's on the radio interface board
     %   devtype     - get the device type string
+    %   getVersion  - get the version from device
+    %   getID       - get unique ID from device
     %   ptt_delay   - key radio after a delay
     %   
     %
     %RADIOINTERFACE Properties:
     %   pttState -  push-to-talk status
+    %   WaitState - waiting status of push-to-talk logic
     
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
@@ -42,20 +45,34 @@ classdef radioInterface < handle
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
     properties (Access = private)
+% SOBJ - internal serial object to communicate with the radio interface.
         sobj
     end
     
-   properties (Dependent)
-      pttState %read the status of the push-to-talk output. True if push-to-talk signal is pushed, false if it is not.
+   properties (Dependent,SetAccess = private)
+% PTTSTATE - read the status of the push-to-talk outputs. PTTSTATE returns
+% an array with a logical for each radio. If the value is True than the
+% push-to-talk signal is pushed, false than it is not.
+       pttState
+% WAITSTATE - read the status of the push-to-talk logic of the radio
+% interface. Returns one of the following :
+%   'Idle'        - No pending PTT events exist
+%   'Signal Wait' - The radio interface is waiting for the start signal
+%   'Delay'       - The radio interface is waiting for the delay to expire
+      WaitState
    end
     
     methods
         %constructor, must be passed a serial port name
         function obj = radioInterface(port)
-% RADIOINTERFACE creat a radio interface object
+% RADIOINTERFACE create a radio interface object
 %
-% obj = RADIOINTERFACE('port')
-%   Create a RADIOINTERFACE object using the specified serial port
+% obj = RADIOINTERFACE('port') Create a RADIOINTERFACE object using the
+%               specified serial port
+%
+% obj = RADIOINTERFACE() same as above but use the first available
+%               radiointerface device found
+%
             
             if(nargin < 1 || isempty(port))
                 %get all serial port names
@@ -87,7 +104,7 @@ classdef radioInterface < handle
                             %delete serial port
                             delete(obj.sobj);
                         end
-                    catch   %#ok something went wrong with this port skip to the next one
+                    catch   % something went wrong with this port skip to the next one
                         %check if port is open
                         if(strcmp(obj.sobj.status,'open'))
                             %close port and continue
@@ -115,17 +132,19 @@ classdef radioInterface < handle
                 fopen(obj.sobj);
             end
         end
-        %function to key or un-key the radio
-        function ptt(obj,num,state)      
-% PTT change the push-to-talk status of the radio interface
+        
+        function ptt(obj,state,num)
+% PTT - change the push-to-talk status of the radio interface
 %
-% PTT(state) if state is true then the PTT is set to transmit. if state is
-% false then the radio is set to not transmit
+%   PTT(state) if state is true then the PTT is set to transmit. if state is
+%               false then the radio is set to not transmit
+%
+%   PTT(state,num) same as above but control the ptt of radio number num
+%               instead of radio number 1
+%
             
             %check if three arguments were given
             if(nargin<3)
-                %get state from num
-                state=num;
                 %default num to 1
                 num=1;
             end
@@ -144,11 +163,12 @@ classdef radioInterface < handle
         end
         
         function led(obj,num,state)
-% LED turn on or off LED's on the radio interface board
+% LED - turn on or off LED's on the radio interface board
 %
 % LED(num,state) changes the state of the LED given by num. If state is
-% true turn the LED on if state is false turn the LED off
-            
+%               true turn the LED on if state is false turn the LED off
+%
+
             %determine LED state string
             if(state)
                 ststr='on';
@@ -160,10 +180,11 @@ classdef radioInterface < handle
         end
         
         function [dt]=devtype(obj)
-% DEVTYPE get the devicetype string from the radio interface
+% DEVTYPE - get the devicetype string from the radio interface
 %
-% dt=DEVTYPE() where dt is the devicetype string
-            
+% dt = DEVTYPE() where dt is the devicetype string
+%
+
             %flush input from buffer
             flushinput(obj.sobj);
             
@@ -174,6 +195,9 @@ classdef radioInterface < handle
         end
         
         function value = get.pttState(obj)
+% returns the pttState for a radioInterface object. This is called
+% automatically when pttState is accessed
+
             %flush input from buffer
             flushinput(obj.sobj)
             %send ptt command with no arguments
@@ -206,28 +230,67 @@ classdef radioInterface < handle
             end
         end
         
-        function delay =  ptt_delay(obj,num,delay)
+        function value = get.WaitState(obj)
+% returns the WaitState for a radioInterface object. this is called
+% automatically when WaitState is accessed
+
+            obj.command('ptt state');
+            %get response line
+            resp=fgetl(obj.sobj);
+            %parse PTT state
+            state=textscan(resp,'PTT state : %q');
+            if(isempty(state{1}))
+                err_str='Error : ';
+                if(startsWith(resp,err_str))
+                    error(resp(length(err_str):end))
+                else
+                    error('Unknown response ''%'' received',resp);
+                end
+            end
+            value=state{1}{1};
+        end
+        
+        function delay =  ptt_delay(obj,delay,varargin)
 % PTT_DELAY setup the radio interface to key the radio after a delay
 %
 %   PTT_DELAY(dly) set the radio to be keyed in dly seconds.
 %
-%   delay=PTT_DELAY(dly) same as above but return the actual delay set on
-%   the microcontroller. This is diffrent because of rounding and limits on
+%   PTT_DELAY(dly,'UseSignal',true) set the radio to be keyed dly seconds
+%   after the start signal is detected.
+%
+%   PTT_DELAY(dly,num,__) same as above but used key radio number num
+%   instead of radio number one
+%
+%   delay=PTT_DELAY(dly,__) same as above but return the actual delay set on
+%   the microcontroller. This is different because of rounding and limits on
 %   the possible delay
 %
 
-            %check if all arguments were given
-            if(nargin<3)
-                %get delay from num
-                delay=num;
-                %default num to 1
-                num=1;
+            %create new input parser
+            p=inputParser();
+
+            %delay value in seconds
+            addRequired(p,'delay',@(n)validateattributes(n,{'numeric'},{'scalar','real','finite','nonnegative'}));
+            %radio number to use
+            addOptional(p,'num',1,@(n)validateattributes(n,{'numeric'},{'scalar','integer','positive'}));
+            %add use signal parameter
+            addParameter(p,'UseSignal',false,@(t)validateattributes(t,{'numeric','logical'},{'scalar'}));
+            
+            parse(p,delay,varargin{:});
+            
+            %check which ptt command to use
+            if(p.Results.UseSignal)
+                %delay is relative to signal
+                delay_type='Sdelay';
+            else
+                %delay is relative to when command processed
+                delay_type='delay';
             end
             
             %flush input from buffer
             flushinput(obj.sobj)
             %send ptt command with no arguments
-            obj.command('ptt %u delay %f',num,delay);
+            obj.command('ptt %u %s %f',p.Results.num,delay_type,p.Results.delay);
             %get response line
             resp=fgetl(obj.sobj);
             %get actual delay
@@ -251,7 +314,49 @@ classdef radioInterface < handle
             end
         end
         
+        function [id]=getID(obj)
+% GETVERSION - return version string from microcontroller
+%
+%   ver=getID() - returns unique device ID from the device
+            
+            %flush input from buffer
+            flushinput(obj.sobj)
+            %send ptt command with no arguments
+            obj.command('id');
+            %read ID line
+            id=fgetl(obj.sobj);
+            %strip whitespace
+            id=strtrim(id);
+            
+        end
+        
+        function [ver]=getVersion(obj)
+% GETVERSION - return version string from microcontroller
+%
+%   ver=getVersion() - returns version string from the microcontroller.
+%   This is typically vx.x with the possibility of a more informative
+%   suffix
+            
+            %get devtype, this will have version
+            devtype=obj.devtype();
+            
+            parts=split(devtype,':');
+            
+            if(length(parts)==2)
+                ver=strtrim(parts{2});
+            else
+                ver='old';
+                warning('Unexpected devtype format, old RadioInterface firmware?');
+            end
+        end
+        
         function [ext,int]=temp(obj)
+% TEMP - return the value from temperature sensors
+%
+%   [ext,int]=temp() - returns the temperature measured by the thermistor
+%   external to the radiointerface or the temperature sensor built into the
+%   MSP430
+
             %flush input from buffer
             flushinput(obj.sobj)
             
@@ -275,6 +380,12 @@ classdef radioInterface < handle
         
         %delete method
         function delete(obj)
+% DELETE - Remove a radioInterface object from memory
+%
+%   DELETE(obj) deletes a serial port object and releases the associated
+%   serial port
+%
+
             %check if serial port is open
             if(isvalid(obj.sobj))
                 %check if port is open
@@ -295,11 +406,12 @@ classdef radioInterface < handle
     
     methods(Access='protected')
         function command(obj,cmd,varargin)
-
+% COMMAND - low level command function to send command to the MSP430
+            
             %flush input buffer
             flushinput(obj.sobj);
 
-            %trim extranious white space from command
+            %trim extraneous white space from command
             cmd=strtrim(cmd);
 
             %format command string
@@ -311,7 +423,7 @@ classdef radioInterface < handle
             %line buffer
             l='';
 
-            %maximum number of itterations
+            %maximum number of iterations
             mi=3;
 
             %turn off warnings from fgetl
@@ -319,7 +431,7 @@ classdef radioInterface < handle
 
             %catch errors to make sure warning states are reset correctly
             try
-                %check comand sresponses for echo
+                %check command responses for echo
                 while(~strcmp(l,cmd_str))
                     %get response
                     l=fgetl(obj.sobj);
