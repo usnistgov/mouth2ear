@@ -53,6 +53,9 @@ if platform.system()=='Windows':
                     if('the device is not ready' in info.lower()):
                         #drive is not ready, skip
                         continue
+                    elif('the network path was not found' in info.lower()):
+                        #a network path was not found, skip
+                        continue
                     else:
                         raise RuntimeError(f'command returnd {res.returncode} for drive \'{m.group("drive")}\' \'{info.strip()}\'')
                 
