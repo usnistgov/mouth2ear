@@ -310,6 +310,7 @@ with open(log_datadir, 'a') as file:
     file.write('\tTx Device   : %s\n' % tran_dev)
     file.write('\tRx Device   : %s\n' % rec_dev)
     file.write('\tSystem      : %s\n' % system)
+    file.write('\tTest Loc    : %s\n' % test_loc)
     file.write("\tArguments   : 'OutDir','%s'\n" % args.outdir)
     # Add tabs for each newline in test_notes string
     file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+test_notes.lstrip()).splitlines(True)))
