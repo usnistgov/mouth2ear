@@ -22,13 +22,13 @@ def callback(indata, outdata, frames, time, status):
     
     if status.output_underflow:
         print('Output underflow: increase blocksize?', file=sys.stderr)
-        raise sd.CallbackAbort
+        raise sd.CallbackStop
     assert not status
     try:
         data = q.get_nowait()
     except queue.Empty:
         print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackAbort
+        raise sd.CallbackStop
     if data.size < outdata.size:
         outdata[:len(data),0] = data
         outdata[len(data):] = 0
@@ -37,8 +37,7 @@ def callback(indata, outdata, frames, time, status):
         # One column for mono output
         outdata[:,0] = data
 
-def play_record(audio, buffersize=20, blocksize=512,
-                capture_dir='', wav_name='', itr=0):
+def play_record(audio, buffersize=20, blocksize=512, filename="test.wav", overplay=1):
     
     try:
         
@@ -56,6 +55,11 @@ def play_record(audio, buffersize=20, blocksize=512,
         
         # NumPy audio array placeholder
         arr_place = 0
+        
+        # Add Overplay
+        if (overplay != 0):
+            overplay = fs * overplay
+        audio = np.pad(audio, (0, int(overplay)), mode='constant')
 
         for x in range(buffersize):
             
@@ -76,9 +80,6 @@ def play_record(audio, buffersize=20, blocksize=512,
             blocksize=blocksize, samplerate=fs,
             dtype='float32', callback=callback, finished_callback=event.set,
             latency=0)
-        
-        filename = wav_name+str(itr)+'.wav'
-        filename = os.path.join(capture_dir, filename)
         
         with sf.SoundFile(filename, mode='x', samplerate=fs,
                           channels=1) as rec_file:
