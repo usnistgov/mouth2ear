@@ -398,10 +398,34 @@ td = time_n_date.strftime("%d-%b-%Y_%H-%M-%S")
 capture_dir = os.path.join(datadir, '1loc_capture_'+td)
 os.makedirs(capture_dir, exist_ok=True)
 
+#-----------------------[Get BGNoiseFile and Resample]---------------------
+
+if (args.bgnoisefile):
+    nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
+    rs = Fraction(fs/nfs)
+    nf = audio_float(nf)
+    nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+
+#---------------------[Ready Soundfile for Play/Record]--------------------
+
+# Gather audio data in numpy array and audio samplerate
+fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
+# Calculate resample factors
+rs_factor = Fraction(fs/fs_file)
+# Convert to float sound array
+audio_dat = audio_float(audio_dat)
+# Resample audio
+audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
+
 # Save testing audiofile to audio capture directory for future use/testing
-new_sr, new_wav = scipy.io.wavfile.read(args.audiofile)
 tx_audio = os.path.join(capture_dir, '1loc_audio.wav')
-scipy.io.wavfile.write(tx_audio, new_sr, new_wav)
+scipy.io.wavfile.write(tx_audio, fs, audio)
+
+# Add BGNoiseFile
+if (args.bgnoisefile):
+    if (nf.size != audio.size):
+        nf = np.resize(nf, audio.size)
+    audio = audio + nf*args.bgnoisevolume
 
 #--------------------------[Notify User of Start]--------------------------
 
@@ -411,31 +435,6 @@ print('Storing audio data in \n\t"%s"\n' % capture_dir, flush=True)
 with RadioInterface(args.radioport) as ri:
     ri.led(1, True)
     dly_its = []
-        
-    #-----------------------[Get BGNoiseFile and Resample]---------------------
-    
-    if (args.bgnoisefile):
-        nfs, nf = scipy.io.wavfile.read(args.bgnoisefile)
-        rs = Fraction(fs/nfs)
-        nf = audio_float(nf)
-        nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
-    
-    #---------------------[Ready Soundfile for Play/Record]--------------------
-    
-    # Gather audio data in numpy array and audio samplerate
-    fs_file, audio_dat = scipy.io.wavfile.read(args.audiofile)
-    # Calculate resample factors
-    rs_factor = Fraction(fs/fs_file)
-    # Convert to float sound array
-    audio_dat = audio_float(audio_dat)
-    # Resample audio
-    audio = scipy.signal.resample_poly(audio_dat,rs_factor.numerator,rs_factor.denominator)
-
-    # Add BGNoiseFile
-    if (args.bgnoisefile):
-        if (nf.size != audio.size):
-            nf = np.resize(nf, audio.size)
-        audio = audio + nf*args.bgnoisevolume
     
     #----------------------------[Play/Record Loop]----------------------------
     
