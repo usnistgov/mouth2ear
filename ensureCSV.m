@@ -18,6 +18,9 @@ function ensureCSV(datadir)
             out_path=fullfile(csv_dir,csv_out);
             mat_path=fullfile(mat_dir,mat_names{k});
             fprintf('Creating %s from %s\n',out_path,mat_path);
+            %write empty file so we have something
+            f=fopen(out_path,'w');
+            fclose(f);
             try
                 mat2csv(mat_path,out_path);
             catch e
