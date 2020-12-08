@@ -119,7 +119,7 @@ class M2E:
         # Get bgnoise_file and resample
         if (self.bgnoise_file):
             nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-            rs = Fraction(fs/nfs)
+            rs = Fraction(self.fs/nfs)
             nf = audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
             
