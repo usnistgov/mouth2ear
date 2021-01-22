@@ -306,7 +306,7 @@ for k=1:length(tx_dat.recordings)
     %check if y is a cell
     if(iscell(tx_dat.y))
         %get the correct clip from the cell array
-        y=tx_dat.y{clipi(k)}';
+        y=tx_dat.y{tx_dat.clipi(k)}';
     else
         %set y for delay use
         y=tx_dat.y';
