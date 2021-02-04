@@ -8,21 +8,19 @@ import scipy.io.wavfile
 import scipy.signal
 import signal
 import sys
-import test_info_gui
 import time
-import write_log
 
-from audio_player import AudioPlayer
+from mcvqoe.hardware.audio_player import AudioPlayer
 from fractions import Fraction
-from misc import audio_float
-from play_record import play_record
-from radio_interface import RadioInterface
-from sliding_delay import sliding_delay_estimates
+from mcvqoe.misc import audio_float
+from mcvqoe.hardware.radio_interface import RadioInterface
+from mcvqoe.sliding_delay import sliding_delay_estimates
 from tkinter import scrolledtext
 
 import matplotlib.pyplot as plt
-import numpy as np
-import sounddevice as sd     
+import mcvqoe.gui.test_info_gui as test_info_gui
+import mcvqoe.write_log as write_log
+import numpy as np   
 
 class M2E:
     
@@ -36,6 +34,7 @@ class M2E:
         self.buffersize = 20
         self.fs = int(48e3)
         self.info = {}
+        self.no_log = ['test', 'ri']
         self.outdir = ""
         self.overplay = 1.0
         self.ptt_wait = 0.68
@@ -45,11 +44,13 @@ class M2E:
         self.trials = 100
     
     def __enter__(self):
+        """Enables 'with' statement"""
         
         return self
     
-    def __enter__(self, exc_type, exc_value, exc_traceback):
-    
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """Enables 'with' statement"""
+        
         print(f"\n{exc_traceback}\n")
     
     def info_adder(self):
@@ -102,7 +103,7 @@ class M2E:
             check_trials = np.array([1, self.trials])      
       
         # Create audio capture directory with test date/time
-        td = self.info.get("Time").strftime("%d-%b-%Y_%H-%M-%S")
+        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
         capture_dir = os.path.join(datadir, '1loc_capture_'+td)
         os.makedirs(capture_dir, exist_ok=True)
             
@@ -136,7 +137,7 @@ class M2E:
         ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
         
         # Open Radio Interface
-        with RadioInterface(self.radioport) as ri:
+        with self.ri as ri:
             ri.led(1, True)
             dly_its = []
             
@@ -245,8 +246,7 @@ class M2E:
             writer.writerow(["Mean Delay Per Trial (seconds)"])
             for i in range(len(its_dly_mean)):
                 writer.writerow([its_dly_mean[i]])
-             
-            
+                  
     def m2e_2loc_tx(self):
         """Run a m2e_2loc_tx test"""
         
@@ -265,7 +265,7 @@ class M2E:
             check_trials = np.array([1, self.trials])
             
         # Create audio capture directory with current date/time
-        td = self.info.get("Time").strftime("%d-%b-%Y_%H-%M-%S")
+        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
         capture_dir = os.path.join(tx_dat_fold, 'Tx_capture_'+td)
         os.makedirs(capture_dir, exist_ok=True)
         
@@ -299,7 +299,7 @@ class M2E:
         ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
         
         # Open Radio Interface
-        with RadioInterface(self.radioport) as ri:
+        with self.ri as ri:
             ri.led(1, True)
             
             # Play/Record Loop
@@ -366,7 +366,7 @@ class M2E:
         os.makedirs(rx_dat_fold, exist_ok=True)
         
         # Create proper time/date syntax
-        td = self.info.get("Time").strftime("%d-%b-%Y_%H-%M-%S")
+        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
         filename = os.path.join(rx_dat_fold, 'Rx_capture_'+td+'.wav')
         
         # Notify user of start
@@ -405,7 +405,7 @@ def main():
     parser.add_argument('-a', '--audiofile', dest="audio_file", default=my_obj.audio_file,
                         metavar="FILENAME", help="Choose audiofile to use for test. Defaults to test.wav")
     parser.add_argument('-t', '--trials', type=int, default=my_obj.trials, metavar="T",
-                        help="Number of trials to use for test. Defaults to 10")
+                        help="Number of trials to use for test. Defaults to 100")
     parser.add_argument('-r', '--radioport', default='', metavar="PORT",
                         help="Port to use for radio interface. Defaults to the first"+
                         " port where a radio interface is detected")
@@ -441,18 +441,24 @@ def main():
     # Check for value errors with M2E instance variables
     my_obj.param_check()
     
+    # Get start time and date
+    time_n_date = datetime.datetime.now().replace(microsecond=0)
+    my_obj.info['Tstart'] = time_n_date
+
+    # Add test to info dictionary
+    my_obj.info['test'] = my_obj.test
+    
+    # Open RadioInterface object for testing
+    my_obj.ri = RadioInterface(my_obj.radioport)
+    
+    # Fill 'Arguments' within info dictionary
+    my_obj.info.update(write_log.fill_log(my_obj))
+
     # Gather pretest notes and M2E parameters
-    my_obj.info = test_info_gui.pretest(my_obj.outdir)
-    my_obj.info_adder()
-    
-    # Get ID and Version number from RadioInterface
-    ri = RadioInterface(my_obj.radioport)
-    my_obj.info["version"] = ri.get_version()
-    my_obj.info["id"] = ri.get_id()
-    del ri
-    
+    my_obj.info.update(test_info_gui.pretest(outdir=my_obj.outdir, ri=my_obj.ri))
+
     # Write pretest notes and info to tests.log
-    write_log.pre(info_ref=my_obj.info)
+    write_log.pre(info=my_obj.info)
 
     # Run chosen M2E test
     if (my_obj.test == "m2e_1loc"):
