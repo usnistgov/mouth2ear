@@ -401,7 +401,8 @@ def main():
     
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-y', '--testtype', dest="test", default=my_obj.test, metavar="TEST",
-                        help="M2E test to perform. Defaults to 1 location")
+                        help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
+                        "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
     parser.add_argument('-a', '--audiofile', dest="audio_file", default=my_obj.audio_file,
                         metavar="FILENAME", help="Choose audiofile to use for test. Defaults to test.wav")
     parser.add_argument('-t', '--trials', type=int, default=my_obj.trials, metavar="T",
