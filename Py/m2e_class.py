@@ -1,7 +1,6 @@
 import argparse
 import csv
 import datetime
-import git
 import math
 import os
 import scipy.io.wavfile
@@ -9,6 +8,7 @@ import scipy.signal
 import signal
 import sys
 import time
+import traceback
 
 from mcvqoe.hardware.audio_player import AudioPlayer
 from fractions import Fraction
@@ -52,13 +52,6 @@ class M2E:
         """Enables 'with' statement"""
         
         print(f"\n{exc_traceback}\n")
-    
-    def info_adder(self):
-        """Add relevant information to info dictionary"""
-        
-        for i in self.__dict__:
-            if (i != "info"):
-                self.info[i] = self.__dict__[i]
     
     def param_check(self):
         """Check all input parameters for value errors"""
@@ -135,6 +128,9 @@ class M2E:
         
         # Create audioplayer object
         ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
+        # Set playback and record channels
+        ap.playback_chans = {'tx_voice':0}
+        ap.rec_chans = {'rx_voice':0}
         
         # Open Radio Interface
         with self.ri as ri:
@@ -156,7 +152,7 @@ class M2E:
                     audioname = os.path.join(capture_dir, audioname)
                     
                     # Play/Record
-                    filename = ap.play_rec_mono(audio, filename=audioname)
+                    rec_names = ap.play_record(audio, filename=audioname)
                     
                     # Release the push to talk button
                     ri.ptt(False)
@@ -167,7 +163,7 @@ class M2E:
                     #-----------------------------[Data Processing]----------------------------
                     
                     # Get latest run Rx audio
-                    proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+                    proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
                     proc_audio = audio_float(proc_audio)
                     
                     # Check if we run statistics on this trial
@@ -199,7 +195,8 @@ class M2E:
                 print(f"Error Traceback: {traceback.format_tb(e[2])}")
                 # Gather posttest notes and write everything to log
                 post_dict = test_info_gui.post_test()
-                write_log.post(post_dict)
+                write_log.post(info=post_dict, outdir=self.outdir)
+                sys.exit(1)
             
         #-----------------------[Notify User of Completion]------------------------ 
 
@@ -297,6 +294,9 @@ class M2E:
         
         # Create audioplayer object
         ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
+        # Set playback and record channels
+        ap.playback_chans = {'tx_voice':0}
+        ap.rec_chans = {'rx_voice':0}
         
         # Open Radio Interface
         with self.ri as ri:
@@ -317,7 +317,7 @@ class M2E:
                     audioname = os.path.join(capture_dir, audioname)
                     
                     # Play/Record
-                    filename = ap.play_rec_mono(audio, filename=audioname)
+                    rec_names = ap.play_record(audio, filename=audioname)
                     
                     # Release the push to talk button
                     ri.ptt(False)
@@ -332,7 +332,7 @@ class M2E:
                         
                         print("\nRun %s of %s complete :" % (itr, self.trials), flush=True)
                         
-                        proc_audio_sr, proc_audio = scipy.io.wavfile.read(filename)
+                        proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
                         proc_audio = audio_float(proc_audio)
                         
                         # Calculate RMS of received audio
@@ -352,12 +352,13 @@ class M2E:
                 print(f"Error Traceback: {traceback.format_tb(e[2])}")
                 # Gather posttest notes and write everything to log
                 post_dict = test_info_gui.post_test()
-                write_log.post(post_dict)
+                write_log.post(info=post_dict, outdir=self.outdir)
+                sys.exit(1)
 
         #-----------------------[Notify User of Completion]------------------------ 
 
-        print('\n***Data collection complete, you may now stop data collection on the\n'
-              +'   receiving end***\n', flush=True)
+        print('\n***Data collection complete, you may now stop data collection on the'+
+              ' receiving end***\n', flush=True)
         
     def m2e_2loc_rx(self):
         
@@ -389,7 +390,7 @@ class M2E:
         """Catch user's exit (CTRL+C) from program and collect post test notes."""
         # Gather posttest notes and write everything to log
         post_dict = test_info_gui.post_test()
-        write_log.post(post_dict)
+        write_log.post(info=post_dict, outdir=self.outdir)
         sys.exit(1)
 
 def main():
@@ -456,7 +457,7 @@ def main():
     my_obj.info.update(write_log.fill_log(my_obj))
 
     # Gather pretest notes and M2E parameters
-    my_obj.info.update(test_info_gui.pretest(outdir=my_obj.outdir, ri=my_obj.ri))
+    my_obj.info.update(test_info_gui.pretest(outdir=my_obj.outdir))
 
     # Write pretest notes and info to tests.log
     write_log.pre(info=my_obj.info)
@@ -472,8 +473,8 @@ def main():
         raise ValueError(f"\nIncorrect test type")
     
     # Gather posttest notes and write to log
-    my_obj.info.update(test_info_gui.post_test())
-    write_log.post(info=my_obj.info)
+    post_dict = test_info_gui.post_test()
+    write_log.post(info=post_dict, outdir=my_obj.outdir)
     
 if __name__ == "__main__":
     
