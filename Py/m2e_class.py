@@ -152,7 +152,7 @@ class M2E:
                     audioname = os.path.join(capture_dir, audioname)
                     
                     # Play/Record
-                    rec_names = ap.play_record(audio, filename=audioname)
+                    rec_names = ap.play_record(audio, audioname)
                     
                     # Release the push to talk button
                     ri.ptt(False)
@@ -317,7 +317,7 @@ class M2E:
                     audioname = os.path.join(capture_dir, audioname)
                     
                     # Play/Record
-                    rec_names = ap.play_record(audio, filename=audioname)
+                    rec_names = ap.play_record(audio, audioname)
                     
                     # Release the push to talk button
                     ri.ptt(False)
