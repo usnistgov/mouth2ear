@@ -1,7 +1,11 @@
+#!/usr/bin/env python
+
 import argparse
 import csv
 import datetime
 import math
+import mcvqoe.hardware
+import mcvqoe.gui
 import os
 import scipy.io.wavfile
 import scipy.signal
@@ -10,48 +14,62 @@ import sys
 import time
 import traceback
 
-from mcvqoe.hardware.audio_player import AudioPlayer
 from fractions import Fraction
 from mcvqoe.misc import audio_float
-from mcvqoe.hardware.radio_interface import RadioInterface
 from mcvqoe.sliding_delay import sliding_delay_estimates
 from tkinter import scrolledtext
 
 import matplotlib.pyplot as plt
-import mcvqoe.gui.test_info_gui as test_info_gui
-import mcvqoe.write_log as write_log
 import numpy as np   
+     
+def terminal_progress_update(prog_type,num_trials,current_trial,err_msg=""):
+    if(prog_type=='proc'):
+        if(current_trial==0):
+            #we are post processing
+            print('Processing test data')        
+        
+        print(f'Processing trial {current_trial+1} of {num_trials}')
+    elif(prog_type=='test'):
+        if(current_trial==0):
+            print(f'Starting Test of {num_trials} trials')
+        if(current_trial % 10 == 0):
+            print(f'-----Trial {current_trial} of {num_trials}')
+    elif(prog_type=='check-fail'):
+        print(f'On trial {current_trial+1} of {num_trials} : {err_msg}')
+        
+    #continue test
+    return True
+        
 
 class M2E:
-    
+
+    self.no_log = ('test', 'ri')
+
     def __init__(self):
         
         self.audio_file = "test.wav"
-        self.audio_player = None
+        self.audio_interface = None
         self.bgnoise_file = ""
         self.bgnoise_volume = 0.1
-        self.blocksize = 512
-        self.buffersize = 20
-        self.fs = int(48e3)
         self.info = {}
-        self.no_log = ['test', 'ri']
         self.outdir = ""
-        self.overplay = 1.0
         self.ptt_wait = 0.68
-        self.radioport = ""
+        self.ptt_gap=3.1
         self.ri = None
         self.test = "m2e_1loc"
         self.trials = 100
+        self.get_post_notes=None
+        self.progress_update=terminal_progress_update
     
-    def __enter__(self):
-        """Enables 'with' statement"""
-        
-        return self
-    
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """Enables 'with' statement"""
-        
-        print(f"\n{exc_traceback}\n")
+    def run(self):
+        if(self.test == "m2e_1loc"):
+            return self.m2e_1loc()
+        elif(self.test == "m2e_2loc_tx"):
+            return self.m2e_2loc_tx()
+        elif(self.test == "m2e_2loc_rx"):
+            return self.m2e_2loc_rx()
+        else:
+            raise ValueError(f'Unknown test type "{self.test}"')
     
     def param_check(self):
         """Check all input parameters for value errors"""
@@ -59,12 +77,6 @@ class M2E:
         if ((self.test!="m2e_1loc") and (self.test!="m2e_2loc_tx")
             and (self.test!="m2e_2loc_rx")):
             raise ValueError(f"\n{self.test} is an incorrect test")
-        
-        if (self.blocksize <= 0):
-            raise ValueError(f"\nBlocksize must be greater than zero")
-        
-        if (self.buffersize < 1):
-            raise ValueError(f"\nBuffersize must be at least 1")
         
         if (self.trials < 1):
             raise ValueError(f"\nTrials parameter needs to be more than 0")
@@ -75,132 +87,166 @@ class M2E:
         if (self.ptt_wait < 0):
             raise ValueError(f"\nptt_wait parameter must be >= 0")
         
-        if (self.overplay < 0):
-            raise ValueError(f"\nOverplay parameter must be >= 0")
-        
     def m2e_1loc(self):
         """Run a m2e_1loc test"""
+        #------------------[Check for correct audio channels]------------------
+        if('tx_voice' not in self.audio_interface.playback_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to play tx_voice')
+        if('rx_voice' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record rx_voice')
+        #-------------------------[Get Test Start Time]-------------------------
         
-        # Signal handler for graceful shutdown in case of SIGINT(User ctrl^c)
-        signal.signal(signal.SIGINT, self.sig_handler)
+        self.info['Tstart']=datetime.datetime.now()
+        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
         
-        # Initialize 1loc_data folder
-        datadir = os.path.join(self.outdir, '1loc_data')
-        os.makedirs(datadir, exist_ok=True)
+        #--------------------------[Fill log entries]--------------------------
+        #set test name
+        self.info['test']='m2e_1loc'
+        #fill in standard stuff
+        self.info.update(mcvqoe.write_log.fill_log(self))
         
-        # Compute check trials       
-        if (self.trials > 10):
-            check_trials = np.arange(0, (self.trials+1), 10)
-            check_trials[0] = 1
-        else:
-            check_trials = np.array([1, self.trials])      
-      
-        # Create audio capture directory with test date/time
-        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
-        capture_dir = os.path.join(datadir, '1loc_capture_'+td)
-        os.makedirs(capture_dir, exist_ok=True)
+        #-----------------------[Setup Files and folders]-----------------------
+        
+        #generate data dir names
+        data_dir=os.path.join(self.outdir,'data')
+        wav_data_dir=os.path.join(data_dir,'wav')
+        csv_data_dir=os.path.join(data_dir,'csv')
+        
+        #create data directories 
+        os.makedirs(csv_data_dir, exist_ok=True)
+        os.makedirs(wav_data_dir, exist_ok=True)
+        
+        #generate base file name to use for all files
+        base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
+        
+        #generate test dir names
+        wavdir=os.path.join(wav_data_dir,base_filename) 
+        
+        #create test dir
+        os.makedirs(wavdir, exist_ok=True)
+        
+        #generate csv name
+        self.data_filename=os.path.join(csv_data_dir,f'{base_filename}.csv')
+        
+        #generate temp csv name
+        temp_data_filename = os.path.join(csv_data_dir,f'{base_filename}_TEMP.csv')
             
+        #-------------------------[Load Audio File(s)]-------------------------
+        
         # Ready audio_file for play/record
         fs_file, audio_dat = scipy.io.wavfile.read(self.audio_file)
-        rs_factor = Fraction(self.fs/fs_file)
+        rs_factor = Fraction(self.audio_interface.sample_rate/fs_file)
         audio_dat = audio_float(audio_dat)
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
         
         # Save testing audio_file to audio capture directory for future use/testing
-        tx_audio = os.path.join(capture_dir, '1loc_audio.wav')
-        scipy.io.wavfile.write(tx_audio, self.fs, audio)
+        tx_audio = os.path.join(wavdir, '1loc_audio.wav')
+        scipy.io.wavfile.write(tx_audio, self.audio_interface.sample_rate, audio)
         
         # Get bgnoise_file and resample
         if (self.bgnoise_file):
             nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-            rs = Fraction(self.fs/nfs)
+            rs = Fraction(self.audio_interface.sample_rate/nfs)
             nf = audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
-            
-        # Add bgnoise_file
-        if (self.bgnoise_file):
+
             if (nf.size != audio.size):
                 nf = np.resize(nf, audio.size)
             audio = audio + nf*self.bgnoise_volume
+
+        #------------------------[Compute check trials]------------------------
+        if (self.trials > 10):
+            check_trials = np.arange(0, (self.trials+1), 10)
+            check_trials[0] = 1
+        else:
+            check_trials = np.array([1, self.trials])  
+        
+        #---------------[Try block so we write notes at the end]---------------
+        
+        try:
+                
+            #-------------------------[Turn on RI LED]-------------------------
+            self.ri.led(1, True)
+                       
+            #------------------------[Initialize arrays]------------------------
             
-        # Notify user of start
-        print(f"Storing audio data in \n\t{capture_dir}\n", flush=True)
-        
-        # Create audioplayer object
-        ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
-        # Set playback and record channels
-        ap.playback_chans = {'tx_voice':0}
-        ap.rec_chans = {'rx_voice':0}
-        
-        # Open Radio Interface
-        with self.ri as ri:
-            ri.led(1, True)
             dly_its = []
             
-            # Play/Record Loop
-            try:
-                for itr in range(1, self.trials+1):
-                    
-                    # Press the push to talk button
-                    ri.ptt(True)
-                    
-                    # Pause the indicated amount to allow the radio to access the system
-                    time.sleep(self.ptt_wait)
-                    
-                    # Create audiofile name/path for recording
-                    audioname = '1loc_Rx'+str(itr)+'.wav'
-                    audioname = os.path.join(capture_dir, audioname)
-                    
-                    # Play/Record
-                    rec_names = ap.play_record(audio, audioname)
-                    
-                    # Release the push to talk button
-                    ri.ptt(False)
-                    
-                    # Add a pause after playing/recording to remove run to run dependencies
-                    time.sleep(3.1)
-                    
-                    #-----------------------------[Data Processing]----------------------------
+            #------------------------[Measurement Loop]------------------------
+            for itr in range(self.trials):
+                #-----------------------[Update progress]-------------------------
+                if( not self.progress_update('test',self.trials,itr)):
+                    #turn off LED
+                    self.ri.led(1, False)
+                    print('Exit from user')
+                    break
+                #-----------------------[Get Trial Timestamp]-----------------------
+                ts=datetime.datetime.now().strftime('%d-%b-%Y %H:%M:%S')
+                
+                #--------------------[Key Radio and play audio]--------------------
+                
+                # Press the push to talk button
+                self.ri.ptt(True)
+                
+                # Pause the indicated amount to allow the radio to access the system
+                time.sleep(self.ptt_wait)
+                
+                # Create audiofile name/path for recording
+                audioname = 'Rx'+str(itr+1)+'.wav'
+                audioname = os.path.join(wavdir, audioname)
+                
+                # Play/Record
+                rec_chans = self.audio_interface.play_record(audio, audioname)
+                
+                # Release the push to talk button
+                self.ri.ptt(False)
+                
+                #-----------------------[Pause Between runs]-----------------------
+                
+                time.sleep(self.ptt_gap)
+                
+                #-----------------------------[Data Processing]----------------------------
+                
+                # Check if we run statistics on this trial
+                if np.any(check_trials == itr):
                     
                     # Get latest run Rx audio
                     proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
                     proc_audio = audio_float(proc_audio)
                     
-                    # Check if we run statistics on this trial
-                    if np.any(check_trials == itr):
-                        
-                        print("\nRun %s of %s complete :" % (itr, self.trials), flush=True)
-                        
-                        # Calculate RMS of received audio
-                        rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
-                        
-                        # Calculate Maximum of received audio
-                        mx = round(np.max(proc_audio), 4)
-                        
-                        # Print RMS and Maximum
-                        print("\tMax : %s\n\tRMS : %s\n\n" % (mx, rms), flush=True)
+                    # Calculate RMS of received audio
+                    rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
                     
-                    # Find delay for plots
-                    new_delay = sliding_delay_estimates(proc_audio, audio, self.fs)[0]
+                    #check if levels are low
+                    if(rms<1e-3):
+                        continue_test=self.progress_update('test',self.trials,itr,
+                                err_msg=f'Low input levels detected. RMS = {rms}')
+                        if(not continue_test):
+                            #turn off LED
+                            self.ri.led(1, False)
+                            print('Exit from user')
+                            break
+                #-----------------------------[Data Processing]----------------------------
                     
-                    newest_delay = np.multiply(new_delay, 1e-3)
-                    
-                    dly_its.append(newest_delay)
-                    
-            except Exception:
-                e = sys.exc_info()
-                print(f"Error Return Type: {type(e)}")
-                print(f"Error Class: {e[0]}")
-                print(f"Error Message: {e[1]}")
-                print(f"Error Traceback: {traceback.format_tb(e[2])}")
-                # Gather posttest notes and write everything to log
-                post_dict = test_info_gui.post_test()
-                write_log.post(info=post_dict, outdir=self.outdir)
-                sys.exit(1)
-            
-        #-----------------------[Notify User of Completion]------------------------ 
+                # Get latest run Rx audio
+                proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
+                proc_audio = audio_float(proc_audio)
 
-        print("\nData collection completed\n", flush=True)
+                # Estimate the mouth to ear latency
+                new_delay = sliding_delay_estimates(proc_audio, audio, self.audio_interface.sample_rate)[0]
+                
+                newest_delay = np.multiply(new_delay, 1e-3)
+                
+                dly_its.append(newest_delay)
+                
+        finally:
+            if(self.get_post_notes):
+                #get notes
+                info=self.get_post_notes()
+            else:
+                info={}
+            #finish log entry
+            mcvqoe.post(outdir=self.outdir,info=info)
         
         #----------------------------[Generate Plots]------------------------------
         
@@ -235,10 +281,7 @@ class M2E:
         plt.ylabel("Frequency of indicated delay")
         plt.show()
         
-        # Write to csv file
-        csv_path = os.path.join(capture_dir, td+'.csv')
-        
-        with open(csv_path, 'w', newline='') as csv_file:
+        with open(self.data_filename, 'w', newline='') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(["Mean Delay Per Trial (seconds)"])
             for i in range(len(its_dly_mean)):
@@ -247,113 +290,109 @@ class M2E:
     def m2e_2loc_tx(self):
         """Run a m2e_2loc_tx test"""
         
-        # Signal handler for graceful shutdown in case of SIGINT
-        signal.signal(signal.SIGINT, self.sig_handler)
         
-        # Create tx-data folder
-        tx_dat_fold = os.path.join(self.outdir,'2loc_tx-data')
-        os.makedirs(tx_dat_fold, exist_ok=True)
+        #------------------[Check for correct audio channels]------------------
+        if('tx_voice' not in self.audio_interface.playback_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to play tx_voice')
+        if('timecode' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record timecode')
+        #-------------------------[Get Test Start Time]-------------------------
         
-        # Compute check trials
-        if (self.trials > 10):
-            check_trials = np.arange(0, self.trials+1, 10)
-            check_trials[0] = 1
-        else:
-            check_trials = np.array([1, self.trials])
-            
-        # Create audio capture directory with current date/time
-        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
-        capture_dir = os.path.join(tx_dat_fold, 'Tx_capture_'+td)
-        os.makedirs(capture_dir, exist_ok=True)
+        self.info['Tstart']=datetime.datetime.now()
+        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
         
-        # Ready audio_file for play/record
+        #-----------------------[Setup Files and folders]-----------------------
+        
+        #generate data dir names
+        data_dir=os.path.join(self.outdir,'data')
+        tx_dat_fold = os.path.join(data_dir,'2loc_tx-data')
+
+        #generate base file name to use for all files
+        base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
+        
+        capture_dir = os.path.join(tx_dat_fold, 'Tx_'+base_filename)
+        
+        #create directories
+        os.makedirs(capture_dir, exist_ok=True)        
+        
+        #generate csv name
+        self.data_filename=os.path.join(csv_data_dir,f'{base_filename}.csv')
+        
+        #generate temp csv name
+        temp_data_filename = os.path.join(csv_data_dir,f'{base_filename}_TEMP.csv')
+        
+        #---------------------------[Load audio file]---------------------------
         fs_file, audio_dat = scipy.io.wavfile.read(self.audio_file)
-        rs_factor = Fraction(self.fs/fs_file)
+        rs_factor = Fraction(self.audio_interface.sample_rate/fs_file)
         audio_dat = audio_float(audio_dat)
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
         
         # Save testing audiofile to audio capture directory for future use/testing
         tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
-        scipy.io.wavfile.write(tx_audio, self.fs, audio)
-        
+        scipy.io.wavfile.write(tx_audio, self.audio_interface.sample_rate, audio)
+
+        #-----------------------[Setup Background noise]-----------------------
         # Get bgnoise_file and resample
         if (self.bgnoise_file):
             nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
             rs = Fraction(fs/nfs)
             nf = audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
-            
-        # Add bgnoise_file
-        if (self.bgnoise_file):
+
             if (nf.size != audio.size):
                 nf = np.resize(nf, audio.size)
             audio = audio + nf*self.bgnoise_volume
+
         
-        # Notify user of start
-        print(f"Storing audio data in \n\t{capture_dir}\n", flush=True)
-        
-        # Create audioplayer object
-        ap = AudioPlayer(fs=self.fs, blocksize=self.blocksize, buffersize=self.buffersize, overplay=self.overplay)
-        # Set playback and record channels
-        ap.playback_chans = {'tx_voice':0}
-        ap.rec_chans = {'rx_voice':0}
-        
-        # Open Radio Interface
-        with self.ri as ri:
-            ri.led(1, True)
+        #---------------[Try block so we write notes at the end]---------------
+        try:
             
-            # Play/Record Loop
-            try:
-                for itr in range(1, self.trials+1):
+            #-------------------------[Turn on RI LED]-------------------------
+            
+            self.ri.led(1, True)
+            
+            #------------------------[Measurement Loop]------------------------
+            
+            for itr in range(self.trials):
+                
+                #-----------------------[Update progress]-------------------------
+                if(not self.progress_update('test',self.trials,trial)):
+                    #turn off LED
+                    self.ri.led(1, False)
+                    print('Exit from user')
+                    break
+                
+                #--------------------[Key Radio and play audio]--------------------
+                
+                # Press the push to talk button
+                self.ri.ptt(True)
+                
+                # Pause the indicated amount to allow the radio to access the system
+                time.sleep(self.ptt_wait)
+                
+                # Create audiofile name/path for recording
+                audioname = 'Tc'+str(itr+1)+'.wav'
+                audioname = os.path.join(capture_dir, audioname)
+                
+                # Play/Record
+                rec_chans = self.audio_interface.play_record(audio, audioname)
+                
+                # Release the push to talk button
+                self.ri.ptt(False)
+                
+                #-----------------------[Pause Between runs]-----------------------
+                
+                time.sleep(self.ptt_gap)
+                
                     
-                    # Press the push to talk button
-                    ri.ptt(True)
-                    
-                    # Pause the indicated amount to allow the radio to access the system
-                    time.sleep(self.ptt_wait)
-                    
-                    # Create audiofile name/path for recording
-                    audioname = 'Tc'+str(itr)+'.wav'
-                    audioname = os.path.join(capture_dir, audioname)
-                    
-                    # Play/Record
-                    rec_names = ap.play_record(audio, audioname)
-                    
-                    # Release the push to talk button
-                    ri.ptt(False)
-                    
-                    # Add a pause after playing/recording to remove run to run dependencies
-                    time.sleep(3.1)
-                    
-                    #-----------------------------[Data Processing]----------------------------
-                    
-                    # Check if we run statistics on this trial
-                    if np.any(check_trials == itr):
-                        
-                        print("\nRun %s of %s complete :" % (itr, self.trials), flush=True)
-                        
-                        proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
-                        proc_audio = audio_float(proc_audio)
-                        
-                        # Calculate RMS of received audio
-                        rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
-                        
-                        # Calculate Maximum of received audio
-                        mx = round(np.max(proc_audio), 4)
-                        
-                        # Print RMS and Maximum
-                        print("\tMax : %s\n\tRMS : %s\n\n" % (mx, rms), flush=True)
-                        
-            except Exception:
-                e = sys.exc_info()
-                print(f"Error Return Type: {type(e)}")
-                print(f"Error Class: {e[0]}")
-                print(f"Error Message: {e[1]}")
-                print(f"Error Traceback: {traceback.format_tb(e[2])}")
-                # Gather posttest notes and write everything to log
-                post_dict = test_info_gui.post_test()
-                write_log.post(info=post_dict, outdir=self.outdir)
-                sys.exit(1)
+        finally:
+            if(self.get_post_notes):
+                #get notes
+                info=self.get_post_notes()
+            else:
+                info={}
+            #finish log entry
+            mcvqoe.post(outdir=self.outdir,info=info)
 
         #-----------------------[Notify User of Completion]------------------------ 
 
@@ -362,51 +401,71 @@ class M2E:
         
     def m2e_2loc_rx(self):
         
+        
+        #------------------[Check for correct audio channels]------------------
+        if('rx_voice' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record rx_voice')
+        if('timecode' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record timecode')
+        
+        #-------------------------[Get Test Start Time]-------------------------
+        self.info['Tstart']=datetime.datetime.now()
+        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+        
+        #--------------------------[Fill log entries]--------------------------
+        
+        self.info['test']='PSuD'
+        #fill in standard stuff
+        self.info.update(mcvqoe.write_log.fill_log(self))
+        
+        #-----------------------[Setup Files and folders]-----------------------
+        
         # Create rx-data folder
         rx_dat_fold = os.path.join(self.outdir, '2loc_rx-data')
         os.makedirs(rx_dat_fold, exist_ok=True)
         
-        # Create proper time/date syntax
-        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
-        filename = os.path.join(rx_dat_fold, 'Rx_capture_'+td+'.wav')
+        base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
         
-        # Notify user of start
-        print(f"Storing audio data in \n\t{rx_dat_fold}\n", flush=True)
+        filename = os.path.join(rx_dat_fold, 'Rx_'+base_filename+'.wav')
         
+        #---------------------------[write log entry]---------------------------
+        
+        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
+        
+        #---------------[Try block so we write notes at the end]---------------
         try:
-            
-            # Create AudioPlayer instance and begin recording
-            recorder = AudioPlayer()
-            recorder.record_stereo(filename=filename)
+            #--------------------------[Record audio]--------------------------
+            self.audio_interface.record(filename)
         
-        except KeyboardInterrupt:
-            print(f"\n")
-        except Exception as e:
-            # Gather posttest notes and write everything to log
-            post_dict = test_info_gui.post_test()
-            write_log.post(post_dict)
-            
-    def sig_handler(self, signal, frame):
-        """Catch user's exit (CTRL+C) from program and collect post test notes."""
-        # Gather posttest notes and write everything to log
-        post_dict = test_info_gui.post_test()
-        write_log.post(info=post_dict, outdir=self.outdir)
-        sys.exit(1)
+        finally:
+            if(self.get_post_notes):
+                #get notes
+                info=self.get_post_notes()
+            else:
+                info={}
+            #finish log entry
+            mcvqoe.post(outdir=self.outdir,info=info)
 
 def main():
     
     # Create M2E object
-    my_obj = M2E()
+    test_obj = M2E()
+    #set end notes function
+    test_obj.get_post_notes=mcvqoe.gui.post_test
 
+    #-------------------------[Create audio interface]-------------------------
+    
+    test_obj.audio_interface=mcvqoe.hardware.AudioPlayer()
+    
     #--------------------[Parse the command line arguments]--------------------
     
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-y', '--testtype', dest="test", default=my_obj.test, metavar="TEST",
+    parser.add_argument('-y', '--testtype', dest="test", default=test_obj.test, metavar="TEST",
                         help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
                         "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
-    parser.add_argument('-a', '--audiofile', dest="audio_file", default=my_obj.audio_file,
+    parser.add_argument('-a', '--audiofile', dest="audio_file", default=test_obj.audio_file,
                         metavar="FILENAME", help="Choose audiofile to use for test. Defaults to test.wav")
-    parser.add_argument('-t', '--trials', type=int, default=my_obj.trials, metavar="T",
+    parser.add_argument('-t', '--trials', type=int, default=test_obj.trials, metavar="T",
                         help="Number of trials to use for test. Defaults to 100")
     parser.add_argument('-r', '--radioport', default='', metavar="PORT",
                         help="Port to use for radio interface. Defaults to the first"+
@@ -415,66 +474,64 @@ def main():
                         " non empty then it is used to read in a noise file to be mixed with the "+
                         "test audio. Default is no background noise")
     parser.add_argument('-v', '--bgnoisevolume', dest="bgnoise_volume", type=float,
-                        default=my_obj.bgnoise_volume, help="Scale factor for background"+
+                        default=test_obj.bgnoise_volume, help="Scale factor for background"+
                         " noise. Defaults to 0.1")
-    parser.add_argument('-w', '--pttwait', dest="ptt_wait", type=float, default=my_obj.ptt_wait,
+    parser.add_argument('-w', '--pttwait', dest="ptt_wait", type=float, default=test_obj.ptt_wait,
                         metavar="T", help="The amount of time to wait in seconds between pushing the"+
                         " push to talk button and starting playback. This allows time "+
                         "for access to be granted on the system. Default value is 0.68 seconds")
-    parser.add_argument('-b', '--blocksize', type=int, default=my_obj.blocksize, metavar="SZ",
+    parser.add_argument('-b', '--blocksize', type=int, default=test_obj.audio_interface.blocksize, metavar="SZ",
                         help="Block size for transmitting audio, must be a power of 2 "+
                         "(default: %(default)s)")
-    parser.add_argument('-q', '--buffersize', type=int, default=my_obj.buffersize, metavar="SZ",
+    parser.add_argument('-q', '--buffersize', type=int, default=test_obj.audio_interface.buffersize, metavar="SZ",
                         help="Number of blocks used for buffering audio (default: %(default)s)")
-    parser.add_argument('-o', '--overplay', type=float, default=my_obj.overplay, metavar="DUR",
+    parser.add_argument('-o', '--overplay', type=float, default=test_obj.audio_interface.overplay, metavar="DUR",
                         help="The number of seconds to play silence after the audio is complete"+
                         ". This allows for all of the audio to be recorded when there is delay"+
                         " in the system")
-    parser.add_argument('-d', '--outdir', default=my_obj.outdir, metavar="DIR",
+    parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files")
     
     args = parser.parse_args()
     
     # Set M2E object variables to terminal arguments
     for k, v in vars(args).items():
-        if hasattr(my_obj, k):
-            setattr(my_obj, k, v)
+        if hasattr(test_obj, k):
+            setattr(test_obj, k, v)
     
     # Check for value errors with M2E instance variables
-    my_obj.param_check()
+    test_obj.param_check()
     
-    # Get start time and date
-    time_n_date = datetime.datetime.now().replace(microsecond=0)
-    my_obj.info['Tstart'] = time_n_date
-
-    # Add test to info dictionary
-    my_obj.info['test'] = my_obj.test
+    #---------------------[Set audio interface properties]---------------------
+    test_obj.audio_interface.blocksize=args.blocksize
+    test_obj.audio_interface.buffersize=args.buffersize
+    test_obj.audio_interface.overplay=args.overplay
     
-    # Open RadioInterface object for testing
-    my_obj.ri = RadioInterface(my_obj.radioport)
+    #set correct channels    
+    if(test_obj.test == "m2e_1loc"):
+        test_obj.audio_interface.playback_chans={'tx_voice':0}
+        test_obj.audio_interface.rec_chans={'rx_voice':0}
+    elif(test_obj.test == "m2e_2loc_tx"):
+        test_obj.audio_interface.playback_chans={'tx_voice':0}
+        test_obj.audio_interface.rec_chans={'timecode':1}
+    elif(test_obj.test == "m2e_2loc_rx"):
+        test_obj.audio_interface.playback_chans={}
+        test_obj.audio_interface.rec_chans={'rx_voice':0,'timecode':1}
     
-    # Fill 'Arguments' within info dictionary
-    my_obj.info.update(write_log.fill_log(my_obj))
-
-    # Gather pretest notes and M2E parameters
-    my_obj.info.update(test_info_gui.pretest(outdir=my_obj.outdir))
-
-    # Write pretest notes and info to tests.log
-    write_log.pre(info=my_obj.info)
-
-    # Run chosen M2E test
-    if (my_obj.test == "m2e_1loc"):
-        my_obj.m2e_1loc()
-    elif (my_obj.test == "m2e_2loc_tx"):
-        my_obj.m2e_2loc_tx()
-    elif (my_obj.test == "m2e_2loc_rx"):
-        my_obj.m2e_2loc_rx()
-    else:
-        raise ValueError(f"\nIncorrect test type")
+    #---------------------------[Open RadioInterface]---------------------------
     
-    # Gather posttest notes and write to log
-    post_dict = test_info_gui.post_test()
-    write_log.post(info=post_dict, outdir=my_obj.outdir)
+    with mcvqoe.hardware.RadioInterface(args.radioport) as test_obj.ri:
+
+        #------------------------------[Get test info]------------------------------
+        test_obj.info=mcvqoe.gui.pretest(args.outdir,
+                    check_function=lambda : mcvqoe.hardware.single_play(
+                                                    test_obj.ri,test_obj.audio_interface,
+                                                    ptt_wait=test_obj.ptt_wait))
+        #------------------------------[Run Test]------------------------------
+        test_obj.run()
+        print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
+
+
     
 if __name__ == "__main__":
     
