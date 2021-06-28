@@ -233,6 +233,10 @@ class measure:
                 
                 dly_its.append(newest_delay)
                 
+            #---------------------------[Turn off RI LED]---------------------------
+
+            self.ri.led(1,False)
+
         finally:
             if(self.get_post_notes):
                 #get notes
