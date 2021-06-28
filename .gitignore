@@ -16,10 +16,10 @@ CopySettings.json
 *.wav
 
 # Ignore version file
-mcvqoe/m2e/version.py
+mcvqoe/mouth2ear/version.py
 
 #ignore egg info
-mcvqoe_m2e.egg-info/
+mcvqoe_mouth2ear.egg-info/
 
 #build and dist directories
 build/

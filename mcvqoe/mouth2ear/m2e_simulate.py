@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
-import m2e
+import mcvqoe.simulation
 import mcvqoe.hardware
 import mcvqoe.gui
 import os
+import sys
+
+from .m2e import measure
 
 import matplotlib.pyplot as plt
 import numpy as np   
@@ -12,27 +15,26 @@ import numpy as np
 def main():
     
     # Create M2E object
-    test_obj = m2e.measure()
-    #set end notes function
-    test_obj.get_post_notes=mcvqoe.gui.post_test
+    test_obj = measure()
+    #only get test notes on error
+    test_obj.get_post_notes=lambda : mcvqoe.gui.post_test(error_only=True)
+    #set wait times to zero for simulation
+    test_obj.ptt_wait=0
+    test_obj.ptt_gap=0
 
-    #-------------------------[Create audio interface]-------------------------
+    #------------------------[Create simulation object]------------------------
+    sim_obj=mcvqoe.simulation.QoEsim()
     
-    test_obj.audio_interface=mcvqoe.hardware.AudioPlayer()
+    test_obj.audio_interface=sim_obj
+    test_obj.ri=sim_obj
     
     #--------------------[Parse the command line arguments]--------------------
     
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-y', '--testtype', dest="test", default=test_obj.test, metavar="TEST",
-                        help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
-                        "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
     parser.add_argument('-a', '--audiofile', dest="audio_file", default=test_obj.audio_file,
                         metavar="FILENAME", help="Choose audiofile to use for test. Defaults to test.wav")
     parser.add_argument('-t', '--trials', type=int, default=test_obj.trials, metavar="T",
                         help="Number of trials to use for test. Defaults to 100")
-    parser.add_argument('-r', '--radioport', default='', metavar="PORT",
-                        help="Port to use for radio interface. Defaults to the first"+
-                        " port where a radio interface is detected")
     parser.add_argument('-z', '--bgnoisefile', dest="bgnoise_file", default='', help="If this is"+
                         " non empty then it is used to read in a noise file to be mixed with the "+
                         "test audio. Default is no background noise")
@@ -43,22 +45,23 @@ def main():
                         metavar="T", help="The amount of time to wait in seconds between pushing the"+
                         " push to talk button and starting playback. This allows time "+
                         "for access to be granted on the system. Default value is 0.68 seconds")
-    parser.add_argument('-b', '--blocksize', type=int, default=test_obj.audio_interface.blocksize, metavar="SZ",
-                        help="Block size for transmitting audio, must be a power of 2 "+
-                        "(default: %(default)s)")
-    parser.add_argument('-q', '--buffersize', type=int, default=test_obj.audio_interface.buffersize, metavar="SZ",
-                        help="Number of blocks used for buffering audio (default: %(default)s)")
     parser.add_argument('-o', '--overplay', type=float, default=test_obj.audio_interface.overplay, metavar="DUR",
                         help="The number of seconds to play silence after the audio is complete"+
                         ". This allows for all of the audio to be recorded when there is delay"+
                         " in the system")
     parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files")
+    parser.add_argument('-c','--channel-tech', default=sim_obj.channel_tech, metavar='TECH',dest='channel_tech',
+                        help='Channel technology to simulate (default: %(default)s)')
+    parser.add_argument('--channel-rate', default=sim_obj.channel_rate, metavar='RATE',dest='channel_rate',
+                        help='Channel technology rate to simulate. Passing \'None\' will use the technology default. (default: %(default)s)')
+    parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L',dest='m2e_latency',
+                        help='Channel mouth to ear latency, in seconds, to simulate. (default: %(default)s)')
     parser.add_argument('--plot',dest='show_plot',action='store_true',default=True,
                         help='Don\'t plot data after test')
     parser.add_argument('--no-plot',dest='show_plot',action='store_false',
                         help='Don\'t plot data after test')
-    
+                        
     args = parser.parse_args()
     
     # Set M2E object variables to terminal arguments
@@ -69,34 +72,51 @@ def main():
     # Check for value errors with M2E instance variables
     test_obj.param_check()
     
-    #---------------------[Set audio interface properties]---------------------
-    test_obj.audio_interface.blocksize=args.blocksize
-    test_obj.audio_interface.buffersize=args.buffersize
+    #-------------------------[Set simulation settings]-------------------------
+
+    sim_obj.channel_tech=args.channel_tech
+    
+    #set channel rate, check for None
+    if(args.channel_rate=='None'):
+        sim_obj.channel_rate=None
+    else:
+        sim_obj.channel_rate=args.channel_rate
+        
+    sim_obj.m2e_latency=args.m2e_latency
     test_obj.audio_interface.overplay=args.overplay
     
     #set correct channels    
-    if(test_obj.test == "m2e_1loc"):
-        test_obj.audio_interface.playback_chans={'tx_voice':0}
-        test_obj.audio_interface.rec_chans={'rx_voice':0}
-    elif(test_obj.test == "m2e_2loc_tx"):
-        test_obj.audio_interface.playback_chans={'tx_voice':0}
-        test_obj.audio_interface.rec_chans={'timecode':1}
-    elif(test_obj.test == "m2e_2loc_rx"):
-        test_obj.audio_interface.playback_chans={}
-        test_obj.audio_interface.rec_chans={'rx_voice':0,'timecode':1}
-    
-    #---------------------------[Open RadioInterface]---------------------------
-    
-    with mcvqoe.hardware.RadioInterface(args.radioport) as test_obj.ri:
+    test_obj.audio_interface.playback_chans={'tx_voice':0}
+    test_obj.audio_interface.rec_chans={'rx_voice':0}
 
-        #------------------------------[Get test info]------------------------------
-        test_obj.info=mcvqoe.gui.pretest(args.outdir,
-                    check_function=lambda : mcvqoe.hardware.single_play(
-                                                    test_obj.ri,test_obj.audio_interface,
-                                                    ptt_wait=test_obj.ptt_wait))
-        #------------------------------[Run Test]------------------------------
-        test_obj.run()
-        print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
+#------------------------------[Get test info]------------------------------
+    
+    gui=mcvqoe.gui.TestInfoGui(write_test_info=False)
+    
+    gui.chk_audio_function=lambda : mcvqoe.hardware.single_play(sim_obj,sim_obj,
+                                                    playback=True,
+                                                    ptt_wait=test_obj.ptt_wait)
+
+    #construct string for system name
+    system=sim_obj.channel_tech
+    if(sim_obj.channel_rate is not None):
+        system+=' at '+str(sim_obj.channel_rate)
+
+    gui.info_in['test_type'] = "simulation"
+    gui.info_in['tx_dev'] = "none"
+    gui.info_in['rx_dev'] = "none"
+    gui.info_in['system'] = system
+    gui.info_in['test_loc'] = "N/A"
+    test_obj.info=gui.show()
+
+    #check if the user canceled
+    if(test_obj.info is None):
+        print(f"\n\tExited by user")
+        sys.exit(1)
+        
+    #------------------------------[Run Test]------------------------------
+    test_obj.run()
+    print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
     
     #------------------------------[Plot Data]------------------------------
     if(args.show_plot):

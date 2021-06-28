@@ -4,6 +4,7 @@ import datetime
 import math
 import mcvqoe
 import os
+import pkg_resources
 import scipy.io.wavfile
 import scipy.signal
 import shutil
@@ -42,7 +43,7 @@ class measure:
 
     def __init__(self):
         
-        self.audio_file = "test.wav"
+        self.audio_file = pkg_resources.resource_filename('mcvqoe','audio_clips/test.wav')
         self.audio_interface = None
         self.bgnoise_file = ""
         self.bgnoise_volume = 0.1
