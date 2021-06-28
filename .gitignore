@@ -1,32 +1,29 @@
-#random script
-process_script.m
-#matlab temporary files
-*.asv
-
-#matlab data files
-*.mat
-
-#data directorys
+#python cache files
+*.pyc
+__pycache__/
 data/
-tx-data/
-rx-data/
 
-#plots directory
-plots/
-
-#plot files
-*.png
-*.fig
+#log files
+tests.log
 
 #test type file
 test-type.txt
 
-#test conditions log file
-tests.log
-
-#settings files for testCpy
-ComputerName.txt
+#copy settings
 CopySettings.json
+# Ignore data
+*.csv
+*.wav
 
-#some random R file
-.Rproj.user
+# Ignore version file
+mcvqoe/m2e/version.py
+
+#ignore egg info
+mcvqoe_m2e.egg-info/
+
+#build and dist directories
+build/
+dist/
+
+# Ignore eggs
+.eggs/
