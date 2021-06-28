@@ -6,6 +6,7 @@ import mcvqoe
 import os
 import scipy.io.wavfile
 import scipy.signal
+import shutil
 import signal
 import time
 
@@ -124,8 +125,15 @@ class measure:
         
         #generate temp csv name
         temp_data_filename = os.path.join(csv_data_dir,f'{base_filename}_TEMP.csv')
-            
+        
+        #-------------------------[Generate CSV header]-------------------------    
+        header='Timestamp,Filename,m2e_latency\n'
+        dat_format='{time},{name},{m2e}\n'
+        
         #-------------------------[Load Audio File(s)]-------------------------
+        
+        #get name with out path or ext
+        clip_name=os.path.basename(os.path.splitext(self.audio_file)[0])
         
         # Ready audio_file for play/record
         fs_file, audio_dat = scipy.io.wavfile.read(self.audio_file)
@@ -134,7 +142,7 @@ class measure:
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
         
         # Save testing audio_file to audio capture directory for future use/testing
-        tx_audio = os.path.join(wavdir, '1loc_audio.wav')
+        tx_audio = os.path.join(wavdir, f'Tx_{clip_name}.wav')
         scipy.io.wavfile.write(tx_audio, self.audio_interface.sample_rate, audio)
         
         # Get bgnoise_file and resample
@@ -161,10 +169,10 @@ class measure:
                 
             #-------------------------[Turn on RI LED]-------------------------
             self.ri.led(1, True)
-                       
-            #------------------------[Initialize arrays]------------------------
             
-            dly_its = []
+            #-----------------------[write initial csv file]-----------------------
+            with open(temp_data_filename,'wt') as f:
+                f.write(header)
             
             #------------------------[Measurement Loop]------------------------
             for itr in range(self.trials):
@@ -231,12 +239,22 @@ class measure:
                 
                 newest_delay = np.multiply(new_delay, 1e-3)
                 
-                dly_its.append(newest_delay)
+
                 
+                #--------------------------[Write CSV]--------------------------
+                
+                with open(temp_data_filename,'at') as f:
+                    f.write(dat_format.format(time=ts,name=clip_name,m2e=np.mean(newest_delay)))
+            
+            #-----------------------------[Cleanup]-----------------------------
+            
+            #move temp file to real file
+            shutil.move(temp_data_filename,self.data_filename)
+            
             #---------------------------[Turn off RI LED]---------------------------
 
             self.ri.led(1,False)
-
+            
         finally:
             if(self.get_post_notes):
                 #get notes
@@ -246,16 +264,31 @@ class measure:
             #finish log entry
             mcvqoe.post(outdir=self.outdir,info=info)
         
+        
+    def plot(self,name=None):
+        
+        if( not name):
+            name=self.data_filename
+        
+        with open(name,'rt') as csv_f:
+            #create dict reader
+            reader=csv.DictReader(csv_f)
+            #empty list for M2E data
+            m2e_dat=[]
+            #
+            for row in reader:
+                m2e_dat.append(float(row['m2e_latency']))
+
+        #convert to numpy array
+        m2e_dat=np.array(m2e_dat)
+        
         #----------------------------[Generate Plots]------------------------------
         
-        # Get mean of each row in dly_its
-        its_dly_mean = np.mean(dly_its, axis=1)
-        
         # Overall mean delay
-        ovrl_dly = np.mean(its_dly_mean)
+        ovrl_dly = np.mean(m2e_dat)
         
         # Get standard deviation
-        std_delay = np.std(dly_its, dtype=np.float64)
+        std_delay = np.std(m2e_dat, dtype=np.float64)
         std_delay = std_delay*(1e6)
         
         # Print StD to terminal
@@ -263,27 +296,21 @@ class measure:
         
         # Create trial scatter plot
         plt.figure() 
-        x2 = range(1, len(its_dly_mean)+1)
-        plt.plot(x2, its_dly_mean, 'o', color='blue')
+        x2 = range(1, len(m2e_dat)+1)
+        plt.plot(x2, m2e_dat, 'o', color='blue')
         plt.xlabel("Trial Number")
         plt.ylabel("Delay(s)")
         
         # Create histogram for mean
         plt.figure()
-        uniq = np.unique(its_dly_mean)
-        dlymin = np.amin(its_dly_mean)
-        dlymax = np.amax(its_dly_mean)
-        plt.hist(its_dly_mean, bins=len(uniq), range=(dlymin, dlymax), rwidth=0.5)
+        uniq = np.unique(m2e_dat)
+        dlymin = np.amin(m2e_dat)
+        dlymax = np.amax(m2e_dat)
+        plt.hist(m2e_dat, bins=len(uniq), range=(dlymin, dlymax), rwidth=0.5)
         plt.title("Mean: %.5fs" % ovrl_dly)
         plt.xlabel("Delay(s)")
         plt.ylabel("Frequency of indicated delay")
         plt.show()
-        
-        with open(self.data_filename, 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(["Mean Delay Per Trial (seconds)"])
-            for i in range(len(its_dly_mean)):
-                writer.writerow([its_dly_mean[i]])
                   
     def m2e_2loc_tx(self):
         """Run a m2e_2loc_tx test"""

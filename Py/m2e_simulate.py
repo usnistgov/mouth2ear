@@ -55,7 +55,11 @@ def main():
                         help='Channel technology rate to simulate. Passing \'None\' will use the technology default. (default: %(default)s)')
     parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L',dest='m2e_latency',
                         help='Channel mouth to ear latency, in seconds, to simulate. (default: %(default)s)')
-    
+    parser.add_argument('--plot',dest='show_plot',action='store_true',default=True,
+                        help='Don\'t plot data after test')
+    parser.add_argument('--no-plot',dest='show_plot',action='store_false',
+                        help='Don\'t plot data after test')
+                        
     args = parser.parse_args()
     
     # Set M2E object variables to terminal arguments
@@ -111,6 +115,10 @@ def main():
     #------------------------------[Run Test]------------------------------
     test_obj.run()
     print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
+    
+    #------------------------------[Plot Data]------------------------------
+    if(args.show_plot):
+        test_obj.plot()
 
 
     

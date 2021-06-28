@@ -54,6 +54,10 @@ def main():
                         " in the system")
     parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files")
+    parser.add_argument('--plot',dest='show_plot',action='store_true',default=True,
+                        help='Don\'t plot data after test')
+    parser.add_argument('--no-plot',dest='show_plot',action='store_false',
+                        help='Don\'t plot data after test')
     
     args = parser.parse_args()
     
@@ -93,6 +97,10 @@ def main():
         #------------------------------[Run Test]------------------------------
         test_obj.run()
         print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
+    
+    #------------------------------[Plot Data]------------------------------
+    if(args.show_plot):
+        test_obj.plot()
 
 
     
