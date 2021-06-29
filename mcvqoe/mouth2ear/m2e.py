@@ -43,7 +43,9 @@ class measure:
 
     def __init__(self):
         
-        self.audio_file = pkg_resources.resource_filename('mcvqoe','audio_clips/test.wav')
+        self.audio_files = [pkg_resources.resource_filename('mcvqoe','audio_clips/test.wav')]
+        self.audio_path = ''
+        self.full_audio_dir=False
         self.audio_interface = None
         self.bgnoise_file = ""
         self.bgnoise_volume = 0.1
@@ -56,7 +58,83 @@ class measure:
         self.trials = 100
         self.get_post_notes=None
         self.progress_update=terminal_progress_update
+        self.rng=np.random.default_rng()
     
+    def load_audio(self,fs_test):
+        """
+        load audio files for use in test.
+        
+        this loads audio from self.audio_files and stores values in self.y,
+        self.cutpoints and self.keyword_spacings
+        In most cases run() will call this automatically but, it can be called
+        in the case that self.audio_files is changed after run() is called
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If self.audio_files is empty
+        RuntimeError
+            If clip fs is not 48 kHz
+        """
+   
+        #if we are not using all files, check that audio files is not empty
+        if not self.audio_files and not self.full_audio_dir:
+            #TODO : is this the right error to use here??
+            raise ValueError('Expected self.audio_files to not be empty')
+            
+        # Get bgnoise_file and resample
+        if (self.bgnoise_file):
+            nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
+            rs = Fraction(fs_test/nfs)
+            nf = audio_float(nf)
+            nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+            
+        if(self.full_audio_dir):
+            #override audio_files
+            self.audio_files=[]
+            #look through all things in audio_path
+            for f in os.scandir(self.audio_path):
+                #make sure this is a file
+                if(f.is_file()): 
+                    #get extension
+                    _,ext=os.path.splitext(f.name)
+                    #check for .wav files
+                    if(ext=='.wav'):
+                        #add to list
+                        self.audio_files.append(f.name)
+                #TODO : recursive search?
+
+        #list for input speech
+        self.y=[]
+        
+        for f in self.audio_files:
+            #make full path from relative paths
+            f_full=os.path.join(self.audio_path,f)
+            # load audio
+            fs_file, audio_dat = scipy.io.wavfile.read(f_full)
+            #check fs
+            if(fs_file != fs_test):
+                rs_factor = Fraction(fs_test/fs_file)
+                audio_dat = audio_float(audio_dat)
+                audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
+            else:
+                # Convert to float sound array and add to list
+                audio=mcvqoe.audio_float(audio_dat)
+            
+            # check if we are adding noise
+            if (self.bgnoise_file):
+                #add noise (repeated to audio file size) 
+                audio = audio + np.resize(nf, audio.size)*self.bgnoise_volume
+            
+            #append audio to list
+            self.y.append(audio)
+            
     def run(self):
         if(self.test == "m2e_1loc"):
             return self.m2e_1loc()
@@ -76,9 +154,6 @@ class measure:
         
         if (self.trials < 1):
             raise ValueError(f"\nTrials parameter needs to be more than 0")
-        
-        if not (os.path.isfile(self.audio_file)):
-            raise ValueError(f"\nAudio file chosen does not exist")
         
         if (self.ptt_wait < 0):
             raise ValueError(f"\nptt_wait parameter must be >= 0")
@@ -131,32 +206,24 @@ class measure:
         header='Timestamp,Filename,m2e_latency,channels\n'
         dat_format='{time},{name},{m2e},{chans}\n'
         
-        #-------------------------[Load Audio File(s)]-------------------------
+        #---------------------[Load Audio Files if Needed]---------------------
+        
+        if(not hasattr(self,'y')):
+            self.load_audio(self.audio_interface.sample_rate)
+
+        #generate clip index
+        self.clipi=self.rng.permutation(self.trials)%len(self.y)
+        
+        #-----------------------[Add Tx audio to wav dir]-----------------------
         
         #get name with out path or ext
-        clip_name=os.path.basename(os.path.splitext(self.audio_file)[0])
+        clip_names=[ os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
         
-        # Ready audio_file for play/record
-        fs_file, audio_dat = scipy.io.wavfile.read(self.audio_file)
-        rs_factor = Fraction(self.audio_interface.sample_rate/fs_file)
-        audio_dat = audio_float(audio_dat)
-        audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
+        #write out Tx clips to files
+        for dat,name in zip(self.y,clip_names):
+            out_name=os.path.join(wavdir,f'Tx_{name}')
+            scipy.io.wavfile.write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
         
-        # Save testing audio_file to audio capture directory for future use/testing
-        tx_audio = os.path.join(wavdir, f'Tx_{clip_name}.wav')
-        scipy.io.wavfile.write(tx_audio, self.audio_interface.sample_rate, audio)
-        
-        # Get bgnoise_file and resample
-        if (self.bgnoise_file):
-            nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-            rs = Fraction(self.audio_interface.sample_rate/nfs)
-            nf = audio_float(nf)
-            nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
-
-            if (nf.size != audio.size):
-                nf = np.resize(nf, audio.size)
-            audio = audio + nf*self.bgnoise_volume
-
         #------------------------[Compute check trials]------------------------
         if (self.trials > 10):
             check_trials = np.arange(0, (self.trials+1), 10)
@@ -176,9 +243,9 @@ class measure:
                 f.write(header)
             
             #------------------------[Measurement Loop]------------------------
-            for itr in range(self.trials):
+            for trial in range(self.trials):
                 #-----------------------[Update progress]-------------------------
-                if( not self.progress_update('test',self.trials,itr)):
+                if( not self.progress_update('test',self.trials,trial)):
                     #turn off LED
                     self.ri.led(1, False)
                     print('Exit from user')
@@ -194,12 +261,14 @@ class measure:
                 # Pause the indicated amount to allow the radio to access the system
                 time.sleep(self.ptt_wait)
                 
+                clip_index=self.clipi[trial]
+                
                 # Create audiofile name/path for recording
-                audioname = 'Rx'+str(itr+1)+'.wav'
+                audioname = f'Rx{trial+1}_{clip_names[clip_index]}.wav'
                 audioname = os.path.join(wavdir, audioname)
                 
                 # Play/Record
-                rec_chans = self.audio_interface.play_record(audio, audioname)
+                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
                 
                 # Release the push to talk button
                 self.ri.ptt(False)
@@ -228,14 +297,14 @@ class measure:
                 
                 
                 # Check if we run statistics on this trial
-                if np.any(check_trials == itr):
+                if np.any(check_trials == trial):
                     
                     # Calculate RMS of received audio
                     rms = round(math.sqrt(np.mean(proc_voice**2)), 4)
                     
                     #check if levels are low
                     if(rms<1e-3):
-                        continue_test=self.progress_update('test',self.trials,itr,
+                        continue_test=self.progress_update('test',self.trials,trial,
                                 err_msg=f'Low input levels detected. RMS = {rms}')
                         if(not continue_test):
                             #turn off LED
@@ -245,7 +314,7 @@ class measure:
                 #-----------------------------[Data Processing]----------------------------
                     
                 # Estimate the mouth to ear latency
-                new_delay = sliding_delay_estimates(proc_voice, audio, self.audio_interface.sample_rate)[0]
+                new_delay = sliding_delay_estimates(proc_voice, self.y[clip_index], self.audio_interface.sample_rate)[0]
                 
                 newest_delay = np.multiply(new_delay, 1e-3)
                 
@@ -256,7 +325,7 @@ class measure:
                 with open(temp_data_filename,'at') as f:
                     f.write(dat_format.format(
                                         time=ts,
-                                        name=clip_name,
+                                        name=clip_names[clip_index],
                                         m2e=np.mean(newest_delay),
                                         chans=chan_str,
                                         ))
@@ -350,10 +419,10 @@ class measure:
         #generate base file name to use for all files
         base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
         
-        capture_dir = os.path.join(tx_dat_fold, 'Tx_'+base_filename)
+        wavdir = os.path.join(tx_dat_fold, 'Tx_'+base_filename)
         
         #create directories
-        os.makedirs(capture_dir, exist_ok=True)        
+        os.makedirs(wavdir, exist_ok=True)        
         
         #generate csv name
         self.data_filename=os.path.join(csv_data_dir,f'{base_filename}.csv')
@@ -361,27 +430,24 @@ class measure:
         #generate temp csv name
         temp_data_filename = os.path.join(csv_data_dir,f'{base_filename}_TEMP.csv')
         
-        #---------------------------[Load audio file]---------------------------
-        fs_file, audio_dat = scipy.io.wavfile.read(self.audio_file)
-        rs_factor = Fraction(self.audio_interface.sample_rate/fs_file)
-        audio_dat = audio_float(audio_dat)
-        audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
+        #---------------------[Load Audio Files if Needed]---------------------
         
-        # Save testing audiofile to audio capture directory for future use/testing
-        tx_audio = os.path.join(capture_dir, 'Tx_audio.wav')
-        scipy.io.wavfile.write(tx_audio, self.audio_interface.sample_rate, audio)
+        if(not hasattr(self,'y')):
+            self.load_audio(self.audio_interface.sample_rate)
 
-        #-----------------------[Setup Background noise]-----------------------
-        # Get bgnoise_file and resample
-        if (self.bgnoise_file):
-            nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-            rs = Fraction(fs/nfs)
-            nf = audio_float(nf)
-            nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+        #generate clip index
+        self.clipi=self.rng.permutation(self.trials)%len(self.y)
+        
+        #-----------------------[Add Tx audio to wav dir]-----------------------
+        
+        #get name with out path or ext
+        clip_names=[ os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+        
+        #write out Tx clips to files
+        for dat,name in zip(self.y,clip_names):
+            out_name=os.path.join(wavdir,f'Tx_{name}')
+            scipy.io.wavfile.write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
 
-            if (nf.size != audio.size):
-                nf = np.resize(nf, audio.size)
-            audio = audio + nf*self.bgnoise_volume
 
         
         #---------------[Try block so we write notes at the end]---------------
@@ -393,7 +459,7 @@ class measure:
             
             #------------------------[Measurement Loop]------------------------
             
-            for itr in range(self.trials):
+            for trial in range(self.trials):
                 
                 #-----------------------[Update progress]-------------------------
                 if(not self.progress_update('test',self.trials,trial)):
@@ -401,6 +467,8 @@ class measure:
                     self.ri.led(1, False)
                     print('Exit from user')
                     break
+                #-----------------------[Get Trial Timestamp]-----------------------
+                ts=datetime.datetime.now().strftime('%d-%b-%Y %H:%M:%S')
                 
                 #--------------------[Key Radio and play audio]--------------------
                 
@@ -411,11 +479,11 @@ class measure:
                 time.sleep(self.ptt_wait)
                 
                 # Create audiofile name/path for recording
-                audioname = 'Tc'+str(itr+1)+'.wav'
-                audioname = os.path.join(capture_dir, audioname)
+                audioname = f'Rx{trial+1}_{clip_names[clip_index]}.wav'
+                audioname = os.path.join(wavdir, audioname)
                 
                 # Play/Record
-                rec_chans = self.audio_interface.play_record(audio, audioname)
+                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
                 
                 # Release the push to talk button
                 self.ri.ptt(False)
@@ -424,6 +492,17 @@ class measure:
                 
                 time.sleep(self.ptt_gap)
                 
+                #--------------------------[Write CSV]--------------------------
+                
+                chan_str='('+(';'.join(rec_chans))+')'
+                
+                with open(temp_data_filename,'at') as f:
+                    f.write(dat_format.format(
+                                        time=ts,
+                                        name=clip_names[clip_index],
+                                        m2e=np.NaN,
+                                        chans=chan_str,
+                                        ))
                     
         finally:
             if(self.get_post_notes):

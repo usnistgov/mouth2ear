@@ -27,8 +27,12 @@ def main():
     parser.add_argument('-y', '--testtype', dest="test", default=test_obj.test, metavar="TEST",
                         help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
                         "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
-    parser.add_argument('-a', '--audiofile', dest="audio_file", default=test_obj.audio_file,
-                        metavar="FILENAME", help="Choose audiofile to use for test. Defaults to test.wav")
+    parser.add_argument(
+                        '-a', '--audio-files', default=[],action="extend", nargs="+", type=str,metavar='FILENAME',
+                        help='Path to audio files to use for test. Cutpoint files must also be present')
+    parser.add_argument(
+                        '-f', '--audio-path', default=test_obj.audio_path, type=str,
+                        help='Path to look for audio files in. All audio file paths are relative to this unless they are absolute')
     parser.add_argument('-t', '--trials', type=int, default=test_obj.trials, metavar="T",
                         help="Number of trials to use for test. Defaults to 100")
     parser.add_argument('-r', '--radioport', default='', metavar="PORT",
@@ -59,8 +63,17 @@ def main():
                         help='Don\'t plot data after test')
     parser.add_argument('--no-plot',dest='show_plot',action='store_false',
                         help='Don\'t plot data after test')
+    parser.add_argument('-F','--full-audio-dir',dest='full_audio_dir',action='store_true',default=False,
+                        help='ignore --audioFiles and use all files in --audioPath')
+    parser.add_argument('--no-full-audio-dir',dest='full_audio_dir',action='store_false',
+                        help='use --audioFiles to determine which audio clips to read')             
     
     args = parser.parse_args()
+    
+    #check if audio files were given
+    if(not args.audio_files):
+        #remove audio_files (keep default value)
+        delattr(args,'audio_files')
     
     # Set M2E object variables to terminal arguments
     for k, v in vars(args).items():
