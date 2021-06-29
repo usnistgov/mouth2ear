@@ -128,8 +128,8 @@ class measure:
         temp_data_filename = os.path.join(csv_data_dir,f'{base_filename}_TEMP.csv')
         
         #-------------------------[Generate CSV header]-------------------------    
-        header='Timestamp,Filename,m2e_latency\n'
-        dat_format='{time},{name},{m2e}\n'
+        header='Timestamp,Filename,m2e_latency,channels\n'
+        dat_format='{time},{name},{m2e},{chans}\n'
         
         #-------------------------[Load Audio File(s)]-------------------------
         
@@ -208,17 +208,30 @@ class measure:
                 
                 time.sleep(self.ptt_gap)
                 
+                #-----------------------------[Load audio]----------------------------
+                proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
+                
+                #check if we have more than one channel
+                if(proc_audio.ndim !=1 ):
+                    #get index of the rx_voice channel
+                    voice_idx=rec_chans.index('rx_voice')
+                    #get voice channel
+                    proc_voice=proc_audio[:,voice_idx]
+                else:
+                    #only one channel, use items
+                    proc_voice=proc_audio
+                    
+                #convert to floating point values for calculations
+                proc_voice = audio_float(proc_voice)
+                    
                 #-----------------------------[Data Processing]----------------------------
+                
                 
                 # Check if we run statistics on this trial
                 if np.any(check_trials == itr):
                     
-                    # Get latest run Rx audio
-                    proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
-                    proc_audio = audio_float(proc_audio)
-                    
                     # Calculate RMS of received audio
-                    rms = round(math.sqrt(np.mean(proc_audio**2)), 4)
+                    rms = round(math.sqrt(np.mean(proc_voice**2)), 4)
                     
                     #check if levels are low
                     if(rms<1e-3):
@@ -231,21 +244,22 @@ class measure:
                             break
                 #-----------------------------[Data Processing]----------------------------
                     
-                # Get latest run Rx audio
-                proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
-                proc_audio = audio_float(proc_audio)
-
                 # Estimate the mouth to ear latency
-                new_delay = sliding_delay_estimates(proc_audio, audio, self.audio_interface.sample_rate)[0]
+                new_delay = sliding_delay_estimates(proc_voice, audio, self.audio_interface.sample_rate)[0]
                 
                 newest_delay = np.multiply(new_delay, 1e-3)
                 
-
-                
                 #--------------------------[Write CSV]--------------------------
                 
+                chan_str='('+(';'.join(rec_chans))+')'
+                
                 with open(temp_data_filename,'at') as f:
-                    f.write(dat_format.format(time=ts,name=clip_name,m2e=np.mean(newest_delay)))
+                    f.write(dat_format.format(
+                                        time=ts,
+                                        name=clip_name,
+                                        m2e=np.mean(newest_delay),
+                                        chans=chan_str,
+                                        ))
             
             #-----------------------------[Cleanup]-----------------------------
             
