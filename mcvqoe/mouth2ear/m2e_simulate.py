@@ -32,7 +32,7 @@ def main():
     
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-                        '-a', '--audio-files', default=test_obj.audio_files,action="extend", nargs="+", type=str,metavar='FILENAME',
+                        '-a', '--audio-files', default=[],action="extend", nargs="+", type=str,metavar='FILENAME',
                         help='Path to audio files to use for test. Cutpoint files must also be present')
     parser.add_argument(
                         '-f', '--audio-path', default=test_obj.audio_path, type=str,
@@ -71,6 +71,11 @@ def main():
                         help='use --audioFiles to determine which audio clips to read')             
                         
     args = parser.parse_args()
+    
+    #check if audio files were given
+    if(not args.audio_files):
+        #remove audio_files (keep default value)
+        delattr(args,'audio_files')
     
     # Set M2E object variables to terminal arguments
     for k, v in vars(args).items():
