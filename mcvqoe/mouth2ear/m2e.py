@@ -13,7 +13,6 @@ import time
 
 from fractions import Fraction
 from mcvqoe.misc import audio_float
-from mcvqoe.sliding_delay import sliding_delay_estimates
 
 import matplotlib.pyplot as plt
 import numpy as np   
@@ -316,9 +315,14 @@ class measure:
                 #-----------------------------[Data Processing]----------------------------
                     
                 # Estimate the mouth to ear latency
-                new_delay = sliding_delay_estimates(proc_voice, self.y[clip_index], self.audio_interface.sample_rate)[0]
+                (_,new_delay)=mcvqoe.ITS_delay_est(
+                                            self.y[clip_index],
+                                            proc_voice,
+                                            "f",
+                                            fs=self.audio_interface.sample_rate
+                                        )
                 
-                newest_delay = np.multiply(new_delay, 1e-3)
+                newest_delay = new_delay/self.audio_interface.sample_rate
                 
                 #--------------------------[Write CSV]--------------------------
                 
