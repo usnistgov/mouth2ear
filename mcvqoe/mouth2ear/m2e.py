@@ -332,7 +332,7 @@ class measure:
                     f.write(dat_format.format(
                                         time=ts,
                                         name=clip_names[clip_index],
-                                        m2e=np.mean(newest_delay),
+                                        m2e=newest_delay,
                                         chans=chan_str,
                                         ))
             
