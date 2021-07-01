@@ -13,6 +13,7 @@ setuptools.setup(
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/device-tst",
     packages=setuptools.find_namespace_packages(include=['mcvqoe.*']),
     include_package_data=True,
+    package_data={'mcvqoe':['mouth2ear','audio_clips','*.wav']},
     use_scm_version={'write_to' : 'mcvqoe/mouth2ear/version.py'},
     setup_requires=['setuptools_scm'],
     classifiers=[

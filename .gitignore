@@ -14,6 +14,7 @@ CopySettings.json
 # Ignore data
 *.csv
 *.wav
+!mcvqoe/mouth2ear/Audio-Clips/*.wav
 
 # Ignore version file
 mcvqoe/mouth2ear/version.py
