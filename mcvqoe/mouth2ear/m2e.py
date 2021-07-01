@@ -83,8 +83,6 @@ class measure:
         ------
         ValueError
             If self.audio_files is empty
-        RuntimeError
-            If clip fs is not 48 kHz
         """
    
         #if we are not using all files, check that audio files is not empty
