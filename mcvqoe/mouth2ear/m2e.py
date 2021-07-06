@@ -43,10 +43,10 @@ class measure:
 
     def __init__(self):
         
-        self.audio_files = [pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/F1_harvard1.wav'),
-                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/F2_harvard2.wav'),
-                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/M1_harvard10.wav'),
-                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/M2_harvard6.wav'),
+        self.audio_files = [pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/F1_harvard_phrases.wav'),
+                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/F2_harvard_phrases.wav'),
+                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/M1_harvard_phrases.wav'),
+                            pkg_resources.resource_filename('mcvqoe','mouth2ear/audio_clips/M2_harvard_phrases.wav'),
                             ]
         self.audio_path = ''
         self.full_audio_dir=False
