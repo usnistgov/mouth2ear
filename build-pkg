@@ -1,0 +1,10 @@
+#remove old packages and stuff
+rm -r dist
+rm -r build
+
+#pull the latest version
+git pull
+
+#run setup script
+python setup.py sdist bdist_wheel
+
