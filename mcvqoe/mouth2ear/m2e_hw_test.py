@@ -59,65 +59,68 @@ def main():
                         " in the system")
     parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files")
-    parser.add_argument('--plot',dest='show_plot',action='store_true',default=True,
+    parser.add_argument('--plot', dest='show_plot', action='store_true', default=True,
                         help='Don\'t plot data after test')
     parser.add_argument('--no-plot',dest='show_plot',action='store_false',
                         help='Don\'t plot data after test')
-    parser.add_argument('-F','--full-audio-dir',dest='full_audio_dir',action='store_true',default=False,
+    parser.add_argument('-F', '--full-audio-dir', dest='full_audio_dir', action='store_true', default=False,
                         help='ignore --audioFiles and use all files in --audioPath')
-    parser.add_argument('--no-full-audio-dir',dest='full_audio_dir',action='store_false',
+    parser.add_argument('--no-full-audio-dir', dest='full_audio_dir', action='store_false',
                         help='use --audioFiles to determine which audio clips to read')             
     
     args = parser.parse_args()
-    
-    #check if audio files were given
-    if(not args.audio_files):
-        #remove audio_files (keep default value)
-        delattr(args,'audio_files')
-    
+
+    # check if audio files were given
+    if not args.audio_files:
+        # remove audio_files (keep default value)
+        delattr(args, "audio_files")
     # Set M2E object variables to terminal arguments
     for k, v in vars(args).items():
         if hasattr(test_obj, k):
             setattr(test_obj, k, v)
-    
     # Check for value errors with M2E instance variables
     test_obj.param_check()
-    
-    #---------------------[Set audio interface properties]---------------------
-    test_obj.audio_interface.blocksize=args.blocksize
-    test_obj.audio_interface.buffersize=args.buffersize
-    test_obj.audio_interface.overplay=args.overplay
-    
-    #set correct channels    
-    if(test_obj.test == "m2e_1loc"):
-        test_obj.audio_interface.playback_chans={'tx_voice':0}
-        test_obj.audio_interface.rec_chans={'rx_voice':0}
-    elif(test_obj.test == "m2e_2loc_tx"):
-        test_obj.audio_interface.playback_chans={'tx_voice':0}
-        test_obj.audio_interface.rec_chans={'timecode':1}
-    elif(test_obj.test == "m2e_2loc_rx"):
-        test_obj.audio_interface.playback_chans={}
-        test_obj.audio_interface.rec_chans={'rx_voice':0,'timecode':1}
-    
-    #---------------------------[Open RadioInterface]---------------------------
-    
+
+    # ---------------------[Set audio interface properties]---------------------
+
+    test_obj.audio_interface.blocksize = args.blocksize
+    test_obj.audio_interface.buffersize = args.buffersize
+    test_obj.audio_interface.overplay = args.overplay
+
+    # set correct channels
+    if test_obj.test == "m2e_1loc":
+        test_obj.audio_interface.playback_chans = {"tx_voice": 0}
+        test_obj.audio_interface.rec_chans = {"rx_voice": 0}
+    elif test_obj.test == "m2e_2loc_tx":
+        test_obj.audio_interface.playback_chans = {"tx_voice": 0}
+        test_obj.audio_interface.rec_chans = {"timecode": 1}
+    elif test_obj.test == "m2e_2loc_rx":
+        test_obj.audio_interface.playback_chans = {}
+        test_obj.audio_interface.rec_chans = {"rx_voice": 0, "timecode": 1}
+
+    # ---------------------------[Open RadioInterface]---------------------------
+
     with mcvqoe.hardware.RadioInterface(args.radioport) as test_obj.ri:
 
-        #------------------------------[Get test info]------------------------------
-        test_obj.info=mcvqoe.gui.pretest(args.outdir,
-                    check_function=lambda : mcvqoe.hardware.single_play(
-                                                    test_obj.ri,test_obj.audio_interface,
-                                                    ptt_wait=test_obj.ptt_wait))
-        #------------------------------[Run Test]------------------------------
+        # ------------------------------[Get test info]------------------------------
+
+        test_obj.info = mcvqoe.gui.pretest(
+            args.outdir,
+            check_function=lambda: mcvqoe.hardware.single_play(
+                test_obj.ri, test_obj.audio_interface, ptt_wait=test_obj.ptt_wait
+            ),
+        )
+
+        # ------------------------------[Run Test]------------------------------
+
         test_obj.run()
-        print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
-    
-    #------------------------------[Plot Data]------------------------------
-    if(args.show_plot):
+        print(f"Test complete, data saved in '{test_obj.data_filename}'")
+
+    # ------------------------------[Plot Data]------------------------------
+
+    if args.show_plot:
         test_obj.plot()
 
-
-    
 if __name__ == "__main__":
-    
+
     main()
