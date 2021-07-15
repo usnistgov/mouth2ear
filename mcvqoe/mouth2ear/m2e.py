@@ -7,6 +7,9 @@ import signal
 import time
 from fractions import Fraction
 
+#version import for logging purposes
+from .version import version
+
 import matplotlib.pyplot as plt
 import mcvqoe.base
 import mcvqoe.delay
