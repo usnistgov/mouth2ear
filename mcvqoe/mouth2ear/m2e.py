@@ -12,6 +12,8 @@ import time
 
 from fractions import Fraction
 from mcvqoe.misc import audio_float
+#version import for logging purposes
+from .version import version
 
 import matplotlib.pyplot as plt
 import numpy as np
