@@ -23,8 +23,7 @@ setuptools.setup(
     ],
     license='NIST software License',
     install_requires=[
-        'mcvqoe-nist',
-        'abcmrt-nist',
+        'mcvqoe-nist>=0.4',
         'matplotlib',
     ],
     entry_points={

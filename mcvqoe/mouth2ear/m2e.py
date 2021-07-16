@@ -1,7 +1,7 @@
 import csv
 import datetime
 import math
-import mcvqoe
+import mcvqoe.base
 import os
 import pkg_resources
 import scipy.io.wavfile
@@ -11,7 +11,6 @@ import signal
 import time
 
 from fractions import Fraction
-from mcvqoe.misc import audio_float
 #version import for logging purposes
 from .version import version
 
@@ -46,16 +45,16 @@ class measure:
 
         self.audio_files = [
             pkg_resources.resource_filename(
-                "mcvqoe", "mouth2ear/audio_clips/F1_harvard_phrases.wav"
+                "mcvqoe.mouth2ear.audio_clips", "F1_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe", "mouth2ear/audio_clips/F2_harvard_phrases.wav"
+                "mcvqoe.mouth2ear.audio_clips", "F2_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe", "mouth2ear/audio_clips/M1_harvard_phrases.wav"
+                "mcvqoe.mouth2ear.audio_clips", "M1_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe", "mouth2ear/audio_clips/M2_harvard_phrases.wav"
+                "mcvqoe.mouth2ear.audio_clips", "M2_harvard_phrases.wav"
             ),
         ]
         self.audio_path = ""
@@ -104,7 +103,7 @@ class measure:
         if self.bgnoise_file:
             nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
             rs = Fraction(fs_test / nfs)
-            nf = audio_float(nf)
+            nf = mcvqoe.base.audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
 
         if self.full_audio_dir:
@@ -133,13 +132,13 @@ class measure:
             # check fs
             if fs_file != fs_test:
                 rs_factor = Fraction(fs_test / fs_file)
-                audio_dat = audio_float(audio_dat)
+                audio_dat = mcvqoe.base.audio_float(audio_dat)
                 audio = scipy.signal.resample_poly(
                     audio_dat, rs_factor.numerator, rs_factor.denominator
                 )
             else:
                 # Convert to float sound array and add to list
-                audio = mcvqoe.audio_float(audio_dat)
+                audio = mcvqoe.base.audio_float(audio_dat)
 
             # check if we are adding noise
             if self.bgnoise_file:
@@ -191,7 +190,7 @@ class measure:
         # set test name
         self.info["test"] = "m2e_1loc"
         # fill in standard stuff
-        self.info.update(mcvqoe.write_log.fill_log(self))
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -314,7 +313,7 @@ class measure:
                     proc_voice = proc_audio
 
                 # convert to floating point values for calculations
-                proc_voice = audio_float(proc_voice)
+                proc_voice = mcvqoe.base.audio_float(proc_voice)
 
                 # -----------------------------[Data Processing]----------------------------
 
@@ -340,7 +339,7 @@ class measure:
                 # -----------------------------[Data Processing]----------------------------
 
                 # Estimate the mouth to ear latency
-                (_, new_delay) = mcvqoe.ITS_delay_est(
+                (_, new_delay) = mcvqoe.delay.ITS_delay_est(
                     self.y[clip_index],
                     proc_voice,
                     "f",
@@ -379,7 +378,7 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.post(outdir=self.outdir, info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info)
 
     def plot(self, name=None):
 
@@ -552,7 +551,7 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.post(outdir=self.outdir, info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info)
 
         # -----------------------[Notify User of Completion]------------------------
 
@@ -580,7 +579,7 @@ class measure:
 
         self.info["test"] = "PSuD"
         # fill in standard stuff
-        self.info.update(mcvqoe.write_log.fill_log(self))
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -594,7 +593,7 @@ class measure:
 
         # ---------------------------[write log entry]---------------------------
 
-        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
 
         # ---------------[Try block so we write notes at the end]---------------
 
@@ -611,4 +610,4 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.post(outdir=self.outdir, info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info)
