@@ -71,6 +71,8 @@ class measure:
         self.get_post_notes = None
         self.progress_update = terminal_progress_update
         self.rng = np.random.default_rng()
+        self.save_tx_audio=True
+        self.save_audio=True
 
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -236,14 +238,17 @@ class measure:
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
 
         # -----------------------[Add Tx audio to wav dir]-----------------------
-
+    
         # get name with out path or ext
         clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
 
-        # write out Tx clips to files
-        for dat, name in zip(self.y, clip_names):
-            out_name = os.path.join(wavdir, f"Tx_{name}")
-            scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
+        if(self.save_tx_audio and self.save_audio):
+            # write out Tx clips to files
+            for dat, name in zip(self.y, clip_names):
+                out_name = os.path.join(wavdir, f"Tx_{name}")
+                scipy.io.wavfile.write(
+                    out_name + ".wav", int(self.audio_interface.sample_rate), dat
+                )
 
         # ------------------------[Compute check trials]------------------------
         if self.trials > 10:
@@ -348,7 +353,10 @@ class measure:
                 )
 
                 newest_delay = new_delay / self.audio_interface.sample_rate
-
+                
+                # -------------------[Delete file if needed]-------------------
+                if(not self.save_audio):
+                    os.remove(audioname)
                 # --------------------------[Write CSV]--------------------------
 
                 chan_str = "(" + (";".join(rec_chans)) + ")"
