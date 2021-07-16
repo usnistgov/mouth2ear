@@ -66,7 +66,18 @@ def main():
     parser.add_argument('-F', '--full-audio-dir', dest='full_audio_dir', action='store_true', default=False,
                         help='ignore --audioFiles and use all files in --audioPath')
     parser.add_argument('--no-full-audio-dir', dest='full_audio_dir', action='store_false',
-                        help='use --audioFiles to determine which audio clips to read')             
+                        help='use --audioFiles to determine which audio clips to read')    
+    parser.add_argument('--save-tx-audio', dest='save_tx_audio',
+                        action='store_true',
+                        help='Save transmit audio in wav directory')
+    parser.add_argument('--no-save-tx-audio', dest='save_tx_audio',
+                        action='store_false',
+                        help='Don\'t save transmit audio in wav directory')
+    parser.add_argument('--save-audio', dest='save_audio', action='store_true',
+                        help='Save audio in the wav directory')
+    parser.add_argument('--no-save-audio', dest='save_audio', action='store_false',
+                        help='Don\'t save audio in the wav directory, implies'+
+                        '--no-save-tx-audio')             
     
     args = parser.parse_args()
 
