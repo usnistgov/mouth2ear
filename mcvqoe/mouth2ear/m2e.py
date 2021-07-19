@@ -72,8 +72,8 @@ class measure:
         self.get_post_notes = None
         self.progress_update = terminal_progress_update
         self.rng = np.random.default_rng()
-        self.save_tx_audio=True
-        self.save_audio=True
+        self.save_tx_audio = True
+        self.save_audio = True
 
     def load_audio(self, fs_test):
         """
@@ -178,17 +178,21 @@ class measure:
 
     def m2e_1loc(self):
         """Run a m2e_1loc test"""
+
         # ------------------[Check for correct audio channels]------------------
+
         if ("tx_voice" not in self.audio_interface.playback_chans.keys()):
             raise ValueError("self.audio_interface must be set up to play tx_voice")
         if ("rx_voice" not in self.audio_interface.rec_chans.keys()):
             raise ValueError("self.audio_interface must be set up to record rx_voice")
+
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
         # --------------------------[Fill log entries]--------------------------
+
         # set test name
         self.info["test"] = "m2e_1loc"
         # fill in standard stuff
@@ -221,6 +225,7 @@ class measure:
         temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
 
         # -------------------------[Generate CSV header]-------------------------
+
         header = "Timestamp,Filename,m2e_latency,channels\n"
         dat_format = "{time},{name},{m2e},{chans}\n"
 
@@ -239,7 +244,7 @@ class measure:
             os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files
         ]
 
-        if(self.save_tx_audio and self.save_audio):
+        if (self.save_tx_audio and self.save_audio):
             # write out Tx clips to files
             for dat, name in zip(self.y, clip_names):
                 out_name = os.path.join(wavdir, f"Tx_{name}")
@@ -248,6 +253,7 @@ class measure:
                 )
 
         # ------------------------[Compute check trials]------------------------
+
         if self.trials > 10:
             check_trials = np.arange(0, (self.trials + 1), 10)
             check_trials[0] = 1
@@ -259,21 +265,28 @@ class measure:
         try:
 
             # -------------------------[Turn on RI LED]-------------------------
+
             self.ri.led(1, True)
 
             # -----------------------[write initial csv file]-----------------------
+
             with open(temp_data_filename, "wt") as f:
                 f.write(header)
 
             # ------------------------[Measurement Loop]------------------------
+
             for trial in range(self.trials):
+
                 # -----------------------[Update progress]-------------------------
+
                 if not self.progress_update("test", self.trials, trial):
                     # turn off LED
                     self.ri.led(1, False)
                     print("Exit from user")
                     break
+
                 # -----------------------[Get Trial Timestamp]-----------------------
+
                 ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
 
                 # --------------------[Key Radio and play audio]--------------------
@@ -303,6 +316,7 @@ class measure:
                 time.sleep(self.ptt_gap)
 
                 # -----------------------------[Load audio]----------------------------
+
                 proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
 
                 # check if we have more than one channel
@@ -352,8 +366,10 @@ class measure:
                 newest_delay = new_delay / self.audio_interface.sample_rate
                 
                 # -------------------[Delete file if needed]-------------------
+
                 if(not self.save_audio):
                     os.remove(audioname)
+
                 # --------------------------[Write CSV]--------------------------
 
                 chan_str = '(' + (';'.join(rec_chans)) + ')'
@@ -491,6 +507,7 @@ class measure:
             )
 
         # ---------------[Try block so we write notes at the end]---------------
+        
         try:
 
             # -------------------------[Turn on RI LED]-------------------------
