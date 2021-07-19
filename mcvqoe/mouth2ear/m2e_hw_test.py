@@ -28,7 +28,7 @@ def main():
                         help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
                         "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
     parser.add_argument(
-                        '-a', '--audio-files', default=[],action="extend", nargs="+", type=str,metavar='FILENAME',
+                        '-a', '--audio-files', default=[], action="extend", nargs="+", type=str, metavar='FILENAME',
                         help='Path to audio files to use for test. Cutpoint files must also be present')
     parser.add_argument(
                         '-f', '--audio-path', default=test_obj.audio_path, type=str,
@@ -61,7 +61,7 @@ def main():
                         help="Directory that is added to the output path for all files")
     parser.add_argument('--plot', dest='show_plot', action='store_true', default=True,
                         help='Don\'t plot data after test')
-    parser.add_argument('--no-plot',dest='show_plot',action='store_false',
+    parser.add_argument('--no-plot', dest='show_plot', action='store_false',
                         help='Don\'t plot data after test')
     parser.add_argument('-F', '--full-audio-dir', dest='full_audio_dir', action='store_true', default=False,
                         help='ignore --audioFiles and use all files in --audioPath')
