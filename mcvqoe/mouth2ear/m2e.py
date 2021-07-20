@@ -193,7 +193,7 @@ class measure:
 
         # --------------------------[Fill log entries]--------------------------
         # set test name
-        self.info["test"] = "m2e_1loc"
+        self.info["test"] = "M2E"
         # fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
@@ -252,6 +252,11 @@ class measure:
         else:
             check_trials = np.array([1, self.trials])
 
+
+        # ---------------------------[write log entry]---------------------------
+        
+        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
+        
         # ---------------[Try block so we write notes at the end]---------------
 
         try:
@@ -435,6 +440,12 @@ class measure:
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
+        
+        # --------------------------[Fill log entries]--------------------------
+        # set test name
+        self.info["test"] = "Tx Two Loc Test"
+        # fill in standard stuff
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -474,6 +485,11 @@ class measure:
             out_name = os.path.join(wavdir, f"Tx_{name}")
             scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
 
+
+        # ---------------------------[write log entry]---------------------------
+
+        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
+        
         # ---------------[Try block so we write notes at the end]---------------
         try:
 
@@ -561,7 +577,7 @@ class measure:
 
         # --------------------------[Fill log entries]--------------------------
 
-        self.info["test"] = "PSuD"
+        self.info["test"] = "Rx Two Loc Test"
         # fill in standard stuff
         self.info.update(mcvqoe.write_log.fill_log(self))
 
