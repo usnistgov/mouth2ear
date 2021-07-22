@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.md", "r",encoding='utf-8') as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
@@ -11,27 +11,26 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/device-tst",
-    packages=setuptools.find_namespace_packages(include=['mcvqoe.*']),
+    packages=setuptools.find_namespace_packages(include=["mcvqoe.*"]),
     include_package_data=True,
-    package_data={'mcvqoe':['mouth2ear','audio_clips','*.wav']},
-    use_scm_version={'write_to' : 'mcvqoe/mouth2ear/version.py'},
-    setup_requires=['setuptools_scm'],
+    package_data={"mcvqoe": ["mouth2ear", "audio_clips", "*.wav"]},
+    use_scm_version={"write_to": "mcvqoe/mouth2ear/version.py"},
+    setup_requires=["setuptools_scm"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: Public Domain",
         "Operating System :: OS Independent",
     ],
-    license='NIST software License',
+    license="NIST software License",
     install_requires=[
-        'mcvqoe-nist>=0.4',
-        'matplotlib',
+        "mcvqoe-nist",
+        "matplotlib",
     ],
     entry_points={
-        'console_scripts':[
-            'm2e-sim=mcvqoe.mouth2ear.m2e_simulate:main',
-            'm2e-measure=mcvqoe.mouth2ear.m2e_hw_test:main',
+        "console_scripts": [
+            "m2e-sim=mcvqoe.mouth2ear.m2e_simulate:main",
+            "m2e-measure=mcvqoe.mouth2ear.m2e_hw_test:main",
         ],
     },
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
-

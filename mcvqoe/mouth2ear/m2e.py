@@ -1,21 +1,20 @@
 import csv
 import datetime
 import math
-import mcvqoe.base
 import os
-import pkg_resources
-import scipy.io.wavfile
-import scipy.signal
 import shutil
 import signal
 import time
-
 from fractions import Fraction
-#version import for logging purposes
-from .version import version
 
 import matplotlib.pyplot as plt
+import mcvqoe.base
+import mcvqoe.delay
 import numpy as np
+import pkg_resources
+import scipy.io.wavfile
+import scipy.signal
+from mcvqoe.base.misc import audio_float
 
 
 def terminal_progress_update(prog_type, num_trials, current_trial, err_msg=""):
@@ -28,7 +27,7 @@ def terminal_progress_update(prog_type, num_trials, current_trial, err_msg=""):
     elif prog_type == "test":
         if current_trial == 0:
             print(f"Starting Test of {num_trials} trials")
-        if (current_trial % 10) == 0:
+        if current_trial % 10 == 0:
             print(f"-----Trial {current_trial} of {num_trials}")
     elif prog_type == "check-fail":
         print(f"On trial {current_trial+1} of {num_trials} : {err_msg}")
@@ -41,20 +40,20 @@ class measure:
 
     no_log = ("test", "ri")
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         self.audio_files = [
             pkg_resources.resource_filename(
-                "mcvqoe.mouth2ear.audio_clips", "F1_harvard_phrases.wav"
+                "mcvqoe.mouth2ear", "audio_clips/F1_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe.mouth2ear.audio_clips", "F2_harvard_phrases.wav"
+                "mcvqoe.mouth2ear", "audio_clips/F2_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe.mouth2ear.audio_clips", "M1_harvard_phrases.wav"
+                "mcvqoe.mouth2ear", "audio_clips/M1_harvard_phrases.wav"
             ),
             pkg_resources.resource_filename(
-                "mcvqoe.mouth2ear.audio_clips", "M2_harvard_phrases.wav"
+                "mcvqoe.mouth2ear", "audio_clips/M2_harvard_phrases.wav"
             ),
         ]
         self.audio_path = ""
@@ -72,8 +71,12 @@ class measure:
         self.get_post_notes = None
         self.progress_update = terminal_progress_update
         self.rng = np.random.default_rng()
-        self.save_tx_audio = True
-        self.save_audio = True
+
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(k, v)
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
 
     def load_audio(self, fs_test):
         """
@@ -97,7 +100,7 @@ class measure:
         """
 
         # if we are not using all files, check that audio files is not empty
-        if (not self.audio_files) and (not self.full_audio_dir):
+        if not self.audio_files and not self.full_audio_dir:
             # TODO : is this the right error to use here??
             raise ValueError("Expected self.audio_files to not be empty")
 
@@ -105,7 +108,7 @@ class measure:
         if self.bgnoise_file:
             nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
             rs = Fraction(fs_test / nfs)
-            nf = mcvqoe.base.audio_float(nf)
+            nf = audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
 
         if self.full_audio_dir:
@@ -134,13 +137,13 @@ class measure:
             # check fs
             if fs_file != fs_test:
                 rs_factor = Fraction(fs_test / fs_file)
-                audio_dat = mcvqoe.base.audio_float(audio_dat)
+                audio_dat = audio_float(audio_dat)
                 audio = scipy.signal.resample_poly(
                     audio_dat, rs_factor.numerator, rs_factor.denominator
                 )
             else:
                 # Convert to float sound array and add to list
-                audio = mcvqoe.base.audio_float(audio_dat)
+                audio = audio_float(audio_dat)
 
             # check if we are adding noise
             if self.bgnoise_file:
@@ -178,23 +181,19 @@ class measure:
 
     def m2e_1loc(self):
         """Run a m2e_1loc test"""
-
         # ------------------[Check for correct audio channels]------------------
-
-        if ("tx_voice" not in self.audio_interface.playback_chans.keys()):
+        if "tx_voice" not in self.audio_interface.playback_chans.keys():
             raise ValueError("self.audio_interface must be set up to play tx_voice")
-        if ("rx_voice" not in self.audio_interface.rec_chans.keys()):
+        if "rx_voice" not in self.audio_interface.rec_chans.keys():
             raise ValueError("self.audio_interface must be set up to record rx_voice")
-
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
         # --------------------------[Fill log entries]--------------------------
-
         # set test name
-        self.info["test"] = "M2E"
+        self.info["test"] = "m2e_1loc"
         # fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
@@ -225,7 +224,6 @@ class measure:
         temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
 
         # -------------------------[Generate CSV header]-------------------------
-
         header = "Timestamp,Filename,m2e_latency,channels\n"
         dat_format = "{time},{name},{m2e},{chans}\n"
 
@@ -238,60 +236,42 @@ class measure:
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
 
         # -----------------------[Add Tx audio to wav dir]-----------------------
-    
-        # get name with out path or ext
-        clip_names = [
-            os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files
-        ]
 
-        if (self.save_tx_audio and self.save_audio):
-            # write out Tx clips to files
-            for dat, name in zip(self.y, clip_names):
-                out_name = os.path.join(wavdir, f"Tx_{name}")
-                scipy.io.wavfile.write(
-                    out_name + ".wav", int(self.audio_interface.sample_rate), dat
-                )
+        # get name with out path or ext
+        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+
+        # write out Tx clips to files
+        for dat, name in zip(self.y, clip_names):
+            out_name = os.path.join(wavdir, f"Tx_{name}")
+            scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
 
         # ------------------------[Compute check trials]------------------------
-
         if self.trials > 10:
             check_trials = np.arange(0, (self.trials + 1), 10)
             check_trials[0] = 1
         else:
             check_trials = np.array([1, self.trials])
 
-
-        # ---------------------------[write log entry]---------------------------
-        
-        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
-        
         # ---------------[Try block so we write notes at the end]---------------
 
         try:
 
             # -------------------------[Turn on RI LED]-------------------------
-
             self.ri.led(1, True)
 
             # -----------------------[write initial csv file]-----------------------
-
             with open(temp_data_filename, "wt") as f:
                 f.write(header)
 
             # ------------------------[Measurement Loop]------------------------
-
             for trial in range(self.trials):
-
                 # -----------------------[Update progress]-------------------------
-
                 if not self.progress_update("test", self.trials, trial):
                     # turn off LED
                     self.ri.led(1, False)
                     print("Exit from user")
                     break
-
                 # -----------------------[Get Trial Timestamp]-----------------------
-
                 ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
 
                 # --------------------[Key Radio and play audio]--------------------
@@ -309,9 +289,7 @@ class measure:
                 audioname = os.path.join(wavdir, audioname)
 
                 # Play/Record
-                rec_chans = self.audio_interface.play_record(
-                    self.y[clip_index], audioname
-                )
+                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
 
                 # Release the push to talk button
                 self.ri.ptt(False)
@@ -321,7 +299,6 @@ class measure:
                 time.sleep(self.ptt_gap)
 
                 # -----------------------------[Load audio]----------------------------
-
                 proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
 
                 # check if we have more than one channel
@@ -335,7 +312,7 @@ class measure:
                     proc_voice = proc_audio
 
                 # convert to floating point values for calculations
-                proc_voice = mcvqoe.base.audio_float(proc_voice)
+                proc_voice = audio_float(proc_voice)
 
                 # -----------------------------[Data Processing]----------------------------
 
@@ -362,22 +339,14 @@ class measure:
 
                 # Estimate the mouth to ear latency
                 (_, new_delay) = mcvqoe.delay.ITS_delay_est(
-                    self.y[clip_index],
-                    proc_voice,
-                    "f",
-                    fs=self.audio_interface.sample_rate,
+                    self.y[clip_index], proc_voice, "f", fs=self.audio_interface.sample_rate
                 )
 
                 newest_delay = new_delay / self.audio_interface.sample_rate
-                
-                # -------------------[Delete file if needed]-------------------
-
-                if(not self.save_audio):
-                    os.remove(audioname)
 
                 # --------------------------[Write CSV]--------------------------
 
-                chan_str = '(' + (';'.join(rec_chans)) + ')'
+                chan_str = "(" + (";".join(rec_chans)) + ")"
 
                 with open(temp_data_filename, "at") as f:
                     f.write(
@@ -405,7 +374,7 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info)
+            mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
 
     def plot(self, name=None):
 
@@ -458,22 +427,14 @@ class measure:
         """Run a m2e_2loc_tx test"""
 
         # ------------------[Check for correct audio channels]------------------
-
         if "tx_voice" not in self.audio_interface.playback_chans.keys():
             raise ValueError("self.audio_interface must be set up to play tx_voice")
         if "timecode" not in self.audio_interface.rec_chans.keys():
             raise ValueError("self.audio_interface must be set up to record timecode")
-
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
-        
-        # --------------------------[Fill log entries]--------------------------
-        # set test name
-        self.info["test"] = "Tx Two Loc Test"
-        # fill in standard stuff
-        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -506,24 +467,14 @@ class measure:
         # -----------------------[Add Tx audio to wav dir]-----------------------
 
         # get name with out path or ext
-        clip_names = [
-            os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files
-        ]
+        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
 
         # write out Tx clips to files
         for dat, name in zip(self.y, clip_names):
             out_name = os.path.join(wavdir, f"Tx_{name}")
-            scipy.io.wavfile.write(
-                out_name + ".wav", int(self.audio_interface.sample_rate), dat
-            )
+            scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
 
-
-        # ---------------------------[write log entry]---------------------------
-
-        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
-        
         # ---------------[Try block so we write notes at the end]---------------
-        
         try:
 
             # -------------------------[Turn on RI LED]-------------------------
@@ -535,14 +486,12 @@ class measure:
             for trial in range(self.trials):
 
                 # -----------------------[Update progress]-------------------------
-
                 if not self.progress_update("test", self.trials, trial):
                     # turn off LED
                     self.ri.led(1, False)
                     print("Exit from user")
                     break
                 # -----------------------[Get Trial Timestamp]-----------------------
-
                 ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
 
                 # --------------------[Key Radio and play audio]--------------------
@@ -558,9 +507,7 @@ class measure:
                 audioname = os.path.join(wavdir, audioname)
 
                 # Play/Record
-                rec_chans = self.audio_interface.play_record(
-                    self.y[clip_index], audioname
-                )
+                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
 
                 # Release the push to talk button
                 self.ri.ptt(False)
@@ -590,7 +537,7 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info)
+            mcvqoe.post(outdir=self.outdir, info=info)
 
         # -----------------------[Notify User of Completion]------------------------
 
@@ -603,22 +550,20 @@ class measure:
     def m2e_2loc_rx(self):
 
         # ------------------[Check for correct audio channels]------------------
-
         if "rx_voice" not in self.audio_interface.rec_chans.keys():
             raise ValueError("self.audio_interface must be set up to record rx_voice")
         if "timecode" not in self.audio_interface.rec_chans.keys():
             raise ValueError("self.audio_interface must be set up to record timecode")
 
         # -------------------------[Get Test Start Time]-------------------------
-
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
         # --------------------------[Fill log entries]--------------------------
 
-        self.info["test"] = "Rx Two Loc Test"
+        self.info["test"] = "PSuD"
         # fill in standard stuff
-        self.info.update(mcvqoe.base.write_log.fill_log(self))
+        self.info.update(mcvqoe.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -632,14 +577,11 @@ class measure:
 
         # ---------------------------[write log entry]---------------------------
 
-        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
 
         # ---------------[Try block so we write notes at the end]---------------
-
         try:
-
             # --------------------------[Record audio]--------------------------
-
             self.audio_interface.record(filename)
 
         finally:
@@ -649,4 +591,4 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info)
+            mcvqoe.post(outdir=self.outdir, info=info)

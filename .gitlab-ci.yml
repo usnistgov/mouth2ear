@@ -1,0 +1,34 @@
+stages:
+  - build
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+image: python:3.8
+
+cache:
+  key: $CI_PIPELINE_IID
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - source venv/bin/activate
+
+build:
+  stage: build
+  before_script:
+    - python -V
+  script:
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install git+https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.nist.gov/PSCR/MCV/mcv-qoe-library.git
+    - pip install .
+
+test-measure_class:
+  stage: test
+  script:
+    - python tests/test_measure_class.py
+
