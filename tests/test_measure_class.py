@@ -33,7 +33,7 @@ class MeasureTest(unittest.TestCase):
         for dly in [0.030, 0.3, 0.6]:
             sim_obj.m2e_latency = dly
             for tech in techs:
-                sim_obj.channel_tech
+                sim_obj.channel_tech = tech
                 # construct string for system name
                 system = sim_obj.channel_tech
                 if sim_obj.channel_rate is not None:
