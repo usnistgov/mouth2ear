@@ -451,9 +451,9 @@ class measure:
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
-        
+
         # --------------------------[Fill log entries]--------------------------
-        # set test name
+        # set test name, needs to match log_search.datafilenames
         self.info["test"] = "Tx Two Loc Test"
         # fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
@@ -588,6 +588,7 @@ class measure:
 
         # --------------------------[Fill log entries]--------------------------
 
+        # set test name, needs to match log_search.datafilenames
         self.info["test"] = "Rx Two Loc Test"
         # fill in standard stuff
         self.info.update(mcvqoe.write_log.fill_log(self))
