@@ -44,6 +44,7 @@ class MeasureTest(unittest.TestCase):
                 test_obj.info["rx_dev"] = "none"
                 test_obj.info["system"] = system
                 test_obj.info["test_loc"] = "N/A"
+                test_obj.info["Pre Test Notes"] = ""
 
                 test_obj.run()
                 with open(test_obj.data_filename, newline="") as f:
