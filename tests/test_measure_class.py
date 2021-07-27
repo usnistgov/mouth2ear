@@ -30,7 +30,7 @@ class MeasureTest(unittest.TestCase):
         test_obj.ri = sim_obj
 
         techs = [e.name for e in entry_points()["mcvqoe.channel"]]
-        for dly in [0.030, 0.3, 0.6]:
+        for dly in [0.050, 0.3, 0.6]:
             sim_obj.m2e_latency = dly
             for tech in techs:
                 sim_obj.channel_tech = tech
