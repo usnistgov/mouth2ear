@@ -20,7 +20,7 @@ import scipy.signal
 from mcvqoe.base.misc import audio_float
 
 
-def terminal_progress_update(prog_type, num_trials, current_trial, err_msg=""):
+def terminal_progress_update(prog_type, num_trials, current_trial, msg=""):
     if prog_type == "proc":
         if current_trial == 0:
             # we are post processing
@@ -33,7 +33,7 @@ def terminal_progress_update(prog_type, num_trials, current_trial, err_msg=""):
         if current_trial % 10 == 0:
             print(f"-----Trial {current_trial} of {num_trials}")
     elif prog_type == "check-fail":
-        print(f"On trial {current_trial+1} of {num_trials} : {err_msg}")
+        print(f"On trial {current_trial+1} of {num_trials} : {msg}")
 
     # continue test
     return True
@@ -341,7 +341,7 @@ class measure:
                             "test",
                             self.trials,
                             trial,
-                            err_msg=f"Low input levels detected. RMS = {rms}",
+                            msg=f"Low input levels detected. RMS = {rms}",
                         )
                         if not continue_test:
                             # turn off LED
