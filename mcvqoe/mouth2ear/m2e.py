@@ -34,6 +34,8 @@ def terminal_progress_update(prog_type, num_trials, current_trial, msg=""):
             print(f"-----Trial {current_trial} of {num_trials}")
     elif prog_type == "check-fail":
         print(f"On trial {current_trial+1} of {num_trials} : {msg}")
+    elif prog_type == "Status":
+        print(msg)
 
     # continue test
     return True
@@ -590,10 +592,9 @@ class measure:
 
         # -----------------------[Notify User of Completion]------------------------
 
-        print(
-            "\n***Data collection complete, you may now stop data collection on the"
-            + " receiving end***\n",
-            flush=True,
+        self.progress_update('Status', self.trials, self.trials, 
+            "Data collection complete, you may now stop data collection on"
+            + " the receiving end",
         )
 
     def m2e_2loc_rx(self):
@@ -631,6 +632,10 @@ class measure:
 
         # ---------------[Try block so we write notes at the end]---------------
         try:
+            # ----------------------[Send progress update]---------------------
+            self.progress_update('Status', 1, 0, 
+                                 msg='Two location receive recording running')
+
             # --------------------------[Record audio]--------------------------
             self.audio_interface.record(self.data_filename)
 
