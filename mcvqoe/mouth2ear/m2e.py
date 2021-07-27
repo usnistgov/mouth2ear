@@ -471,6 +471,9 @@ class measure:
 
         # create directories
         os.makedirs(wavdir, exist_ok=True)
+        
+        #Put .csv files in wav dir
+        csv_data_dir = wavdir
 
         # generate csv name
         self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
@@ -495,6 +498,10 @@ class measure:
         for dat, name in zip(self.y, clip_names):
             out_name = os.path.join(wavdir, f"Tx_{name}")
             scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
+            
+        # -------------------------[Generate CSV header]-------------------------
+        header = "Timestamp,Filename,m2e_latency,channels\n"
+        dat_format = "{time},{name},{m2e},{chans}\n"
 
 
         # ---------------------------[write log entry]---------------------------
@@ -504,6 +511,10 @@ class measure:
         # ---------------[Try block so we write notes at the end]---------------
         try:
 
+            # -----------------------[write initial csv file]-----------------------
+            with open(temp_data_filename, "wt") as f:
+                f.write(header)
+                
             # -------------------------[Turn on RI LED]-------------------------
 
             self.ri.led(1, True)
@@ -528,6 +539,8 @@ class measure:
 
                 # Pause the indicated amount to allow the radio to access the system
                 time.sleep(self.ptt_wait)
+
+                clip_index = self.clipi[trial]
 
                 # Create audiofile name/path for recording
                 audioname = f"Rx{trial+1}_{clip_names[clip_index]}.wav"
@@ -556,6 +569,15 @@ class measure:
                             chans=chan_str,
                         )
                     )
+                    
+            # -----------------------------[Cleanup]-----------------------------
+
+            # move temp file to real file
+            shutil.move(temp_data_filename, self.data_filename)
+
+            # ---------------------------[Turn off RI LED]---------------------------
+
+            self.ri.led(1, False)
 
         finally:
             if self.get_post_notes:
@@ -564,7 +586,7 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.post(outdir=self.outdir, info=info)
+            mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
 
         # -----------------------[Notify User of Completion]------------------------
 
@@ -591,7 +613,7 @@ class measure:
         # set test name, needs to match log_search.datafilenames
         self.info["test"] = "Rx Two Loc Test"
         # fill in standard stuff
-        self.info.update(mcvqoe.write_log.fill_log(self))
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
 
@@ -601,16 +623,16 @@ class measure:
 
         base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
 
-        filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
+        self.data_filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
 
         # ---------------------------[write log entry]---------------------------
 
-        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
 
         # ---------------[Try block so we write notes at the end]---------------
         try:
             # --------------------------[Record audio]--------------------------
-            self.audio_interface.record(filename)
+            self.audio_interface.record(self.data_filename)
 
         finally:
             if self.get_post_notes:
@@ -619,4 +641,4 @@ class measure:
             else:
                 info = {}
             # finish log entry
-            mcvqoe.post(outdir=self.outdir, info=info)
+            mcvqoe.base.write_log.post(outdir=self.outdir, info=info)

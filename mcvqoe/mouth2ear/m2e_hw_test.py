@@ -5,6 +5,7 @@ import mcvqoe.hardware
 import mcvqoe.gui
 import os
 
+from contextlib import nullcontext
 from .m2e import measure
 
 import matplotlib.pyplot as plt
@@ -111,15 +112,25 @@ def main():
 
     # ---------------------------[Open RadioInterface]---------------------------
 
-    with mcvqoe.hardware.RadioInterface(args.radioport) as test_obj.ri:
+    with mcvqoe.hardware.RadioInterface(args.radioport) \
+        if test_obj.test != "m2e_2loc_rx" else nullcontext() as test_obj.ri:
 
         # ------------------------------[Get test info]------------------------------
 
+        if(test_obj.test != "m2e_2loc_rx"):
+            #Check function, test play through the system
+            chk_fun=lambda: mcvqoe.hardware.single_play(
+                                                    test_obj.ri,
+                                                    test_obj.audio_interface,
+                                                    ptt_wait=test_obj.ptt_wait
+                                                )
+        else:
+            #no check function, will need to rely on the transmit side for check
+            chk_fun = None
+
         test_obj.info = mcvqoe.gui.pretest(
             args.outdir,
-            check_function=lambda: mcvqoe.hardware.single_play(
-                test_obj.ri, test_obj.audio_interface, ptt_wait=test_obj.ptt_wait
-            ),
+            check_function=chk_fun,
         )
 
         # ------------------------------[Run Test]------------------------------
@@ -129,7 +140,7 @@ def main():
 
     # ------------------------------[Plot Data]------------------------------
 
-    if args.show_plot:
+    if args.show_plot and test_obj.test == "m2e_1loc":
         test_obj.plot()
 
 if __name__ == "__main__":
