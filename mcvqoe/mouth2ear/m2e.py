@@ -34,7 +34,7 @@ def terminal_progress_update(prog_type, num_trials, current_trial, msg=""):
             print(f"-----Trial {current_trial} of {num_trials}")
     elif prog_type == "check-fail":
         print(f"On trial {current_trial+1} of {num_trials} : {msg}")
-    elif prog_type == "Status":
+    elif prog_type == "status":
         print(msg)
 
     # continue test
@@ -592,7 +592,7 @@ class measure:
 
         # -----------------------[Notify User of Completion]------------------------
 
-        self.progress_update('Status', self.trials, self.trials, 
+        self.progress_update('status', self.trials, self.trials, 
             "Data collection complete, you may now stop data collection on"
             + " the receiving end",
         )
@@ -633,7 +633,7 @@ class measure:
         # ---------------[Try block so we write notes at the end]---------------
         try:
             # ----------------------[Send progress update]---------------------
-            self.progress_update('Status', 1, 0, 
+            self.progress_update('status', 1, 0, 
                                  msg='Two location receive recording running')
 
             # --------------------------[Record audio]--------------------------
