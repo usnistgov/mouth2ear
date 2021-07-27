@@ -18,27 +18,7 @@ import pkg_resources
 import scipy.io.wavfile
 import scipy.signal
 from mcvqoe.base.misc import audio_float
-
-
-def terminal_progress_update(prog_type, num_trials, current_trial, msg=""):
-    if prog_type == "proc":
-        if current_trial == 0:
-            # we are post processing
-            print("Processing test data")
-
-        print(f"Processing trial {current_trial+1} of {num_trials}")
-    elif prog_type == "test":
-        if current_trial == 0:
-            print(f"Starting Test of {num_trials} trials")
-        if current_trial % 10 == 0:
-            print(f"-----Trial {current_trial} of {num_trials}")
-    elif prog_type == "check-fail":
-        print(f"On trial {current_trial+1} of {num_trials} : {msg}")
-    elif prog_type == "status":
-        print(msg)
-
-    # continue test
-    return True
+from mcvqoe.base.terminal_user import terminal_progress_update
 
 
 class measure:
