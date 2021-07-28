@@ -560,6 +560,13 @@ class measure:
             # ---------------------------[Turn off RI LED]---------------------------
 
             self.ri.led(1, False)
+            
+            # -----------------------[Notify User of Completion]------------------------
+
+            self.progress_update('status', self.trials, self.trials, 
+                msg="Data collection complete, you may now stop data collection on"
+                + " the receiving end",
+            )
 
         finally:
             if self.get_post_notes:
@@ -570,12 +577,6 @@ class measure:
             # finish log entry
             mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
 
-        # -----------------------[Notify User of Completion]------------------------
-
-        self.progress_update('status', self.trials, self.trials, 
-            "Data collection complete, you may now stop data collection on"
-            + " the receiving end",
-        )
 
     def m2e_2loc_rx(self):
 
