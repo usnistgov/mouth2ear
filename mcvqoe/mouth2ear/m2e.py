@@ -61,7 +61,7 @@ class measure:
 
         for k, v in kwargs.items():
             if hasattr(self, k):
-                setattr(k, v)
+                setattr(self, k, v)
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
 
