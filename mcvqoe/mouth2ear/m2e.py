@@ -600,7 +600,8 @@ class measure:
         # -----------------------[Setup Files and folders]-----------------------
 
         # Create rx-data folder
-        rx_dat_fold = os.path.join(self.outdir, "2loc_rx-data")
+        data_dir = os.path.join(self.outdir, "data")
+        rx_dat_fold = os.path.join(data_dir, "2loc_rx-data")
         os.makedirs(rx_dat_fold, exist_ok=True)
 
         base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
