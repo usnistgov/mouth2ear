@@ -1,2 +1,2 @@
-recursive-include mcvqoe mouth2ear audio_clips *.wav
+recursive-include mcvqoe/mouth2ear/audio_clips *.wav
 recursive-exclude tests *
