@@ -20,6 +20,7 @@ import scipy.io.wavfile
 import scipy.signal
 from mcvqoe.base.misc import audio_float
 from mcvqoe.base.terminal_user import terminal_progress_update
+from mcvqoe.timing import require_timecode
 
 
 class measure:
@@ -428,8 +429,8 @@ class measure:
         # ------------------[Check for correct audio channels]------------------
         if "tx_voice" not in self.audio_interface.playback_chans.keys():
             raise ValueError("self.audio_interface must be set up to play tx_voice")
-        if "timecode" not in self.audio_interface.rec_chans.keys():
-            raise ValueError("self.audio_interface must be set up to record timecode")
+        #we need to be recording a timecode
+        require_timecode(self.audio_interface)
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
@@ -584,8 +585,8 @@ class measure:
         # ------------------[Check for correct audio channels]------------------
         if "rx_voice" not in self.audio_interface.rec_chans.keys():
             raise ValueError("self.audio_interface must be set up to record rx_voice")
-        if "timecode" not in self.audio_interface.rec_chans.keys():
-            raise ValueError("self.audio_interface must be set up to record timecode")
+        #we need to be recording a timecode
+        require_timecode(self.audio_interface)
 
         # -------------------------[Get Test Start Time]-------------------------
         self.info["Tstart"] = datetime.datetime.now()

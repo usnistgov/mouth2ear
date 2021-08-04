@@ -105,10 +105,10 @@ def main():
         test_obj.audio_interface.rec_chans = {"rx_voice": 0}
     elif test_obj.test == "m2e_2loc_tx":
         test_obj.audio_interface.playback_chans = {"tx_voice": 0}
-        test_obj.audio_interface.rec_chans = {"timecode": 1}
+        test_obj.audio_interface.rec_chans = {"IRIGB_timecode": 1}
     elif test_obj.test == "m2e_2loc_rx":
         test_obj.audio_interface.playback_chans = {}
-        test_obj.audio_interface.rec_chans = {"rx_voice": 0, "timecode": 1}
+        test_obj.audio_interface.rec_chans = {"rx_voice": 0, "IRIGB_timecode": 1}
 
     # ---------------------------[Open RadioInterface]---------------------------
 
