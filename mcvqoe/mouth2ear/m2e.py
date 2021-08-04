@@ -1,5 +1,6 @@
 import csv
 import datetime
+import json
 import math
 import os
 import shutil
@@ -607,6 +608,8 @@ class measure:
         base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
 
         self.data_filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
+        
+        info_name = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".json")
 
         # ---------------------------[write log entry]---------------------------
 
@@ -619,8 +622,13 @@ class measure:
                                  msg='Two location receive recording running')
 
             # --------------------------[Record audio]--------------------------
-            self.audio_interface.record(self.data_filename)
-
+            rec_names=self.audio_interface.record(self.data_filename)
+            
+            # ------------------------[Save audio info]------------------------
+            
+            with open(info_name,'wt') as info_f:
+                json.dump({'channels':rec_names},info_f)
+                
         finally:
             if self.get_post_notes:
                 # get notes
