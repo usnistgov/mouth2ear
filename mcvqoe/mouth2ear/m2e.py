@@ -16,7 +16,6 @@ import mcvqoe.base
 import mcvqoe.delay
 import numpy as np
 import pkg_resources
-import scipy.io.wavfile
 import scipy.signal
 from mcvqoe.base.misc import audio_float
 from mcvqoe.base.terminal_user import terminal_progress_update
@@ -95,9 +94,8 @@ class measure:
 
         # Get bgnoise_file and resample
         if self.bgnoise_file:
-            nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
+            nfs, nf = mcvqoe.base.audio_read(self.bgnoise_file)
             rs = Fraction(fs_test / nfs)
-            nf = audio_float(nf)
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
 
         if self.full_audio_dir:
@@ -122,17 +120,16 @@ class measure:
             # make full path from relative paths
             f_full = os.path.join(self.audio_path, f)
             # load audio
-            fs_file, audio_dat = scipy.io.wavfile.read(f_full)
+            fs_file, audio_dat = mcvqoe.base.audio_read(f_full)
             # check fs
             if fs_file != fs_test:
                 rs_factor = Fraction(fs_test / fs_file)
-                audio_dat = audio_float(audio_dat)
                 audio = scipy.signal.resample_poly(
                     audio_dat, rs_factor.numerator, rs_factor.denominator
                 )
             else:
                 # Convert to float sound array and add to list
-                audio = audio_float(audio_dat)
+                audio = audio_dat
 
             # check if we are adding noise
             if self.bgnoise_file:
@@ -233,7 +230,7 @@ class measure:
             # write out Tx clips to files
             for dat, name in zip(self.y, clip_names):
                 out_name = os.path.join(wavdir, f"Tx_{name}")
-                scipy.io.wavfile.write(
+                mcvqoe.base.audio_write(
                     out_name + ".wav", int(self.audio_interface.sample_rate), dat
                 )
 
@@ -296,7 +293,7 @@ class measure:
                 time.sleep(self.ptt_gap)
 
                 # -----------------------------[Load audio]----------------------------
-                proc_audio_sr, proc_audio = scipy.io.wavfile.read(audioname)
+                proc_audio_sr, proc_audio = mcvqoe.base.audio_read(audioname)
 
                 # check if we have more than one channel
                 if proc_audio.ndim != 1:
@@ -481,7 +478,7 @@ class measure:
         # write out Tx clips to files
         for dat, name in zip(self.y, clip_names):
             out_name = os.path.join(wavdir, f"Tx_{name}")
-            scipy.io.wavfile.write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
+            mcvqoe.base.audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
             
         # -------------------------[Generate CSV header]-------------------------
         header = "Timestamp,Filename,m2e_latency,channels\n"
