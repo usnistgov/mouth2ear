@@ -17,7 +17,6 @@ import mcvqoe.delay
 import numpy as np
 import pkg_resources
 import scipy.signal
-from mcvqoe.base.misc import audio_float
 from mcvqoe.base.terminal_user import terminal_progress_update
 from mcvqoe.timing import require_timecode
 
@@ -65,6 +64,30 @@ class measure:
                 setattr(self, k, v)
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
+
+    def csv_header_fmt(self):
+        """
+        generate header and format for .csv files.
+        
+        This generates a header for .csv files along with a format (that can be
+        used with str.format()) to generate each row in the .csv. For m2e this
+        is a static return, a function is used here for consistency with other
+        measurements.
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        hdr : string
+            csv header string
+        fmt : string
+            format string for data lines for the .csv file
+        """
+        hdr = "Timestamp,Filename,m2e_latency,channels\n"
+        fmt = "{Timestamp},{Filename},{m2e_latency},{channels}\n"
+        
+        return (hdr, fmt)
 
     def load_audio(self, fs_test):
         """
@@ -210,8 +233,8 @@ class measure:
         temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
 
         # -------------------------[Generate CSV header]-------------------------
-        header = "Timestamp,Filename,m2e_latency,channels\n"
-        dat_format = "{time},{name},{m2e},{chans}\n"
+        
+        header,dat_format=self.csv_header_fmt()
 
         # ---------------------[Load Audio Files if Needed]---------------------
 
@@ -235,11 +258,16 @@ class measure:
                 )
 
         # ------------------------[Compute check trials]------------------------
+        
+        trial_check = np.zeros(self.trials,dtype=bool)
+        
         if self.trials > 10:
-            check_trials = np.arange(0, (self.trials + 1), 10)
-            check_trials[0] = 1
+            #check every 10th trial
+            trial_check[0::10] = True
         else:
-            check_trials = np.array([1, self.trials])
+            #just check at the beginning and the end
+            trial_check[0]=True
+            trial_check[self.trials]=True
 
 
         # ---------------------------[write log entry]---------------------------
@@ -292,66 +320,29 @@ class measure:
 
                 time.sleep(self.ptt_gap)
 
-                # -----------------------------[Load audio]----------------------------
-                proc_audio_sr, proc_audio = mcvqoe.base.audio_read(audioname)
-
-                # check if we have more than one channel
-                if proc_audio.ndim != 1:
-                    # get index of the rx_voice channel
-                    voice_idx = rec_chans.index("rx_voice")
-                    # get voice channel
-                    proc_voice = proc_audio[:, voice_idx]
-                else:
-                    # only one channel, use items
-                    proc_voice = proc_audio
-
-                # convert to floating point values for calculations
-                proc_voice = audio_float(proc_voice)
-
                 # -----------------------------[Data Processing]----------------------------
 
-                # Check if we run statistics on this trial
-                if np.any(check_trials == trial):
-
-                    # Calculate RMS of received audio
-                    rms = round(math.sqrt(np.mean(proc_voice ** 2)), 4)
-
-                    # check if levels are low
-                    if rms < 1e-3:
-                        continue_test = self.progress_update(
-                            "test",
-                            self.trials,
-                            trial,
-                            msg=f"Low input levels detected. RMS = {rms}",
-                        )
-                        if not continue_test:
-                            # turn off LED
-                            self.ri.led(1, False)
-                            raise SystemExit()
-                # -----------------------------[Data Processing]----------------------------
-
-                # Estimate the mouth to ear latency
-                (_, new_delay) = mcvqoe.delay.ITS_delay_est(
-                    self.y[clip_index], proc_voice, "f", fs=self.audio_interface.sample_rate
-                )
-
-                newest_delay = new_delay / self.audio_interface.sample_rate
+                trial_dat = self.process_audio(
+                                                clip_index,
+                                                audioname,
+                                                rec_chans,
+                                                trial_check[trial],
+                                                trial,
+                                               )
+                
+                #add extra info
+                trial_dat['Timestamp'] = ts
+                trial_dat['Filename'] = clip_names[clip_index]
                 
                 # -------------------[Delete file if needed]-------------------
                 if(not self.save_audio):
                     os.remove(audioname)
+                    
                 # --------------------------[Write CSV]--------------------------
-
-                chan_str = "(" + (";".join(rec_chans)) + ")"
 
                 with open(temp_data_filename, "at") as f:
                     f.write(
-                        dat_format.format(
-                            time=ts,
-                            name=clip_names[clip_index],
-                            m2e=newest_delay,
-                            chans=chan_str,
-                        )
+                        dat_format.format(**trial_dat)
                     )
 
             # -----------------------------[Cleanup]-----------------------------
@@ -371,6 +362,85 @@ class measure:
                 info = {}
             # finish log entry
             mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
+
+    def process_audio(self, clip_index,fname, rec_chans, check=False, t_num=-1):
+        """
+        estimate mouth to ear latency for an audio clip.
+
+        Parameters
+        ----------
+        clip_index : int
+            index of the matching transmit clip. can be found with find_clip_index
+        fname : str
+            audio file to process
+        rec_chans : list of strs
+            List of audio channel types as returned by `play_record`.
+        check : bool, default=False
+            If True, run some checks on the audio and complain if levels are low.
+        t_num : int, default=-1
+            If a check fails, this is used to give info on which trial failed.
+
+        Returns
+        -------
+        dict
+            returns a dictionary with estimated values
+            
+        See Also
+        --------
+        mcvqoe.hardware.audio_player : Hardware implementation of play_record.
+        mcvqoe.hardware.QoEsim : Simulation implementation of play_record.
+
+        """
+        
+        # -----------------------------[Load audio]----------------------------
+        fs,rec_dat = mcvqoe.base.audio_read(fname)
+
+        # check if we have more than one channel
+        if rec_dat.ndim != 1:
+            # get index of the rx_voice channel
+            voice_idx = rec_chans.index("rx_voice")
+            # get voice channel
+            voice_dat = rec_dat[:, voice_idx]
+        else:
+            # only one channel
+            voice_dat = rec_dat
+            
+        # Estimate the mouth to ear latency
+        (_, dly) = mcvqoe.delay.ITS_delay_est(
+            self.y[clip_index], voice_dat, "f", fs=self.audio_interface.sample_rate
+        )
+        
+        # -----------------------------[Trial Check]----------------------------
+
+        # Check if we run statistics on this trial
+        if check:
+
+            # Calculate RMS of received audio
+            rms = round(math.sqrt(np.mean(voice_dat ** 2)), 4)
+
+            # check if levels are low
+            if rms < 1e-3:
+                continue_test = self.progress_update(
+                    "check-fail",
+                    self.trials,
+                    t_num,
+                    msg=f"Low input levels detected. RMS = {rms}",
+                )
+                if not continue_test:
+                    # turn off LED
+                    self.ri.led(1, False)
+                    raise SystemExit()
+                    
+        #----------------------------[calculate M2E]----------------------------
+        
+        estimated_m2e_latency = dly / self.audio_interface.sample_rate
+        
+        #-----------------------------[Return Info]-----------------------------
+        
+        return {
+                'm2e_latency' : estimated_m2e_latency,
+                'channels' : mcvqoe.base.audio_channels_to_string(rec_chans),
+                }
 
     def plot(self, name=None):
 
@@ -480,9 +550,8 @@ class measure:
             mcvqoe.base.audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
             
         # -------------------------[Generate CSV header]-------------------------
-        header = "Timestamp,Filename,m2e_latency,channels\n"
-        dat_format = "{time},{name},{m2e},{chans}\n"
-
+        
+        header,dat_format=self.csv_header_fmt()
 
         # ---------------------------[write log entry]---------------------------
 
@@ -543,10 +612,10 @@ class measure:
                 with open(temp_data_filename, "at") as f:
                     f.write(
                         dat_format.format(
-                            time=ts,
-                            name=clip_names[clip_index],
-                            m2e=np.NaN,
-                            chans=chan_str,
+                            Timestamp=ts,
+                            Filename=clip_names[clip_index],
+                            m2e_latency=np.NaN,
+                            channels=chan_str,
                         )
                     )
                     
