@@ -30,6 +30,7 @@ setuptools.setup(
         "console_scripts": [
             "m2e-sim=mcvqoe.mouth2ear.m2e_simulate:main",
             "m2e-measure=mcvqoe.mouth2ear.m2e_hw_test:main",
+            "m2e-reprocess=mcvqoe.mouth2ear.m2e_reprocess:main",
         ],
     },
     python_requires=">=3.6",

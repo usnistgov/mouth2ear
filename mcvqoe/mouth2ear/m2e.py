@@ -3,6 +3,7 @@ import datetime
 import json
 import math
 import os
+import re
 import shutil
 import signal
 import time
@@ -17,11 +18,23 @@ import mcvqoe.delay
 import numpy as np
 import pkg_resources
 import scipy.signal
+
+from collections import namedtuple
 from mcvqoe.base.terminal_user import terminal_progress_update
 from mcvqoe.timing import require_timecode
 
 
+
 class measure:
+    #on load conversion to datetime object fails for some reason
+    #TODO : figure out how to fix this, string works for now but this should work too:
+    #row[k]=datetime.datetime.strptime(row[k],'%d-%b-%Y_%H-%M-%S')
+    data_fields={
+                 "Timestamp" : str,
+                 "Filename" : str,
+                 "m2e_latency":float,
+                 "channels": mcvqoe.base.parse_audio_channels,
+                }
 
     no_log = ("test", "ri")
 
@@ -70,9 +83,7 @@ class measure:
         generate header and format for .csv files.
         
         This generates a header for .csv files along with a format (that can be
-        used with str.format()) to generate each row in the .csv. For m2e this
-        is a static return, a function is used here for consistency with other
-        measurements.
+        used with str.format()) to generate each row in the .csv.
         
         Parameters
         ----------
@@ -84,12 +95,12 @@ class measure:
         fmt : string
             format string for data lines for the .csv file
         """
-        hdr = "Timestamp,Filename,m2e_latency,channels\n"
-        fmt = "{Timestamp},{Filename},{m2e_latency},{channels}\n"
+        hdr=','.join(self.data_fields.keys())+'\n'
+        fmt='{'+'},{'.join(self.data_fields.keys())+'}\n'
         
         return (hdr, fmt)
 
-    def load_audio(self, fs_test):
+    def load_audio(self):
         """
         load audio files for use in test.
 
@@ -114,6 +125,14 @@ class measure:
         if not self.audio_files and not self.full_audio_dir:
             # TODO : is this the right error to use here??
             raise ValueError("Expected self.audio_files to not be empty")
+
+        #check if we have an audio interface (running actual test)
+        if self.audio_interface:
+            #get sample rate, we'll use this later
+            fs_test = self.audio_interface.sample_rate
+        else:
+            #set to none for now, we'll get this from files
+            fs_test = None
 
         # Get bgnoise_file and resample
         if self.bgnoise_file:
@@ -146,12 +165,20 @@ class measure:
             fs_file, audio_dat = mcvqoe.base.audio_read(f_full)
             # check fs
             if fs_file != fs_test:
-                rs_factor = Fraction(fs_test / fs_file)
-                audio = scipy.signal.resample_poly(
-                    audio_dat, rs_factor.numerator, rs_factor.denominator
-                )
+                #check if we have a sample rate
+                if not fs_test:
+                    #no, set from file
+                    fs_test=fs_file
+                    #set audio
+                    audio = audio_dat
+                else:
+                    #yes, resample to desired rate
+                    rs_factor = Fraction(fs_test / fs_file)
+                    audio = scipy.signal.resample_poly(
+                        audio_dat, rs_factor.numerator, rs_factor.denominator
+                    )
             else:
-                # Convert to float sound array and add to list
+                #set audio
                 audio = audio_dat
 
             # check if we are adding noise
@@ -161,6 +188,13 @@ class measure:
 
             # append audio to list
             self.y.append(audio)
+
+        #check if we have an audio interface (running actual test)
+        if not self.audio_interface:
+            #create a named tuple to hold sample rate
+            FakeAi = namedtuple('FakeAi','sample_rate')
+            #create a fake one
+            self.audio_interface=FakeAi(sample_rate = fs_test)
 
     def run(self):
         if self.test == "m2e_1loc":
@@ -239,7 +273,7 @@ class measure:
         # ---------------------[Load Audio Files if Needed]---------------------
 
         if not hasattr(self, "y"):
-            self.load_audio(self.audio_interface.sample_rate)
+            self.load_audio()
 
         # generate clip index
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
@@ -534,7 +568,7 @@ class measure:
         # ---------------------[Load Audio Files if Needed]---------------------
 
         if not hasattr(self, "y"):
-            self.load_audio(self.audio_interface.sample_rate)
+            self.load_audio()
 
         # generate clip index
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
@@ -703,3 +737,160 @@ class measure:
                 info = {}
             # finish log entry
             mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
+
+    def load_test_data(self,fname,load_audio=True,audio_path=None):
+        """
+        load test data from .csv file.
+
+        Parameters
+        ----------
+        fname : string
+            filename to load
+        load_audio : bool, default=True
+            if True, finds and loads audio clips and cutpoints based on fname
+        audio_path : str, default=None
+            Path to find audio files at. Guessed from fname if None.
+
+        Returns
+        -------
+        list of dicts
+            returns data from the .csv file
+
+        """
+
+        with open(fname,'rt') as csv_f:
+            #create dict reader
+            reader=csv.DictReader(csv_f)
+            print(f'reader header: {reader.fieldnames}')
+            #create empty list
+            data=[]
+            #create set for audio clips
+            clips=set()
+            for row in reader:
+                #convert values proper datatype
+                for k in row:
+                    #check for clip name
+                    if(k=='Filename'):
+                        #save clips
+                        clips.add(row[k])
+                    try:
+                        #check for None field
+                        if(row[k]=='None'):
+                            #handle None correcly
+                            row[k]=None
+                        else:
+                            #convert using function from data_fields
+                            row[k]=self.data_fields[k](row[k])
+                    except KeyError:
+                        #not in data_fields, convert to float
+                        row[k]=float(row[k]);
+
+                #append row to data
+                data.append(row)
+
+        #set total number of trials, this gives better progress updates
+        self.trials=len(data)
+
+        #check if we should load audio
+        if(load_audio):
+            print(f'clips : {clips}')
+            #set audio file names to Tx file names
+            self.audio_files=['Tx_'+name+'.wav' for name in clips]
+
+            dat_name,_=os.path.splitext(os.path.basename(fname))
+
+            if(audio_path is not None):
+                self.audio_path=audio_path
+            else:
+                #set audio_path based on filename
+                self.audio_path=os.path.join(os.path.dirname(os.path.dirname(fname)),'wav',dat_name)
+
+            #load audio data from files
+            self.load_audio()
+            #self.audio_clip_check()
+
+        return data
+
+    #get the clip index given a partial clip name
+    def find_clip_index(self,name):
+        """
+        find the inex of the matching transmit clip.
+
+        Parameters
+        ----------
+        name : string
+            base name of audio clip
+
+        Returns
+        -------
+        int
+            index of matching tx clip
+
+        """
+
+        #match a string that has the chars that are in name
+        name_re=re.compile(re.escape(name)+'(?![^.])')
+        #get all matching indices
+        match=[idx for idx,clip in enumerate(self.audio_files) if  name_re.search(clip)]
+        #check that a match was found
+        if(not match):
+            raise RuntimeError(f'no audio clips found matching \'{name}\' found in {self.audio_files}')
+        #check that only one match was found
+        if(len(match)!=1):
+            raise RuntimeError(f'multiple audio clips found matching \'{name}\' found in {self.audio_files}')
+        #return matching index
+        return match[0]
+
+    def post_process(self,test_dat,fname,audio_path):
+        """
+        process csv data.
+
+        Parameters
+        ----------
+        test_data : list of dicts
+            csv data for trials to process
+        fname : string
+            file name to write processed data to
+        audio_path : string
+            where to look for recorded audio clips
+
+        Returns
+        -------
+
+        """
+
+
+        #get .csv header and data format
+        header,dat_format=self.csv_header_fmt()
+
+        with open(fname,'wt') as f_out:
+
+            f_out.write(header)
+
+            for n,trial in enumerate(test_dat):
+
+                #update progress
+                self.progress_update('proc',self.trials,n)
+
+                #find clip index
+                clip_index=self.find_clip_index(trial['Filename'])
+                #create clip file name
+                clip_name='Rx'+str(n+1)+'_'+trial['Filename']+'.wav'
+
+                try:
+                    #attempt to get channels from data
+                    rec_chans=trial['channels']
+                except KeyError:
+                    #fall back to only one channel
+                    rec_chans=('rx_voice',)
+                new_dat=self.process_audio(
+                        clip_index,
+                        os.path.join(audio_path,clip_name),
+                        rec_chans
+                        )
+
+                #overwrite new data with old and merge
+                merged_dat={**trial, **new_dat}
+
+                #write line with new data
+                f_out.write(dat_format.format(**merged_dat))
