@@ -327,8 +327,7 @@ class measure:
                         if not continue_test:
                             # turn off LED
                             self.ri.led(1, False)
-                            print("Exit from user")
-                            break
+                            raise SystemExit()
                 # -----------------------------[Data Processing]----------------------------
 
                 # Estimate the mouth to ear latency
