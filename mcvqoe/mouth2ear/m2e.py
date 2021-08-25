@@ -301,7 +301,7 @@ class measure:
         else:
             #just check at the beginning and the end
             trial_check[0]=True
-            trial_check[self.trials]=True
+            trial_check[-1]=True
 
 
         # ---------------------------[write log entry]---------------------------
