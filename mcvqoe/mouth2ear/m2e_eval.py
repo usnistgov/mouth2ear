@@ -23,6 +23,7 @@ class evaluate():
     def __init__(self,
                  test_names,
                  test_path='',
+                 use_reprocess=False,
                  **kwargs):
         # If only one test, make a list for iterating
         if isinstance(test_names, str):
@@ -31,7 +32,10 @@ class evaluate():
         # Initialize attributes
         self.thinning_data = {}
         self.full_paths = [test_path + test_name for test_name in test_names]
-        self.test_info = {}
+        self.thinning_info = {}
+        self.mean = None
+        self.ci = None
+        self.common_thinning = None
 
         # Check for kwargs
         for k, v in kwargs.items():
@@ -64,32 +68,35 @@ class evaluate():
         None.
 
         """
-        # Stats buffers
-        means = []
-        cis = []
-        ks = []
-
-        for test in self.full_paths:
-            current_test = pd.read_csv(test)
-            thinning_info = {}
-            for k in range(1, len(current_test["m2e_latency"])):
+        # get common thinning factor for all sessions. take the max
+        for session in self.full_paths:
+            current_session = pd.read_csv(session)
+            for k in range(1, len(current_session["m2e_latency"])):
                 # check for autocorrelation
-                acorr = improved_autocorrelation(current_test['m2e_latency'][::k])
-                thinning_info[k] = acorr
+                acorr = improved_autocorrelation(
+                    current_session['m2e_latency'][::k])
                 if not (len(acorr) > 1):
-                    means.append(np.mean(current_test['m2e_latency'][::k]))
-                    cis.append(mcvqoe.math.bootstrap_ci(current_test['m2e_latency'][::k])[0])
-                    ks.append(k)
-                    break
+                    self.thinning_info[session] = k
+        self.common_thinning = max(self.thinning_info.values())
 
-        data = {
-            "Test": self.full_paths,
-            "Thinning": ks,
-            "Mean": means,
-            "CI": cis}
-        data = pd.DataFrame(data)
+        mean_cum = 0
+        thinned_data = {}
 
-        return data
+        for session in self.full_paths:
+            current_session = pd.read_csv(session)
+            # Thin data
+            current_session = current_session[::self.common_thinning]
+            mean_cum += np.mean(current_session["m2e_latency"])
+            thinned_data[session] = current_session["m2e_latency"]
+
+        self.mean = mean_cum/len(self.full_paths)
+        self.ci = bootstrap_datasets_ci(*thinned_data.values())
+
+        #data = pd.DataFrame(
+        #    {"Mean": self.mean, "Confidence Interval": self.ci})
+
+
+        return (self.mean, self.ci)
 
 
 # Auxillary function definitions
@@ -113,6 +120,24 @@ def improved_autocorrelation(x):
     return np.argwhere(np.abs(corrs) > 1.96 * sigmas)
 
 
+def bootstrap_datasets_ci(*datasets, R=int(1e4), alpha=0.5):
+    """ASDF."""
+    ds = datasets
+    N = len(ds[0])
+    x_bars = np.zeros((len(ds), R))
+    for ii, dataset in enumerate(ds):
+        rs = np.random.choice(dataset, size=(N, R))
+        x_bar = np.mean(rs, axis=0)
+        x_bars[ii, :] = x_bar
+    # Means across sessions
+    x_bar_dist = np.mean(x_bars, axis=1)
+    # percentiles
+    ql = alpha/2
+    qu = 1 - ql
+    ci = np.quantile(x_bar_dist, [ql, qu])
+    return ci
+
+
 # Main definition
 def main():
     """
@@ -123,15 +148,42 @@ def main():
     None.
 
     """
-    t = evaluate(
-        [
-            "capture_Simulation_17-Aug-2021_11-36-54.csv",
-            "capture_Simulation_17-Aug-2021_11-24-52.csv"
-            ],
-        "C:/Users/wrm3/MCV-QoE/Mouth_2_Ear/data/csv/"
-        )
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    return(t.eval())
+    parser.add_argument('test_names',
+                        type=str,
+                        nargs="+",
+                        action="extend",
+                        help=("Test names (same as name of folder for wav"
+                              "files)"))
+    parser.add_argument('-p', '--test-path',
+                        default='',
+                        type=str,
+                        help=("Path where test data is stored. Must contain"
+                              "wav and csv directories."))
+    parser.add_argument('-n', '--no-reprocess',
+                        default=True,
+                        action="store_false",
+                        help="Do not use reprocessed data if it exists.")
+
+    # t = evaluate(
+    #     [
+    #         "capture_Simulation_17-Aug-2021_11-36-54.csv",
+    #         "capture_Simulation_17-Aug-2021_11-24-52.csv"
+    #         ],
+    #     "C:/Users/wrm3/MCV-QoE/Mouth_2_Ear/data/csv/"
+    #     )
+
+    args = parser.parse_args()
+    t = evaluate(args.test_names, test_path=args.test_path,
+                 use_reprocess=args.no_reprocess)
+
+    res = t.eval()
+
+    print(res)
+
+    return(res)
 
 
 if __name__ == "__main__":
