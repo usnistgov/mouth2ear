@@ -5,20 +5,51 @@ Created on Mon Aug  16 01:46:20 2021
 
 @author: wrm3
 """
-import os
-import warnings
 import argparse
 
 import numpy as np
 import pandas as pd
 
-import mcvqoe.math
-import mcvqoe.simulation
-
 
 # Main class for evaluating
 class evaluate():
-    """Class to evaluate Probability of Successful Delivery tests."""
+    """
+    Class to evaluate mouth to ear lataency time.
+
+    Parameters
+    ----------
+    test_names : str or list of str
+        File names of M2E seessions part of a test.
+
+    test_path : str
+        Full path to the directory containing the sessions within a test.
+
+    use_reprocess : bool
+        Whether or not to use reprocessed data, if it exists.
+
+    Attributes
+    ----------
+    full_paths : list of str
+        Full file paths to the sessions.
+
+    mean : float
+        Average of all the means of the thinned session data part of the test.
+
+    ci : numpy array
+        Lower and upper confidence bound on the mean.
+
+    common_thinning : int
+        The largest thinning factor among the sessions.
+
+    Methods
+    -------
+    eval()
+        Determine the mouth to ear latency of a test.
+
+    See Also
+    --------
+        mcvqoe.m2e.measure : Measurement class for generating M2E data.
+    """
 
     def __init__(self,
                  test_names,
@@ -30,9 +61,7 @@ class evaluate():
             test_names = [test_names]
 
         # Initialize attributes
-        self.thinning_data = {}
         self.full_paths = [test_path + test_name for test_name in test_names]
-        self.thinning_info = {}
         self.mean = None
         self.ci = None
         self.common_thinning = None
@@ -46,29 +75,18 @@ class evaluate():
 
     def eval(self):
         """
-        ASDF.
-
-        Parameters
-        ----------
-        threshold : TYPE
-            DESCRIPTION.
-        msg_len : TYPE
-            DESCRIPTION.
-        p : TYPE, optional
-            DESCRIPTION. The default is 0.95.
-        R : TYPE, optional
-            DESCRIPTION. The default is 1e4.
-        method : TYPE, optional
-            DESCRIPTION. The default is "EWC".
-        method_weight : TYPE, optional
-            DESCRIPTION. The default is None.
+        Evaluate mouth to ear test data provided.
 
         Returns
         -------
-        None.
+        float
+            Mean of test data.
+        numpy array
+            Upper and lower confidence bound on the mean of the test data.
 
         """
         # get common thinning factor for all sessions. take the max
+        thinning_info = {}
         for session in self.full_paths:
             current_session = pd.read_csv(session)
             for k in range(1, len(current_session["m2e_latency"])):
@@ -76,8 +94,8 @@ class evaluate():
                 acorr = improved_autocorrelation(
                     current_session['m2e_latency'][::k])
                 if not (len(acorr) > 1):
-                    self.thinning_info[session] = k
-        self.common_thinning = max(self.thinning_info.values())
+                    thinning_info[session] = k
+        self.common_thinning = max(thinning_info.values())
 
         mean_cum = 0
         thinned_data = {}
@@ -92,16 +110,28 @@ class evaluate():
         self.mean = mean_cum/len(self.full_paths)
         self.ci = bootstrap_datasets_ci(*thinned_data.values())
 
-        #data = pd.DataFrame(
-        #    {"Mean": self.mean, "Confidence Interval": self.ci})
-
-
         return (self.mean, self.ci)
 
 
 # Auxillary function definitions
 def improved_autocorrelation(x):
-    """Adsf."""
+    """
+    Detect lags at which there is likely autocorrelation.
+
+    Determined according to the improved bounds given in 'Zhang NF (2006)
+    Calculation of the uncertainty of the mean of autocorrelated measurements'.
+
+    Parameters
+    ----------
+    x : numpy array
+        Numerical data on which to detect autocorrelation.
+
+    Returns
+    -------
+    numpy array
+        Array of indices for lags where this is likely autocorrelation.
+
+    """
     # Calculate sample autocorrelation estimate
     N = len(x)
     corrs = np.zeros(N)
@@ -121,7 +151,26 @@ def improved_autocorrelation(x):
 
 
 def bootstrap_datasets_ci(*datasets, R=int(1e4), alpha=0.5):
-    """ASDF."""
+    """
+    Bootstrap for averaging means from different datasets.
+
+    Parameters
+    ----------
+    *datasets : numpy arrays
+        Datasets from which to take sample means. In context, the datasets
+        are the different M2E sessions within a test.
+    R : int, optional
+        Number of resamples. The default is int(1e4).
+    alpha : float, optional
+        Alpha level of the test. The default is 0.5.
+
+    Returns
+    -------
+    ci : numpy array
+        Two element array containing the upper and lower confidence bound on
+        the mean.
+
+    """
     ds = datasets
     N = len(ds[0])
     x_bars = np.zeros((len(ds), R))
