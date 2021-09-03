@@ -6,9 +6,12 @@ Created on Mon Aug  16 01:46:20 2021
 @author: wrm3
 """
 import argparse
+import warnings
 
 import numpy as np
 import pandas as pd
+
+import mcvqoe.math
 
 
 # Main class for evaluating
@@ -62,6 +65,7 @@ class evaluate():
 
         # Initialize attributes
         self.full_paths = [test_path + test_name for test_name in test_names]
+        self.data = [pd.read_csv(path) for path in self.full_paths]
         self.mean = None
         self.ci = None
         self.common_thinning = None
@@ -86,16 +90,24 @@ class evaluate():
 
         """
         # get common thinning factor for all sessions. take the max
-        thinning_info = {}
-        for session in self.full_paths:
-            current_session = pd.read_csv(session)
-            for k in range(1, len(current_session["m2e_latency"])):
-                # check for autocorrelation
-                acorr = improved_autocorrelation(
-                    current_session['m2e_latency'][::k])
-                if not (len(acorr) > 1):
-                    thinning_info[session] = k
-        self.common_thinning = max(thinning_info.values())
+        # thinning_info = {}
+        # for session in self.full_paths:
+        #     current_session = pd.read_csv(session)
+        #     for k in range(1, len(current_session["m2e_latency"])):
+        #         # check for autocorrelation
+        #         acorr = mcvqoe.math.improved_autocorrelation(
+        #             current_session['m2e_latency'][::k])
+        #         if not (len(acorr) > 1):
+        #             thinning_info[session] = k
+        # self.common_thinning = max(thinning_info.values())
+
+        # get common thinning factor
+        for thinning_factor in range(1, len(self.data[0])):
+            if all([not len(mcvqoe.math.improved_autocorrelation(data["m2e_latency"][::thinning_factor])) > 1] for data in self.data):
+                self.common_thinning = thinning_factor
+                break
+            else:
+                warnings.warn("No common thinning factor found ")
 
         mean_cum = 0
         thinned_data = {}
@@ -108,83 +120,9 @@ class evaluate():
             thinned_data[session] = current_session["m2e_latency"]
 
         self.mean = mean_cum/len(self.full_paths)
-        self.ci = bootstrap_datasets_ci(*thinned_data.values())
+        self.ci = mcvqoe.math.bootstrap_datasets_ci(*thinned_data.values())
 
         return (self.mean, self.ci)
-
-
-# Auxillary function definitions
-def improved_autocorrelation(x):
-    """
-    Detect lags at which there is likely autocorrelation.
-
-    Determined according to the improved bounds given in 'Zhang NF (2006)
-    Calculation of the uncertainty of the mean of autocorrelated measurements'.
-
-    Parameters
-    ----------
-    x : numpy array
-        Numerical data on which to detect autocorrelation.
-
-    Returns
-    -------
-    numpy array
-        Array of indices for lags where this is likely autocorrelation.
-
-    """
-    # Calculate sample autocorrelation estimate
-    N = len(x)
-    corrs = np.zeros(N)
-    m = np.mean(x)
-    d = x - m
-    for ii in range(N):
-        corrs[ii] = np.sum(d[ii:] * d[:(N-ii)])
-    corrs = corrs/corrs[0]
-
-    # Respective uncertainties
-    sigmas = np.zeros(N)
-    sigmas[0] = 1/np.sqrt(N)
-    for ii in range(1, N):
-        sigmas[ii] = np.sqrt((1 + 2 * np.sum(corrs[:ii]**2))/N)
-
-    return np.argwhere(np.abs(corrs) > 1.96 * sigmas)
-
-
-def bootstrap_datasets_ci(*datasets, R=int(1e4), alpha=0.5):
-    """
-    Bootstrap for averaging means from different datasets.
-
-    Parameters
-    ----------
-    *datasets : numpy arrays
-        Datasets from which to take sample means. In context, the datasets
-        are the different M2E sessions within a test.
-    R : int, optional
-        Number of resamples. The default is int(1e4).
-    alpha : float, optional
-        Alpha level of the test. The default is 0.5.
-
-    Returns
-    -------
-    ci : numpy array
-        Two element array containing the upper and lower confidence bound on
-        the mean.
-
-    """
-    ds = datasets
-    N = len(ds[0])
-    x_bars = np.zeros((len(ds), R))
-    for ii, dataset in enumerate(ds):
-        rs = np.random.choice(dataset, size=(N, R))
-        x_bar = np.mean(rs, axis=0)
-        x_bars[ii, :] = x_bar
-    # Means across sessions
-    x_bar_dist = np.mean(x_bars, axis=1)
-    # percentiles
-    ql = alpha/2
-    qu = 1 - ql
-    ci = np.quantile(x_bar_dist, [ql, qu])
-    return ci
 
 
 # Main definition
