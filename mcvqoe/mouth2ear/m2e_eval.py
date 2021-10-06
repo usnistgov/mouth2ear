@@ -6,6 +6,7 @@ Created on Mon Aug  16 01:46:20 2021
 @author: wrm3
 """
 import argparse
+import os
 import warnings
 
 import numpy as np
@@ -62,21 +63,73 @@ class evaluate():
         # If only one test, make a list for iterating
         if isinstance(test_names, str):
             test_names = [test_names]
+        
+        # Initialize full paths attribute
+        self.full_paths = []
+        for test_name in test_names:
+            # If no extension given use csv
+            fname, fext = os.path.splitext(test_name)
+            if fext == '':
+                tname = fname + '.csv'
+            else:
+                tname = fname + fext
+            fpath = os.path.join(test_path, 'csv', tname)
+            self.full_paths.append(fpath)
 
         # Initialize attributes
-        self.full_paths = [test_path + test_name for test_name in test_names]
         self.data = [pd.read_csv(path) for path in self.full_paths]
+        
         self.mean = None
         self.ci = None
-        self.common_thinning = None
-
+        self.common_thinning = self.find_thinning_factor()
+        self.thinned_data = []
+        for data in self.data:
+            self.thinned_data.append(data["m2e_latency"][::self.common_thinning])
+        
         # Check for kwargs
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
+    
+    def find_thinning_factor(self):
+        """
+        Determine common thinning factor for data that removes autocorrelation.
 
+        Returns
+        -------
+        int:
+            Thinning factor that removes autocorrelation.
+
+        """
+        # get common thinning factor
+        thinning_factor = 1
+        # TODO: Make this more robust for data sets of different sizes rather than
+        # Limiting to smallest data set
+        max_lag = np.min([np.floor(len(data)/4) for data in self.data])
+        
+        is_lag = True
+        while is_lag and thinning_factor <= max_lag:
+            # Initialize list of lags for each data set
+            lags = []
+            for data in self.data:
+                # Thin data and calculate autocorrelation
+                thin_dat = data["m2e_latency"][::thinning_factor]
+                autocorr_lags = mcvqoe.math.improved_autocorrelation(thin_dat)
+                
+                # Lag 0 always present, store if more than that
+                lagged = len(autocorr_lags) > 1
+                lags.append(lagged)
+            if not any(lags):
+                is_lag = False
+            else:
+                thinning_factor += 1
+        if is_lag:
+            warnings.warn("No common thinning factor found ")
+        return thinning_factor
+        
+        
     def eval(self):
         """
         Evaluate mouth to ear test data provided.
@@ -101,26 +154,15 @@ class evaluate():
         #             thinning_info[session] = k
         # self.common_thinning = max(thinning_info.values())
 
-        # get common thinning factor
-        for thinning_factor in range(1, len(self.data[0])):
-            if all([not len(mcvqoe.math.improved_autocorrelation(data["m2e_latency"][::thinning_factor])) > 1] for data in self.data):
-                self.common_thinning = thinning_factor
-                break
-            else:
-                warnings.warn("No common thinning factor found ")
-
+        
         mean_cum = 0
-        thinned_data = {}
+        
+        for thin_data in self.thinned_data:
+            mean_cum += np.mean(thin_data)
 
-        for session in self.full_paths:
-            current_session = pd.read_csv(session)
-            # Thin data
-            current_session = current_session[::self.common_thinning]
-            mean_cum += np.mean(current_session["m2e_latency"])
-            thinned_data[session] = current_session["m2e_latency"]
-
-        self.mean = mean_cum/len(self.full_paths)
-        self.ci = mcvqoe.math.bootstrap_datasets_ci(*thinned_data.values())
+        self.mean = mean_cum/len(self.thinned_data)
+        
+        self.ci = mcvqoe.math.bootstrap_datasets_ci(*self.thinned_data)
 
         return (self.mean, self.ci)
 
