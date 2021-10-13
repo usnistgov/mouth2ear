@@ -11,6 +11,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 
 import mcvqoe.math
 
@@ -66,6 +67,7 @@ class evaluate():
         
         # Initialize full paths attribute
         self.full_paths = []
+        self.test_names = []
         for test_name in test_names:
             # If no extension given use csv
             fname, fext = os.path.splitext(test_name)
@@ -75,6 +77,7 @@ class evaluate():
                 tname = fname + fext
             fpath = os.path.join(test_path, 'csv', tname)
             self.full_paths.append(fpath)
+            self.test_names.append(os.path.basename(fname))
 
         # Initialize attributes
         self.data = [pd.read_csv(path) for path in self.full_paths]
@@ -82,6 +85,8 @@ class evaluate():
         self.mean = None
         self.ci = None
         self.common_thinning = self.find_thinning_factor()
+        # TODO: Rethink how we save data? Should we do one dataframe and filter for each session?
+        # TODO: Save full dataframe (all columns) for thinned data
         self.thinned_data = []
         for data in self.data:
             self.thinned_data.append(data["m2e_latency"][::self.common_thinning])
@@ -165,6 +170,30 @@ class evaluate():
         self.ci = mcvqoe.math.bootstrap_datasets_ci(*self.thinned_data)
 
         return (self.mean, self.ci)
+    
+    def histogram(self, data_id='data'):
+        # TODO: Do this for each session
+        if data_id == 'data':
+            df = self.data[0]
+        elif data_id == 'thinned_data':
+            df = self.thinned_data[0]
+        fig = px.histogram(df, x='m2e_latency')
+        return fig
+    
+    def plot(self, thinned=True, test_name=None):
+        # TODO: Do this for each session
+        if not thinned:
+            df = pd.DataFrame()
+            for dfs, name in zip(self.data, self.test_names):
+                dfs['name'] = name
+                df = df.append(dfs)
+        else:
+            df = pd.DataFrame()
+            for dfs, name in zip(self.thinned_data, self.test_names):
+                dfs['name'] = name
+                df = df.append(dfs)
+        fig = px.scatter(df, x=df.index, y='m2e_latency')
+        return fig
 
 
 # Main definition
