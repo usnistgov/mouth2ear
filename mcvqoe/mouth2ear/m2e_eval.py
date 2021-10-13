@@ -12,6 +12,8 @@ import warnings
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+
 
 import mcvqoe.math
 
@@ -83,6 +85,8 @@ class evaluate():
         self.data = pd.DataFrame()
         for path, name in zip(self.full_paths, self.test_names):
             df = pd.read_csv(path)
+            # Force timestamp to be datetime
+            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
             df['name'] = name
             self.data = self.data.append(df)
         self.mean = None
@@ -193,10 +197,28 @@ class evaluate():
             df = self.data
         else:
             df = self.thinned_data
+        
         fig = px.histogram(df, x='m2e_latency', color='name')
+        fig.add_vline(x=self.mean, line_width=3, line_dash="dash")
+        fig.add_vline(x=self.ci[0], line_width=2, line_dash="dot")
+        fig.add_vline(x=self.ci[1], line_width=2, line_dash="dot")
+        
+        fig.add_annotation(xref='x', yref='paper',
+                           x=self.mean, y=0.9,
+                           text="Mean and confidence interval",
+                           showarrow=True,
+                           xanchor='right',
+                           )
+
+        fig.update_layout(legend=dict(
+            yanchor="bottom",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ))
         return fig
     
-    def plot(self, thinned=True, test_name=None, x=None):
+    def plot(self, thinned=True, test_name=None, x=None, talkers=None):
         # Grab thinned or unthinned data
         if not thinned:
             df = self.data
@@ -210,11 +232,31 @@ class evaluate():
             for name in test_name:
                 df_filt = df_filt.append(df[df['name'] == name])
             df = df_filt
+        # Filter by talkers if given
+        if talkers is not None:
+            df_filt = pd.DataFrame()
+            if isinstance(talkers, str):
+                talkers = [talkers]
+            for talker in talkers:
+                df_filt = df_filt.append(df[df['Filename'] == talker])
+            df = df_filt
         # Set x-axis value
         if x is None:
             x = df.index
+        
         fig = px.scatter(df, x=x, y='m2e_latency',
-                         color='name')
+                         color='name',
+                         symbol='Filename'
+                         )
+        
+        fig.update_layout(legend=dict(
+            yanchor="bottom",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            ),
+            legend_orientation="h"
+        )
         return fig
 
 
