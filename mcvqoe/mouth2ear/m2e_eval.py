@@ -80,16 +80,22 @@ class evaluate():
             self.test_names.append(os.path.basename(fname))
 
         # Initialize attributes
-        self.data = [pd.read_csv(path) for path in self.full_paths]
-        
+        self.data = pd.DataFrame()
+        for path, name in zip(self.full_paths, self.test_names):
+            df = pd.read_csv(path)
+            df['name'] = name
+            self.data = self.data.append(df)
         self.mean = None
         self.ci = None
         self.common_thinning = self.find_thinning_factor()
-        # TODO: Rethink how we save data? Should we do one dataframe and filter for each session?
-        # TODO: Save full dataframe (all columns) for thinned data
-        self.thinned_data = []
-        for data in self.data:
-            self.thinned_data.append(data["m2e_latency"][::self.common_thinning])
+
+        self.thinned_data = pd.DataFrame()
+        for name in self.test_names:
+            fdata = self.data[self.data['name'] == name]
+            tdata = fdata[::self.common_thinning]
+            
+            self.thinned_data = self.thinned_data.append(tdata)
+            # self.thinned_data.append(data["m2e_latency"][::self.common_thinning])
         
         # Check for kwargs
         for k, v in kwargs.items():
@@ -112,15 +118,20 @@ class evaluate():
         thinning_factor = 1
         # TODO: Make this more robust for data sets of different sizes rather than
         # Limiting to smallest data set
-        max_lag = np.min([np.floor(len(data)/4) for data in self.data])
+        sesh_counts = [np.sum(self.data['name'] == name) for name in self.test_names]
+        max_lag = np.min([np.floor(N/4) for N in sesh_counts])
         
         is_lag = True
+        
         while is_lag and thinning_factor <= max_lag:
             # Initialize list of lags for each data set
             lags = []
-            for data in self.data:
+            
+            for name in self.test_names:
+                # Filter by session
+                filt_dat = self.data[self.data['name'] == name]
                 # Thin data and calculate autocorrelation
-                thin_dat = data["m2e_latency"][::thinning_factor]
+                thin_dat = filt_dat["m2e_latency"][::thinning_factor]
                 autocorr_lags = mcvqoe.math.improved_autocorrelation(thin_dat)
                 
                 # Lag 0 always present, store if more than that
@@ -162,37 +173,48 @@ class evaluate():
         
         mean_cum = 0
         
-        for thin_data in self.thinned_data:
-            mean_cum += np.mean(thin_data)
+        ci_dsets = []
+        for name in self.test_names:
+            thin_data = self.thinned_data[self.thinned_data['name'] == name]
+            m2e_vals = thin_data['m2e_latency']
+            ci_dsets.append(m2e_vals)
+            mean_cum += np.mean(m2e_vals)
 
-        self.mean = mean_cum/len(self.thinned_data)
+        self.mean = mean_cum/len(self.test_names)
         
-        self.ci = mcvqoe.math.bootstrap_datasets_ci(*self.thinned_data)
+        
+        self.ci = mcvqoe.math.bootstrap_datasets_ci(*ci_dsets)
 
         return (self.mean, self.ci)
     
-    def histogram(self, data_id='data'):
-        # TODO: Do this for each session
-        if data_id == 'data':
-            df = self.data[0]
-        elif data_id == 'thinned_data':
-            df = self.thinned_data[0]
-        fig = px.histogram(df, x='m2e_latency')
-        return fig
-    
-    def plot(self, thinned=True, test_name=None):
+    def histogram(self, thinned=True, test_name=None):
         # TODO: Do this for each session
         if not thinned:
-            df = pd.DataFrame()
-            for dfs, name in zip(self.data, self.test_names):
-                dfs['name'] = name
-                df = df.append(dfs)
+            df = self.data
         else:
-            df = pd.DataFrame()
-            for dfs, name in zip(self.thinned_data, self.test_names):
-                dfs['name'] = name
-                df = df.append(dfs)
-        fig = px.scatter(df, x=df.index, y='m2e_latency')
+            df = self.thinned_data
+        fig = px.histogram(df, x='m2e_latency', color='name')
+        return fig
+    
+    def plot(self, thinned=True, test_name=None, x=None):
+        # Grab thinned or unthinned data
+        if not thinned:
+            df = self.data
+        else:
+            df = self.thinned_data
+        # Filter by session name if given
+        if test_name is not None:
+            df_filt = pd.DataFrame()
+            if not isinstance(test_name, list):
+                test_name = [test_name]
+            for name in test_name:
+                df_filt = df_filt.append(df[df['name'] == name])
+            df = df_filt
+        # Set x-axis value
+        if x is None:
+            x = df.index
+        fig = px.scatter(df, x=x, y='m2e_latency',
+                         color='name')
         return fig
 
 
