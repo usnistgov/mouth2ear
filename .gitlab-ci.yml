@@ -8,7 +8,6 @@ variables:
 image: python:3.8
 
 cache:
-  key: $CI_PIPELINE_IID
   paths:
     - .cache/pip
     - venv/
