@@ -89,8 +89,7 @@ class evaluate():
             df['Timestamp'] = pd.to_datetime(df['Timestamp'])
             df['name'] = name
             self.data = self.data.append(df)
-        self.mean = None
-        self.ci = None
+        
         self.common_thinning = self.find_thinning_factor()
 
         self.thinned_data = pd.DataFrame()
@@ -107,6 +106,8 @@ class evaluate():
                 setattr(self, k, v)
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
+        
+        self.mean, self.ci = self.eval()
     
     def find_thinning_factor(self):
         """
@@ -191,12 +192,29 @@ class evaluate():
 
         return (self.mean, self.ci)
     
-    def histogram(self, thinned=True, test_name=None):
+    def histogram(self, thinned=True, test_name=None, talkers=None):
         # TODO: Do this for each session
         if not thinned:
             df = self.data
         else:
             df = self.thinned_data
+        
+        # Filter by session name if given
+        if test_name is not None:
+            df_filt = pd.DataFrame()
+            if not isinstance(test_name, list):
+                test_name = [test_name]
+            for name in test_name:
+                df_filt = df_filt.append(df[df['name'] == name])
+            df = df_filt
+        # Filter by talkers if given
+        if talkers is not None:
+            df_filt = pd.DataFrame()
+            if isinstance(talkers, str):
+                talkers = [talkers]
+            for talker in talkers:
+                df_filt = df_filt.append(df[df['Filename'] == talker])
+            df = df_filt
         
         fig = px.histogram(df, x='m2e_latency', color='name')
         fig.add_vline(x=self.mean, line_width=3, line_dash="dash")
