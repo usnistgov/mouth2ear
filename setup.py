@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="mcvqoe-mouth2ear",
-    author="Jesse Frey, Peter Fink, Jaden Pieper",
-    author_email="jesse.frey@nist.gov,jaden.pieper@nist.gov",
+    author="PSCR",
+    author_email="PSCR@PSCR.gov",
     description="Measurement code for measuring mouth to ear latency",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,7 +23,7 @@ setuptools.setup(
     ],
     license="NIST software License",
     install_requires=[
-        "mcvqoe-nist",
+        "mcvqoe-base",
         "matplotlib",
     ],
     entry_points={
