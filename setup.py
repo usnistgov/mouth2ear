@@ -26,6 +26,7 @@ setuptools.setup(
         "mcvqoe-base",
         "matplotlib",
         "plotly",
+        "pandas",
     ],
     entry_points={
         "console_scripts": [
