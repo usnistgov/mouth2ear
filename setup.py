@@ -25,6 +25,7 @@ setuptools.setup(
     install_requires=[
         "mcvqoe-base",
         "matplotlib",
+        "plotly",
     ],
     entry_points={
         "console_scripts": [
