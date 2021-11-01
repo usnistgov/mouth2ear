@@ -27,6 +27,7 @@ setuptools.setup(
         "matplotlib",
         "plotly",
         "pandas",
+        'numpy',
     ],
     entry_points={
         "console_scripts": [
