@@ -192,7 +192,8 @@ class evaluate():
 
         return (self.mean, self.ci)
     
-    def histogram(self, thinned=True, test_name=None, talkers=None):
+    def histogram(self, thinned=True, test_name=None, talkers=None,
+                  title='Histogram of mouth-to-ear latency results'):
         # TODO: Do this for each session
         if not thinned:
             df = self.data
@@ -216,7 +217,12 @@ class evaluate():
                 df_filt = df_filt.append(df[df['Filename'] == talker])
             df = df_filt
         
-        fig = px.histogram(df, x='m2e_latency', color='name')
+        fig = px.histogram(df, x='m2e_latency', color='name',
+                           labels={
+                               'm2e_latency': 'Mouth-to-ear latency [s]',
+                               },
+                           title=title,
+                           )
         fig.add_vline(x=self.mean, line_width=3, line_dash="dash")
         fig.add_vline(x=self.ci[0], line_width=2, line_dash="dot")
         fig.add_vline(x=self.ci[1], line_width=2, line_dash="dot")
@@ -228,15 +234,18 @@ class evaluate():
                            xanchor='right',
                            )
 
-        fig.update_layout(legend=dict(
-            yanchor="bottom",
-            y=0.99,
-            xanchor="left",
-            x=0.01
-        ))
+        fig.update_layout(
+            legend=dict(
+                orientation="h",
+                xanchor="center",
+                y=-0.2,
+                x=0.5,
+                ),
+            )
         return fig
     
-    def plot(self, thinned=True, test_name=None, x=None, talkers=None):
+    def plot(self, thinned=True, test_name=None, x=None, talkers=None,
+             title='Mouth-to-ear latency scatter plot'):
         # Grab thinned or unthinned data
         if not thinned:
             df = self.data
@@ -264,16 +273,20 @@ class evaluate():
         
         fig = px.scatter(df, x=x, y='m2e_latency',
                          color='name',
-                         symbol='Filename'
+                         symbol='Filename',
+                         labels={
+                             'm2e_latency': 'Mouth-to-ear latency [s]',
+                             'index': 'Trial Number',
+                             },
+                         title=title,
                          )
         
         fig.update_layout(legend=dict(
-            yanchor="bottom",
-            y=0.99,
-            xanchor="left",
-            x=0.01,
+            orientation="h",
+            xanchor="center",
+            y=-0.2,
+            x=0.5,
             ),
-            legend_orientation="h"
         )
         return fig
 
