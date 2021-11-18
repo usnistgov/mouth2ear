@@ -11,53 +11,38 @@ The purpose of this software is to measure the mouth-to-ear (M2E) latency of a p
 
 ## Installation and Software
 
-### Python
+The `mcvqoe-mouth2ear` package can be installed using the following command:
+```
+pip install .
+```
+The `mcvqoe-base` package is required for install, it can be found at https://github.com/usnistgov/mcvqoe-base.
 
-First you'll need to install Python. There are many different distributions, but it's recommended that you download from [Python.org](https://www.python.org/downloads/).  
-After a successful install of Python you'll need Matplotlib, SciPy, and pySerial. Each can be downloaded with "pip":  
-* `python -m pip install -U matplotlib`  
-* `python -m pip install scipy`  
-* `pip install pyserial`
-
-### PySoundFile
-
-Software for reading/writing sound files for use in conjunction with "sounddevice."
-[PySoundFile](https://pysoundfile.readthedocs.io/en/0.10.3post1/#)
-
-### python-sounddevice
-
-A Python module that provides bindings for the PortAudio library. For play/record interface.
-[python-sounddevice](https://python-sounddevice.readthedocs.io/en/latest/index.html)
+It is also recommended to install the `mcvqoe` package which has the measurement GUI to make measurements easier and more intuitive to run. It can be found at https://github.com/usnistgov/mcvqoe.
 
 ## Mouth to Ear 1 Location
 
-To run the test, simply enter `python m2e_class.py` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `python m2e_class.py -h`
+To run the test, simply enter `m2e-measure` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `m2e-measure -h`
 
 **ex:**
-`python m2e_class.py -a testfile.wav -t 20 -bgf nightclub.wav -o 1.2`
+`m2e-measure --audio-files testfile.wav --trials 120 --overplay 1.2`
 * `-a testfile.wav` runs the program with "testfile.wav" as the test sound file (default is test.wav)
-* `-t 20` runs 20 trials (default is 100)
-* `-bgf nightclub.wav` adds "nightclub.wav" noise file to the test file (default is no noise)
-* `-o 1.2` adds 1.2 seconds of silence after the audio is played (default is 0.1 seconds)
+* `--trials 120` runs 120 trials (default is 100)
+* `--overplay 1.2` adds 1.2 seconds of silence after the audio is played (default is 0.1 seconds)
 ## Mouth to Ear 2 Location
 
 ### Transmitter side
-To run the Tx portion of the test, simply use `python m2e_class.py -y m2e_2loc_tx` in a terminal opened to the top level directory. Please enter `python m2e_class.py -h` to learn more.
+To run the Tx portion of the test, simply use `m2e-measure --testtype m2e_2loc_tx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more. Once the side is started, the test will begin imminently, so start the Rx side before the Tx side to make sure that all the data gets captured.
 
 **ex:**
-`python m2e_class.py -y m2e_2loc_tx -t 50 -b 1024 -q 30`
+`m2e-measure -y m2e_2loc_tx`
 * `-y m2e_2loc_tx` runs the Mouth to Ear 2 location transmitter side test (default is m2e_1loc)
-* `-t 50` runs 50 trials (default is 10)
-* `-b 1024` uses a blocksize of 1024 for the audio transmitting (default is 512, use powers of 2)
-* `-q 30` uses 30 blocks for buffering audio (default is 20)
 
 ### Receiver side
-To run the Rx portion of the test, simply use `python m2e_class.py -y m2e_2loc_rx` in a terminal opened to the top level directory. Please enter `python m2e_class.py -h` to learn more.
+To run the Rx portion of the test, simply use `m2e-measure -testtype m2e_2loc_rx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more.
 
 **ex:**
-`python m2e_class.py -y m2e_2loc_rx -od mydata`
-* `-od mydata` places the recording data into a directory named "mydata" (default is the top level directory)
-* Press "ctrl+c" to end the recording once word is given by the transmit side
+`m2e-measure --testtype m2e_2loc_rx`
+* Press any key on the receiving side to stop the recording when the test finishes on the transmit side.
 ## Disclaimer
 
 **Much of the included software was developed by NIST employees for that software the following disclaimer applies:**
