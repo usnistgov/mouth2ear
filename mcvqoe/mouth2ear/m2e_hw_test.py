@@ -8,7 +8,6 @@ import os
 from contextlib import nullcontext
 from .m2e import measure
 
-import matplotlib.pyplot as plt
 import numpy as np   
 
 def main():
@@ -60,10 +59,6 @@ def main():
                         " in the system")
     parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files")
-    parser.add_argument('--plot', dest='show_plot', action='store_true', default=True,
-                        help='Don\'t plot data after test')
-    parser.add_argument('--no-plot', dest='show_plot', action='store_false',
-                        help='Don\'t plot data after test')
     parser.add_argument('-F', '--full-audio-dir', dest='full_audio_dir', action='store_true', default=False,
                         help='ignore --audioFiles and use all files in --audioPath')
     parser.add_argument('--no-full-audio-dir', dest='full_audio_dir', action='store_false',
@@ -137,11 +132,6 @@ def main():
 
         test_obj.run()
         print(f"Test complete, data saved in '{test_obj.data_filename}'")
-
-    # ------------------------------[Plot Data]------------------------------
-
-    if args.show_plot and test_obj.test == "m2e_1loc":
-        test_obj.plot()
 
 if __name__ == "__main__":
 

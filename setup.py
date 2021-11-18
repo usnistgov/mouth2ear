@@ -24,7 +24,6 @@ setuptools.setup(
     license="NIST software License",
     install_requires=[
         "mcvqoe-base",
-        "matplotlib",
         "plotly",
         "pandas",
         'numpy',

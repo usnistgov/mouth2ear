@@ -12,7 +12,6 @@ from fractions import Fraction
 #version import for logging purposes
 from .version import version
 
-import matplotlib.pyplot as plt
 import mcvqoe.base
 import mcvqoe.delay
 import numpy as np
@@ -475,53 +474,6 @@ class measure:
                 'm2e_latency' : estimated_m2e_latency,
                 'channels' : mcvqoe.base.audio_channels_to_string(rec_chans),
                 }
-
-    def plot(self, name=None):
-
-        if not name:
-            name = self.data_filename
-
-        with open(name, "rt") as csv_f:
-            # create dict reader
-            reader = csv.DictReader(csv_f)
-            # empty list for M2E data
-            m2e_dat = []
-            #
-            for row in reader:
-                m2e_dat.append(float(row["m2e_latency"]))
-
-        # convert to numpy array
-        m2e_dat = np.array(m2e_dat)
-
-        # ----------------------------[Generate Plots]------------------------------
-
-        # Overall mean delay
-        ovrl_dly = np.mean(m2e_dat)
-
-        # Get standard deviation
-        std_delay = np.std(m2e_dat, dtype=np.float64)
-        std_delay = std_delay * (1e6)
-
-        # Print StD to terminal
-        print("StD: %.2fus\n" % std_delay, flush=True)
-
-        # Create trial scatter plot
-        plt.figure()
-        x2 = range(1, len(m2e_dat) + 1)
-        plt.plot(x2, m2e_dat, "o", color="blue")
-        plt.xlabel("Trial Number")
-        plt.ylabel("Delay(s)")
-
-        # Create histogram for mean
-        plt.figure()
-        uniq = np.unique(m2e_dat)
-        dlymin = np.amin(m2e_dat)
-        dlymax = np.amax(m2e_dat)
-        plt.hist(m2e_dat, bins=len(uniq), range=(dlymin, dlymax), rwidth=0.5)
-        plt.title("Mean: %.5fs" % ovrl_dly)
-        plt.xlabel("Delay(s)")
-        plt.ylabel("Frequency of indicated delay")
-        plt.show()
 
     def m2e_2loc_tx(self):
         """Run a m2e_2loc_tx test"""

@@ -9,7 +9,6 @@ import sys
 
 from .m2e import measure
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -64,10 +63,6 @@ def main():
                         help='Channel technology rate to simulate. Passing \'None\' will use the technology default. (default: %(default)s)')
     parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L',dest='m2e_latency',
                         help='Channel mouth to ear latency, in seconds, to simulate. (default: %(default)s)')
-    parser.add_argument('--plot', dest='show_plot',action='store_true', default=True,
-                        help='Don\'t plot data after test')
-    parser.add_argument('--no-plot', dest='show_plot', action='store_false',
-                        help='Don\'t plot data after test')
     parser.add_argument('-F', '--full-audio-dir', dest='full_audio_dir', action='store_true', default=False,
                         help='ignore --audioFiles and use all files in --audioPath')
     parser.add_argument('--no-full-audio-dir', dest='full_audio_dir', action='store_false',
@@ -145,10 +140,6 @@ def main():
     
     test_obj.run()
     print(f'Test complete, data saved in \'{test_obj.data_filename}\'')
-
-    # ------------------------------[Plot Data]------------------------------
-    if args.show_plot:
-        test_obj.plot()
 
 
 if __name__ == "__main__":
