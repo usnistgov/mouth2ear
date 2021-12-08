@@ -1,9 +1,11 @@
 stages:
+  - test12
   - build
   - test
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  IMAGE_MCVQOE_BASE: "This has priority!"
 
 image: python:3.8
 
@@ -14,6 +16,11 @@ cache:
 
 before_script:
   - source venv/bin/activate
+
+test12:
+  stage: test12
+  script:
+    - echo $IMAGE_MCVQOE_BASE
 
 build:
   stage: build
