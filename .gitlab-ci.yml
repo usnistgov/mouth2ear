@@ -4,7 +4,6 @@ stages:
   - deploy
 
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   IMAGE_MCVQOE_BASE: docker.nist.gov:4567/pscr/mcv/mcv-qoe-library/mcvqoe-base:develop
 
 default:
