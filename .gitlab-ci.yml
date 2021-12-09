@@ -1,40 +1,37 @@
 stages:
-  - test12
   - build
   - test
+  - deploy
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  IMAGE_MCVQOE_BASE: "This has priority!"
+  IMAGE_MCVQOE_BASE: docker.nist.gov:4567/pscr/mcv/mcv-qoe-library/mcvqoe-base:develop
 
-image: python:3.8
-
-cache:
-  paths:
-    - .cache/pip
-    - venv/
-
-before_script:
-  - source venv/bin/activate
-
-test12:
-  stage: test12
-  script:
-    - echo $IMAGE_MCVQOE_BASE
+default:
+  image: $IMAGE_MCVQOE_BASE
+  before_script:
+    - pip install --no-index --find-links=./dist mcvqoe-mouth2ear
+  tags:
+    - docker
 
 build:
   stage: build
   before_script:
     - python -V
   script:
-    - pip install virtualenv
-    - virtualenv venv
-    - source venv/bin/activate
-    - pip install git+https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.nist.gov/PSCR/MCV/mcv-qoe-library.git
-    - pip install .
+    - python setup.py bdist_wheel
+  artifacts:
+    paths:
+      - dist/*
 
 test-measure_class:
   stage: test
   script:
     - python tests/test_measure_class.py
 
+release:pypi:
+  stage: deploy
+  image: python:3.8
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi --skip-existing dist/*
