@@ -8,8 +8,6 @@ variables:
 
 default:
   image: $IMAGE_MCVQOE_BASE
-  before_script:
-    - pip install --no-index --find-links=./dist mcvqoe-mouth2ear
   tags:
     - docker
 
@@ -25,6 +23,8 @@ build:
 
 test-measure_class:
   stage: test
+  before_script:
+    - pip install --no-index --find-links=./dist mcvqoe-mouth2ear
   script:
     - python tests/test_measure_class.py
 
