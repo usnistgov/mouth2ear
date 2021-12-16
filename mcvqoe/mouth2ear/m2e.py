@@ -35,7 +35,7 @@ class measure:
                  "channels": mcvqoe.base.parse_audio_channels,
                 }
 
-    no_log = ("test", "ri")
+    no_log = ("test",)
 
     def __init__(self, **kwargs):
 
