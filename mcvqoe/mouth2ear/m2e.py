@@ -16,6 +16,7 @@ import numpy as np
 import pkg_resources
 import scipy.signal
 from mcvqoe.base.terminal_user import terminal_progress_update
+from mcvqoe.delay.ITS_delay import active_speech_level
 from mcvqoe.timing import require_timecode
 
 # version import for logging purposes
@@ -47,7 +48,7 @@ class measure:
         self.full_audio_dir = False
         self.audio_interface = None
         self.bgnoise_file = ""
-        self.bgnoise_volume = 0.1
+        self.bgnoise_snr = 50
         self.info = {}
         self.outdir = ""
         self.ptt_wait = 0.68
@@ -170,8 +171,19 @@ class measure:
 
             # check if we are adding noise
             if self.bgnoise_file:
+
+                # measure amplitude of signal and noise
+                sig_level = active_speech_level(audio, self.audio_interface.sample_rate)
+                noise_level = active_speech_level(nf, self.audio_interface.sample_rate)
+
+                # calculate noise gain required to get desired SNR
+                noise_gain = sig_level - (self.bgnoise_snr + noise_level)
+
+                # set noise to the correct level
+                noise_scaled = nf * (10 ** (noise_gain / 20))
+
                 # add noise (repeated to audio file size)
-                audio = audio + np.resize(nf, audio.size) * self.bgnoise_volume
+                audio = audio + np.resize(noise_scaled, audio.size)
 
             # append audio to list
             self.y.append(audio)
