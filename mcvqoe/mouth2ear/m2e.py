@@ -738,7 +738,7 @@ class measure:
             # set audio file names to Tx file names
             self.audio_files = ["Tx_" + name + ".wav" for name in clips]
 
-            dat_name, _ = os.path.splitext(os.path.basename(fname))
+            dat_name = mcvqoe.base.get_meas_basename(fname)
 
             if audio_path is not None:
                 self.audio_path = audio_path
