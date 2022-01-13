@@ -6,6 +6,7 @@ Created on Mon Aug  16 01:46:20 2021
 @author: wrm3
 """
 import argparse
+import json
 import os
 import warnings
 
@@ -59,36 +60,40 @@ class evaluate():
     """
 
     def __init__(self,
-                 test_names,
+                 test_names=None,
                  test_path='',
                  use_reprocess=False,
+                 json_data=None,
                  **kwargs):
-        # If only one test, make a list for iterating
-        if isinstance(test_names, str):
-            test_names = [test_names]
-        
-        # Initialize full paths attribute
-        self.full_paths = []
-        self.test_names = []
-        for test_name in test_names:
-            # If no extension given use csv
-            fname, fext = os.path.splitext(test_name)
-            if fext == '':
-                tname = fname + '.csv'
-            else:
-                tname = fname + fext
-            fpath = os.path.join(test_path, 'csv', tname)
-            self.full_paths.append(fpath)
-            self.test_names.append(os.path.basename(fname))
-
-        # Initialize attributes
-        self.data = pd.DataFrame()
-        for path, name in zip(self.full_paths, self.test_names):
-            df = pd.read_csv(path)
-            # Force timestamp to be datetime
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-            df['name'] = name
-            self.data = self.data.append(df)
+        if json_data is None:
+            # If only one test, make a list for iterating
+            if isinstance(test_names, str):
+                test_names = [test_names]
+            
+            # Initialize full paths attribute
+            self.full_paths = []
+            self.test_names = []
+            for test_name in test_names:
+                # If no extension given use csv
+                fname, fext = os.path.splitext(test_name)
+                if fext == '':
+                    tname = fname + '.csv'
+                else:
+                    tname = fname + fext
+                fpath = os.path.join(test_path, 'csv', tname)
+                self.full_paths.append(fpath)
+                self.test_names.append(os.path.basename(fname))
+    
+            # Initialize attributes
+            self.data = pd.DataFrame()
+            for path, name in zip(self.full_paths, self.test_names):
+                df = pd.read_csv(path)
+                # Force timestamp to be datetime
+                df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+                df['name'] = name
+                self.data = self.data.append(df)
+        else:
+            self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
         
         self.common_thinning = self.find_thinning_factor()
 
@@ -108,6 +113,71 @@ class evaluate():
                 raise TypeError(f"{k} is not a valid keyword argument")
         
         self.mean, self.ci = self.eval()
+    
+    def to_json(self, filename=None):
+        """
+        Create json representation of m2e data
+
+        Parameters
+        ----------
+        filename : str, optional
+            If given save to json file. Otherwise returns json string. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        out_json = {
+            'measurement': self.data.to_json(),
+            'test_names': self.test_names,
+            'test_paths': self.full_paths,
+                }
+        
+        # Final json representation of all data
+        final_json = json.dumps(out_json)
+        if filename is not None:
+            with open(filename, 'w') as f:
+                json.dump(out_json, f)
+        
+        return final_json
+    
+    @staticmethod
+    def load_json_data(json_data):
+        """
+        Do all data loading from input json_data
+
+        Parameters
+        ----------
+        json_data : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        test_names : list
+            DESCRIPTION.
+        test_paths : dict
+            DESCRIPTION.
+        data : pd.DataFrame
+            DESCRIPTION.
+        cps : dict
+            DESCRIPTION.
+
+        """
+        # TODO: Should handle correction data too!
+        if isinstance(json_data, str):
+            json_data = json.loads(json_data)
+        # Extract data, cps, and test_info from json_data
+        data = pd.read_json(json_data['measurement'])
+        
+        test_names = json_data['test_names']
+        test_paths = json_data['test_paths']
+        
+        
+        # Return normal Access data attributes from these
+        return data, test_names, test_paths, 
+        
     
     def find_thinning_factor(self):
         """
