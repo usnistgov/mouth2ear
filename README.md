@@ -1,7 +1,14 @@
 # <center>Mouth-to-Ear Latency Measurement</center>
+
 ## Purpose
 
-The purpose of this software is to measure the mouth-to-ear (M2E) latency of a push-to-talk network. M2E latency characterizes the time between speech input into on communications device and its output through another. M2E latency has been identified as a key metric of quality of experience (QoE) in communications. NIST's PSCR group developed this software to measure and quantify the M2E latency of Push To Talk (PTT) devices.
+The purpose of this software is to measure the mouth-to-ear (M2E) latency of a 
+push-to-talk network. M2E latency characterizes the time between speech input 
+into on communications device and its output through another. M2E latency has 
+been identified as a key metric of quality of experience (QoE) in communications. 
+NIST's PSCR group developed this software to measure and quantify the M2E latency 
+of Push To Talk (PTT) devices.
+
 ## Hardware Requirements
 * 2 computers able to run Python (only one needed for one location measurements)
 * 2 audio interfaces (only one needed for one location measurements)
@@ -11,38 +18,64 @@ The purpose of this software is to measure the mouth-to-ear (M2E) latency of a p
 
 ## Installation and Software
 
-The `mcvqoe-mouth2ear` package can be installed using the following command:
+To install the `mcvqoe-mouth2ear` package, clone this repository and run the 
+following from the root of the git repository:
+
 ```
 pip install .
 ```
+
 The `mcvqoe-base` package is required for install, it can be found at https://github.com/usnistgov/mcvqoe-base.
 
 It is also recommended to install the `mcvqoe` package which has the measurement GUI to make measurements easier and more intuitive to run. It can be found at https://github.com/usnistgov/mcvqoe.
 
 ## Mouth to Ear 1 Location
 
-To run the test, simply enter `m2e-measure` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `m2e-measure -h`
+To run the test, simply enter `m2e-measure` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `m2e-measure --help`
 
-**ex:**
-`m2e-measure --audio-files testfile.wav --trials 120 --overplay 1.2`
-* `-a testfile.wav` runs the program with "testfile.wav" as the test sound file (default is test.wav)
+### Example
+
+```
+m2e-measure --audio-files testfile.wav --trials 120 --overplay 1.2
+```
+
+* `-a testfile.wav` runs the program with "testfile.wav" as the test sound file 
 * `--trials 120` runs 120 trials (default is 100)
 * `--overplay 1.2` adds 1.2 seconds of silence after the audio is played (default is 0.1 seconds)
+
+#### Simulation
+
+One location tests can also be simulated using the `m2e-simulate` entry point.
+For example, the following is a simulation of the above example :
+
+```
+m2e-simulate --audio-files testfile.wav --trials 120 --overplay 1.2
+```
+
 ## Mouth to Ear 2 Location
 
 ### Transmitter side
 To run the Tx portion of the test, simply use `m2e-measure --testtype m2e_2loc_tx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more. Once the side is started, the test will begin imminently, so start the Rx side before the Tx side to make sure that all the data gets captured.
 
-**ex:**
-`m2e-measure -y m2e_2loc_tx`
-* `-y m2e_2loc_tx` runs the Mouth to Ear 2 location transmitter side test (default is m2e_1loc)
+### Example
+
+```
+m2e-measure --testtype m2e_2loc_tx
+```
+
+* `--testtype m2e_2loc_tx` runs the Mouth to Ear 2 location transmitter side test (default is m2e_1loc)
 
 ### Receiver side
-To run the Rx portion of the test, simply use `m2e-measure -testtype m2e_2loc_rx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more.
+To run the Rx portion of the test, simply use `m2e-measure --testtype m2e_2loc_rx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more.
 
-**ex:**
-`m2e-measure --testtype m2e_2loc_rx`
+### Example
+
+```
+m2e-measure --testtype m2e_2loc_rx
+```
+
 * Press any key on the receiving side to stop the recording when the test finishes on the transmit side.
+
 ## Disclaimer
 
 **Much of the included software was developed by NIST employees for that software the following disclaimer applies:**
@@ -76,35 +109,3 @@ the use by the Collaborator, or any party acting on its behalf, of
 NTIA/ITS' Software, or out of any use, sale, or other disposition by
 the Collaborator, or others acting on its behalf, of products made
 by the use of NTIA/ITS' Software.
-
-
-**Some software included was developed by Texas Instruments, for that software the following disclaimer applies:**
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-*  Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-
-*  Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-
-*  Neither the name of Texas Instruments Incorporated nor the names of
-   its contributors may be used to endorse or promote products derived
-  from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-**Audio files included with this software were derived from ITU-T P Supplement 23.**
