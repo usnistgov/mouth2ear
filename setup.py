@@ -10,7 +10,7 @@ setuptools.setup(
     description="Measurement code for measuring mouth to ear latency",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.nist.gov/gitlab/PSCR/MCV/device-tst",
+    url="https://github.com/usnistgov/mouth2ear",
     packages=setuptools.find_namespace_packages(include=["mcvqoe.*"]),
     include_package_data=True,
     package_data={"mcvqoe": ["mouth2ear", "audio_clips", "*.wav"]},
