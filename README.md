@@ -29,7 +29,7 @@ The `mcvqoe-base` package is required for install, it can be found at https://gi
 
 It is also recommended to install the `mcvqoe` package which has the measurement GUI to make measurements easier and more intuitive to run. It can be found at https://github.com/usnistgov/mcvqoe.
 
-## Mouth to Ear 1 Location
+## Mouth-to-Ear 1 Location
 
 To run the test, simply enter `m2e-measure` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `m2e-measure --help`
 
@@ -52,7 +52,7 @@ For example, the following is a simulation of the above example :
 m2e-simulate --audio-files testfile.wav --trials 120 --overplay 1.2
 ```
 
-## Mouth to Ear 2 Location
+## Mouth-to-Ear 2 Location
 
 ### Transmitter side
 To run the Tx portion of the test, simply use `m2e-measure --testtype m2e_2loc_tx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more. Once the side is started, the test will begin imminently, so start the Rx side before the Tx side to make sure that all the data gets captured.
