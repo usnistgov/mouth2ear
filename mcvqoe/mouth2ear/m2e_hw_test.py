@@ -41,9 +41,11 @@ def main():
     parser.add_argument('-z', '--bgnoisefile', dest="bgnoise_file", default='', help="If this is"+
                         " non empty then it is used to read in a noise file to be mixed with the "+
                         "test audio. Default is no background noise")
-    parser.add_argument('-v', '--bgnoisevolume', dest="bgnoise_volume", type=float,
-                        default=test_obj.bgnoise_volume, help="Scale factor for background"+
-                        " noise. Defaults to 0.1")
+    parser.add_argument('-N', '--bgnois-snr', dest="bgnoise_snr", type=float,
+                        default=test_obj.bgnoise_snr,
+                        help="Signal to noise ratio for background noise. "
+                        "Defaults to %(default) dB."
+                        )
     parser.add_argument('-w', '--pttwait', dest="ptt_wait", type=float, default=test_obj.ptt_wait,
                         metavar="T", help="The amount of time to wait in seconds between pushing the"+
                         " push to talk button and starting playback. This allows time "+
