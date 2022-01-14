@@ -13,6 +13,7 @@ of Push To Talk (PTT) devices.
 * 2 computers able to run Python (only one needed for one location measurements)
 * 2 audio interfaces (only one needed for one location measurements)
 * 2 timecode generators with IRIG-B outputs (not needed for one location measurements)
+* QoE hardware
 * 2 push-to-talk communications devices for testing
 * Cables to connect test devices and timecode generators (if used) to audio interfaces
 
