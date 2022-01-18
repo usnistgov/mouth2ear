@@ -9,6 +9,16 @@ been identified as a key metric of quality of experience (QoE) in communications
 NIST's PSCR group developed this software to measure and quantify the M2E latency 
 of Push To Talk (PTT) devices.
 
+## OBTAINING SOFTWARE
+
+- Mouth-to-ear latency measurement software available at:  https://github.com/usnistgov/mouth2ear
+- MCV QoE GUI software available at : https://github.com/usnistgov/mcvqoe
+- Core MCV QoE library available at : https://github.com/usnistgov/mcvqoe-base
+
+## MORE INFORMATION
+- Data available at: https://doi.org/10.18434/T4/1422492
+- Paper available at https://doi.org/10.6028/NIST.IR.8206
+
 ## Hardware Requirements
 * 2 computers able to run Python (only one needed for one location measurements)
 * 2 audio interfaces (only one needed for one location measurements)
