@@ -92,6 +92,8 @@ class evaluate():
                 df['Timestamp'] = pd.to_datetime(df['Timestamp'])
                 df['name'] = name
                 self.data = self.data.append(df)
+            nrow, _ = self.data.shape
+            self.data.index = np.arange(nrow)
         else:
             self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
         
@@ -128,11 +130,15 @@ class evaluate():
         None.
 
         """
+        test_info = {}
+        for tname, tpath in zip(self.test_names, self.full_paths):
+            test_info[tname] = tpath
         
         out_json = {
             'measurement': self.data.to_json(),
-            'test_names': self.test_names,
-            'test_paths': self.full_paths,
+            'test_info': test_info,
+            # 'test_names': self.test_names,
+            # 'test_paths': self.full_paths,
                 }
         
         # Final json representation of all data
@@ -171,8 +177,15 @@ class evaluate():
         # Extract data, cps, and test_info from json_data
         data = pd.read_json(json_data['measurement'])
         
-        test_names = json_data['test_names']
-        test_paths = json_data['test_paths']
+        test_info = json_data['test_info']
+        
+        test_names = []
+        test_paths = []
+        for tname, tpath in test_info.items():
+            test_names.append(tname)
+            test_paths.append(tpath)
+        # test_names = json_data['test_names']
+        # test_paths = json_data['test_paths']
         
         
         # Return normal Access data attributes from these
