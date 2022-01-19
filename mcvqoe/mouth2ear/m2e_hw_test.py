@@ -25,8 +25,8 @@ def main():
     
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-y', '--testtype', dest="test", default=test_obj.test, metavar="TEST",
-                        help="M2E test to perform. Options are: 'm2e_1loc', 'm2e_2loc_tx', and "+
-                        "'m2e_2loc_rx'. Defaults to 1 location ('m2e_1loc')")
+                        help="M2E test to perform. Options are: '1loc', '2loc_tx', and "+
+                        "'2loc_rx'. Defaults to 1 location ('1loc')")
     parser.add_argument(
                         '-a', '--audio-files', default=[], action="extend", nargs="+", type=str, metavar='FILENAME',
                         help='Path to audio files to use for test. Cutpoint files must also be present')
@@ -97,24 +97,24 @@ def main():
     test_obj.audio_interface.overplay = args.overplay
 
     # set correct channels
-    if test_obj.test == "m2e_1loc":
+    if test_obj.test == "1loc":
         test_obj.audio_interface.playback_chans = {"tx_voice": 0}
         test_obj.audio_interface.rec_chans = {"rx_voice": 0}
-    elif test_obj.test == "m2e_2loc_tx":
+    elif test_obj.test == "2loc_tx":
         test_obj.audio_interface.playback_chans = {"tx_voice": 0}
         test_obj.audio_interface.rec_chans = {"IRIGB_timecode": 1}
-    elif test_obj.test == "m2e_2loc_rx":
+    elif test_obj.test == "2loc_rx":
         test_obj.audio_interface.playback_chans = {}
         test_obj.audio_interface.rec_chans = {"rx_voice": 0, "IRIGB_timecode": 1}
 
     # ---------------------------[Open RadioInterface]---------------------------
 
     with mcvqoe.hardware.RadioInterface(args.radioport) \
-        if test_obj.test != "m2e_2loc_rx" else nullcontext() as test_obj.ri:
+        if test_obj.test != "2loc_rx" else nullcontext() as test_obj.ri:
 
         # ------------------------------[Get test info]------------------------------
 
-        if(test_obj.test != "m2e_2loc_rx"):
+        if(test_obj.test != "2loc_rx"):
             #Check function, test play through the system
             chk_fun=lambda: mcvqoe.hardware.single_play(
                                                     test_obj.ri,
