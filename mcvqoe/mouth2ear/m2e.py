@@ -35,6 +35,8 @@ class measure(mcvqoe.base.Measure):
     }
 
     no_log = ("test", "rng")
+    
+    measurement_name = "M2E"
 
     def __init__(self, **kwargs):
 
@@ -207,177 +209,9 @@ class measure(mcvqoe.base.Measure):
         if self.ptt_wait < 0:
             raise ValueError(f"\nptt_wait parameter must be >= 0")
 
-    def run_1loc(self):
-        """Run a m2e_1loc test"""
-        # ------------------[Check for correct audio channels]------------------
-        if "tx_voice" not in self.audio_interface.playback_chans.keys():
-            raise ValueError("self.audio_interface must be set up to play tx_voice")
-        if "rx_voice" not in self.audio_interface.rec_chans.keys():
-            raise ValueError("self.audio_interface must be set up to record rx_voice")
-        # -------------------------[Get Test Start Time]-------------------------
 
-        self.info["Tstart"] = datetime.datetime.now()
-        dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
-        # --------------------------[Fill log entries]--------------------------
-        # set test name
-        self.info["test"] = "M2E"
-        # fill in standard stuff
-        self.info.update(mcvqoe.base.write_log.fill_log(self))
-
-        # -----------------------[Setup Files and folders]-----------------------
-
-        # generate data dir names
-        data_dir = os.path.join(self.outdir, "data")
-        wav_data_dir = os.path.join(data_dir, "wav")
-        csv_data_dir = os.path.join(data_dir, "csv")
-
-        # create data directories
-        os.makedirs(csv_data_dir, exist_ok=True)
-        os.makedirs(wav_data_dir, exist_ok=True)
-
-        # generate base file name to use for all files
-        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
-
-        # generate test dir names
-        wavdir = os.path.join(wav_data_dir, base_filename)
-
-        # create test dir
-        os.makedirs(wavdir, exist_ok=True)
-
-        # generate csv name
-        self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
-
-        # generate temp csv name
-        temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
-
-        # -------------------------[Generate CSV header]-------------------------
-
-        header, dat_format = self.csv_header_fmt()
-
-        # ---------------------[Load Audio Files if Needed]---------------------
-
-        if not hasattr(self, "y"):
-            self.load_audio()
-
-        # generate clip index
-        self.clipi = self.rng.permutation(self.trials) % len(self.y)
-
-        # -----------------------[Add Tx audio to wav dir]-----------------------
-
-        # get name with out path or ext
-        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
-
-        if self.save_tx_audio and self.save_audio:
-            # write out Tx clips to files
-            for dat, name in zip(self.y, clip_names):
-                out_name = os.path.join(wavdir, f"Tx_{name}")
-                mcvqoe.base.audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-
-        # ------------------------[Compute check trials]------------------------
-
-        trial_check = np.zeros(self.trials, dtype=bool)
-
-        if self.trials > 10:
-            # check every 10th trial
-            trial_check[0::10] = True
-        else:
-            # just check at the beginning and the end
-            trial_check[0] = True
-            trial_check[-1] = True
-
-        # ---------------------------[write log entry]---------------------------
-
-        mcvqoe.base.write_log.pre(info=self.info, outdir=self.outdir)
-
-        # ---------------[Try block so we write notes at the end]---------------
-
-        try:
-
-            # -------------------------[Turn on RI LED]-------------------------
-            self.ri.led(1, True)
-
-            # -----------------------[write initial csv file]-----------------------
-            with open(temp_data_filename, "wt") as f:
-                f.write(header)
-
-            # ------------------------[Measurement Loop]------------------------
-            for trial in range(self.trials):
-                # -----------------------[Update progress]-------------------------
-                if not self.progress_update("test", self.trials, trial):
-                    # turn off LED
-                    self.ri.led(1, False)
-                    print("Exit from user")
-                    break
-                # -----------------------[Get Trial Timestamp]-----------------------
-                ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
-
-                # --------------------[Key Radio and play audio]--------------------
-
-                # Press the push to talk button
-                self.ri.ptt(True)
-
-                # Pause the indicated amount to allow the radio to access the system
-                time.sleep(self.ptt_wait)
-
-                clip_index = self.clipi[trial]
-
-                # Create audiofile name/path for recording
-                audioname = f"Rx{trial+1}_{clip_names[clip_index]}.wav"
-                audioname = os.path.join(wavdir, audioname)
-
-                # Play/Record
-                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
-
-                # Release the push to talk button
-                self.ri.ptt(False)
-
-                # -----------------------[Pause Between runs]-----------------------
-
-                time.sleep(self.ptt_gap)
-
-                # -----------------------------[Data Processing]----------------------------
-
-                trial_dat = self.process_audio(
-                    clip_index,
-                    audioname,
-                    rec_chans,
-                    trial_check[trial],
-                    trial,
-                )
-
-                # add extra info
-                trial_dat["Timestamp"] = ts
-                trial_dat["Filename"] = clip_names[clip_index]
-
-                # -------------------[Delete file if needed]-------------------
-                if not self.save_audio:
-                    os.remove(audioname)
-
-                # --------------------------[Write CSV]--------------------------
-
-                with open(temp_data_filename, "at") as f:
-                    f.write(dat_format.format(**trial_dat))
-
-            # -----------------------------[Cleanup]-----------------------------
-
-            # move temp file to real file
-            shutil.move(temp_data_filename, self.data_filename)
-
-            # ---------------------------[Turn off RI LED]---------------------------
-
-            self.ri.led(1, False)
-
-        finally:
-            if self.get_post_notes:
-                # get notes
-                info = self.get_post_notes()
-            else:
-                info = {}
-            # finish log entry
-            mcvqoe.base.write_log.post(outdir=self.outdir, info=info)
-
-    def process_audio(self, clip_index, fname, rec_chans, check=False, t_num=-1):
+    def process_audio(self, clip_index, fname, rec_chans):
         """
         estimate mouth to ear latency for an audio clip.
 
@@ -421,27 +255,6 @@ class measure(mcvqoe.base.Measure):
 
         # Estimate the mouth to ear latency
         (_, dly) = mcvqoe.delay.ITS_delay_est(self.y[clip_index], voice_dat, "f", fs=self.audio_interface.sample_rate)
-
-        # -----------------------------[Trial Check]----------------------------
-
-        # Check if we run statistics on this trial
-        if check:
-
-            # Calculate RMS of received audio
-            rms = round(math.sqrt(np.mean(voice_dat ** 2)), 4)
-
-            # check if levels are low
-            if rms < 1e-3:
-                continue_test = self.progress_update(
-                    "check-fail",
-                    self.trials,
-                    t_num,
-                    msg=f"Low input levels detected. RMS = {rms}",
-                )
-                if not continue_test:
-                    # turn off LED
-                    self.ri.led(1, False)
-                    raise SystemExit()
 
         # ----------------------------[calculate M2E]----------------------------
 
