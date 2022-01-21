@@ -1,6 +1,0 @@
-#remove old package
-python -m pip uninstall mcvqoe-mouth2ear
-
-#install new package
-python -m pip install --find-links ./dist/ mcvqoe-mouth2ear
-
