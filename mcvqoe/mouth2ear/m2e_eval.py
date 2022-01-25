@@ -98,14 +98,8 @@ class evaluate():
             self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
         
         self.common_thinning = self.find_thinning_factor()
-
-        self.thinned_data = pd.DataFrame()
-        for name in self.test_names:
-            fdata = self.data[self.data['name'] == name]
-            tdata = fdata[::self.common_thinning]
-            
-            self.thinned_data = self.thinned_data.append(tdata)
-            # self.thinned_data.append(data["m2e_latency"][::self.common_thinning])
+        
+        self.thinned_data = self.thin_data()
         
         # Check for kwargs
         for k, v in kwargs.items():
@@ -208,7 +202,6 @@ class evaluate():
         # Limiting to smallest data set
         sesh_counts = [np.sum(self.data['name'] == name) for name in self.test_names]
         max_lag = np.min([np.floor(N/4) for N in sesh_counts])
-        
         is_lag = True
         
         while is_lag and thinning_factor <= max_lag:
@@ -231,9 +224,32 @@ class evaluate():
                 thinning_factor += 1
         if is_lag:
             warnings.warn("No common thinning factor found ")
+            thinning_factor = np.nan
         return thinning_factor
         
-        
+    def thin_data(self):
+        """
+        Thin data by common thinning factor
+
+        Returns
+        -------
+        thinned_data : TYPE
+            DESCRIPTION.
+
+        """
+        if np.isnan(self.common_thinning):
+            thin = 1
+        else:
+            thin = self.common_thinning
+        thinned_data = pd.DataFrame()
+        for name in self.test_names:
+            fdata = self.data[self.data['name'] == name]
+            tdata = fdata[::thin]
+            
+            thinned_data = thinned_data.append(tdata)
+        return thinned_data
+    
+    
     def eval(self):
         """
         Evaluate mouth to ear test data provided.
@@ -246,18 +262,6 @@ class evaluate():
             Upper and lower confidence bound on the mean of the test data.
 
         """
-        # get common thinning factor for all sessions. take the max
-        # thinning_info = {}
-        # for session in self.full_paths:
-        #     current_session = pd.read_csv(session)
-        #     for k in range(1, len(current_session["m2e_latency"])):
-        #         # check for autocorrelation
-        #         acorr = mcvqoe.math.improved_autocorrelation(
-        #             current_session['m2e_latency'][::k])
-        #         if not (len(acorr) > 1):
-        #             thinning_info[session] = k
-        # self.common_thinning = max(thinning_info.values())
-
         
         mean_cum = 0
         
