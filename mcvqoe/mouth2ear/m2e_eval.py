@@ -75,13 +75,21 @@ class evaluate():
             self.test_names = []
             for test_name in test_names:
                 # If no extension given use csv
+                dat_path, name = os.path.split(test_name)
                 fname, fext = os.path.splitext(test_name)
-                if fext == '':
-                    tname = fname + '.csv'
+                
+                if not dat_path and not fext == '.csv':
+                    # generate using test_path
+                    dat_path = os.path.join(test_path, 'csv')
+                    dat_file = os.path.join(dat_path, fname + '.csv')
                 else:
-                    tname = fname + fext
-                fpath = os.path.join(test_path, 'csv', tname)
-                self.full_paths.append(fpath)
+                    dat_file = test_name
+                # if fext == '':
+                #     tname = fname + '.csv'
+                # else:
+                #     tname = fname + fext
+                # fpath = os.path.join(test_path, 'csv', tname)
+                self.full_paths.append(dat_file)
                 self.test_names.append(os.path.basename(fname))
     
             # Initialize attributes
