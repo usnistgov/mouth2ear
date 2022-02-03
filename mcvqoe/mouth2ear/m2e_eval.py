@@ -288,7 +288,6 @@ class evaluate():
     def filter_data(self, df, test_name, talkers):
         # Filter by session name if given
         if test_name is not None:
-            df_filt = pd.DataFrame()
             df_filt = []
             if not isinstance(test_name, list):
                 test_name = [test_name]
