@@ -84,24 +84,20 @@ class evaluate():
                     dat_file = os.path.join(dat_path, fname + '.csv')
                 else:
                     dat_file = test_name
-                # if fext == '':
-                #     tname = fname + '.csv'
-                # else:
-                #     tname = fname + fext
-                # fpath = os.path.join(test_path, 'csv', tname)
+                
                 self.full_paths.append(dat_file)
                 self.test_names.append(os.path.basename(fname))
     
             # Initialize attributes
-            self.data = pd.DataFrame()
+            data =[]
             for path, name in zip(self.full_paths, self.test_names):
                 df = pd.read_csv(path)
                 # Force timestamp to be datetime
                 df['Timestamp'] = pd.to_datetime(df['Timestamp'])
                 df['name'] = name
-                self.data = self.data.append(df)
-            nrow, _ = self.data.shape
-            self.data.index = np.arange(nrow)
+                data.append(df)
+            self.data = pd.concat(data, ignore_index=True)
+            
         else:
             self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
         
@@ -249,13 +245,15 @@ class evaluate():
             thin = 1
         else:
             thin = self.common_thinning
-        thinned_data = pd.DataFrame()
+        
+        thinned_data = []
         for name in self.test_names:
             fdata = self.data[self.data['name'] == name]
             tdata = fdata[::thin]
             
-            thinned_data = thinned_data.append(tdata)
-        return thinned_data
+            thinned_data.append(tdata)
+        
+        return pd.concat(thinned_data)
     
     
     def eval(self):
@@ -287,6 +285,26 @@ class evaluate():
 
         return (self.mean, self.ci)
     
+    def filter_data(self, df, test_name, talkers):
+        # Filter by session name if given
+        if test_name is not None:
+            df_filt = pd.DataFrame()
+            df_filt = []
+            if not isinstance(test_name, list):
+                test_name = [test_name]
+            for name in test_name:
+                df_filt.append(df[df['name'] == name])
+            df = pd.concat(df_filt)
+        # Filter by talkers if given
+        if talkers is not None:
+            df_filt = []
+            if isinstance(talkers, str):
+                talkers = [talkers]
+            for talker in talkers:
+                df_filt.append(df[df['Filename'] == talker])
+            df = pd.concat(df_filt)
+        return df
+    
     def histogram(self, thinned=True, test_name=None, talkers=None,
                   title='Histogram of mouth-to-ear latency results'):
         # TODO: Do this for each session
@@ -295,22 +313,7 @@ class evaluate():
         else:
             df = self.thinned_data
         
-        # Filter by session name if given
-        if test_name is not None:
-            df_filt = pd.DataFrame()
-            if not isinstance(test_name, list):
-                test_name = [test_name]
-            for name in test_name:
-                df_filt = df_filt.append(df[df['name'] == name])
-            df = df_filt
-        # Filter by talkers if given
-        if talkers is not None:
-            df_filt = pd.DataFrame()
-            if isinstance(talkers, str):
-                talkers = [talkers]
-            for talker in talkers:
-                df_filt = df_filt.append(df[df['Filename'] == talker])
-            df = df_filt
+        df = self.filter_data(df, test_name=test_name, talkers=talkers)
         
         fig = px.histogram(df, x='m2e_latency', color='name',
                            labels={
@@ -346,22 +349,9 @@ class evaluate():
             df = self.data
         else:
             df = self.thinned_data
-        # Filter by session name if given
-        if test_name is not None:
-            df_filt = pd.DataFrame()
-            if not isinstance(test_name, list):
-                test_name = [test_name]
-            for name in test_name:
-                df_filt = df_filt.append(df[df['name'] == name])
-            df = df_filt
-        # Filter by talkers if given
-        if talkers is not None:
-            df_filt = pd.DataFrame()
-            if isinstance(talkers, str):
-                talkers = [talkers]
-            for talker in talkers:
-                df_filt = df_filt.append(df[df['Filename'] == talker])
-            df = df_filt
+        
+        df = self.filter_data(df, test_name=test_name, talkers=talkers)
+        
         # Set x-axis value
         if x is None:
             x = df.index
@@ -414,14 +404,6 @@ def main():
                         default=True,
                         action="store_false",
                         help="Do not use reprocessed data if it exists.")
-
-    # t = evaluate(
-    #     [
-    #         "capture_Simulation_17-Aug-2021_11-36-54.csv",
-    #         "capture_Simulation_17-Aug-2021_11-24-52.csv"
-    #         ],
-    #     "C:/Users/wrm3/MCV-QoE/Mouth_2_Ear/data/csv/"
-    #     )
 
     args = parser.parse_args()
     t = evaluate(args.test_names, test_path=args.test_path,
