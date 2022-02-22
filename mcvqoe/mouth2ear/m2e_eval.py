@@ -305,8 +305,8 @@ class evaluate():
         return df
     
     def histogram(self, thinned=True, test_name=None, talkers=None,
+                  color_palette=px.colors.qualitative.Plotly,
                   title='Histogram of mouth-to-ear latency results'):
-        # TODO: Do this for each session
         if not thinned:
             df = self.data
         else:
@@ -319,6 +319,7 @@ class evaluate():
                                'm2e_latency': 'Mouth-to-ear latency [s]',
                                },
                            title=title,
+                           color_discrete_sequence=color_palette,
                            )
         fig.add_vline(x=self.mean, line_width=3, line_dash="dash")
         fig.add_vline(x=self.ci[0], line_width=2, line_dash="dot")
@@ -342,7 +343,9 @@ class evaluate():
         return fig
     
     def plot(self, thinned=True, test_name=None, x=None, talkers=None,
+             color_palette=px.colors.qualitative.Plotly,
              title='Mouth-to-ear latency scatter plot'):
+        
         # Grab thinned or unthinned data
         if not thinned:
             df = self.data
@@ -363,6 +366,7 @@ class evaluate():
                              'index': 'Trial Number',
                              },
                          title=title,
+                         color_discrete_sequence=color_palette,
                          )
         
         fig.update_layout(legend=dict(
