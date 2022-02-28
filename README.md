@@ -28,8 +28,12 @@ of Push To Talk (PTT) devices.
 * Cables to connect test devices and timecode generators (if used) to audio interfaces
 
 ## Installation and Software
+To install this package run
+```
+pip install mcvqoe-mouth2ear
+```
 
-To install the `mcvqoe-mouth2ear` package, clone this repository and run the 
+Alternatively, to install the `mcvqoe-mouth2ear` package, clone this repository and run the 
 following from the root of the git repository:
 
 ```
