@@ -3,6 +3,10 @@ stages:
   - test
   - deploy
 
+include:
+  - project: 'PSCR/MCV/mcvqoe-measurements'
+    file: '/templates/upload-pypi.yml'
+
 variables:
   IMAGE_MCVQOE_BASE: docker.nist.gov:4567/pscr/mcv/mcv-qoe-library/mcvqoe-base:develop
 
@@ -27,10 +31,3 @@ test-measure_class:
     - pip install --no-index --find-links=./dist mcvqoe-mouth2ear
   script:
     - python tests/test_measure_class.py
-
-release:pypi:
-  stage: deploy
-  image: python:3.8
-  script:
-    - pip install twine
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi --skip-existing dist/*
