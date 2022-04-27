@@ -16,7 +16,7 @@ of Push To Talk (PTT) devices.
 - Core MCV QoE library available at : https://github.com/usnistgov/mcvqoe-base
 
 ## MORE INFORMATION
-- Data available at: https://doi.org/10.18434/T4/1422492
+- Data available at: https://doi.org/10.18434/M31865
 - Paper available at https://doi.org/10.6028/NIST.IR.8206
 
 ## Hardware Requirements
@@ -44,52 +44,6 @@ The `mcvqoe-base` package is required for install, it can be found at https://gi
 
 It is also recommended to install the `mcvqoe` package which has the measurement GUI to make measurements easier and more intuitive to run. It can be found at https://github.com/usnistgov/mcvqoe.
 
-## Mouth-to-Ear 1 Location
-
-To run the test, simply enter `m2e-measure` in a terminal opened to the top level directory. To learn about the defaults, and various arguments you can add to the test, please run `m2e-measure --help`
-
-### Example
-
-```
-m2e-measure --audio-files testfile.wav --trials 120 --overplay 1.2
-```
-
-* `-a testfile.wav` runs the program with "testfile.wav" as the test sound file 
-* `--trials 120` runs 120 trials (default is 100)
-* `--overplay 1.2` adds 1.2 seconds of silence after the audio is played (default is 0.1 seconds)
-
-#### Simulation
-
-One location tests can also be simulated using the `m2e-simulate` entry point.
-For example, the following is a simulation of the above example :
-
-```
-m2e-simulate --audio-files testfile.wav --trials 120 --overplay 1.2
-```
-
-## Mouth-to-Ear 2 Location
-
-### Transmitter side
-To run the Tx portion of the test, simply use `m2e-measure --testtype m2e_2loc_tx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more. Once the side is started, the test will begin imminently, so start the Rx side before the Tx side to make sure that all the data gets captured.
-
-### Example
-
-```
-m2e-measure --testtype m2e_2loc_tx
-```
-
-* `--testtype m2e_2loc_tx` runs the Mouth to Ear 2 location transmitter side test (default is m2e_1loc)
-
-### Receiver side
-To run the Rx portion of the test, simply use `m2e-measure --testtype m2e_2loc_rx` in a terminal opened to the top level directory. Please enter `m2e-measure --help` to learn more.
-
-### Example
-
-```
-m2e-measure --testtype m2e_2loc_rx
-```
-
-* Press any key on the receiving side to stop the recording when the test finishes on the transmit side.
 
 ## Disclaimer
 
