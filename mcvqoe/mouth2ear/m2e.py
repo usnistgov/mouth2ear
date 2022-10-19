@@ -10,6 +10,7 @@ import time
 from collections import namedtuple
 from fractions import Fraction
 
+import mcvqoe.mouth2ear.m2e_eval as evaluation
 import mcvqoe.base
 import mcvqoe.delay
 import numpy as np
@@ -204,12 +205,10 @@ class measure(mcvqoe.base.Measure):
             raise ValueError(f"\n{self.test} is an incorrect test")
 
         if self.trials < 1:
-            raise ValueError(f"\nTrials parameter needs to be more than 0")
+            raise ValueError("\nTrials parameter needs to be more than 0")
 
         if self.ptt_wait < 0:
-            raise ValueError(f"\nptt_wait parameter must be >= 0")
-
-
+            raise ValueError("\nptt_wait parameter must be >= 0")
 
     def process_audio(self, clip_index, fname, rec_chans):
         """
@@ -237,10 +236,10 @@ class measure(mcvqoe.base.Measure):
         --------
         mcvqoe.hardware.audio_player : Hardware implementation of play_record.
         mcvqoe.hardware.QoEsim : Simulation implementation of play_record.
-
         """
 
         # -----------------------------[Load audio]----------------------------
+        
         fs, rec_dat = mcvqoe.base.audio_read(fname)
 
         # check if we have more than one channel
@@ -266,4 +265,55 @@ class measure(mcvqoe.base.Measure):
             "m2e_latency": estimated_m2e_latency,
             "channels": mcvqoe.base.audio_channels_to_string(rec_chans),
         }
-
+    
+    def post_write(self):
+        """Overwrites measure class post_write() in order to print M2E results in
+        tests.log
+        """
+        
+        if self.get_post_notes:
+            # get notes
+            info = {}
+            info.update(self.get_post_notes())
+            eval_obj = evaluation.evaluate(test_names=self.data_filename)
+            info["mean"], info["ci"] = eval_obj.eval()
+        else:
+            info = {}
+            
+        # finish log entry
+        self.post(info=info, outdir=self.outdir)
+        
+    def post(self, info={}, outdir=""):
+        """
+        Take in a QoE measurement class info dictionary to write post-test to tests.log.
+        Specific to M2E
+        ...
+    
+        Parameters
+        ----------
+        info : dict
+            The <measurement>.info dictionary.
+        outdir : str
+            The directory to write to.
+        """
+    
+        # Add 'outdir' to tests.log path
+        log_datadir = os.path.join(outdir, "tests.log")
+        with open(log_datadir, "a") as file:
+            if "Error Notes" in info:
+                notes = info["Error Notes"]
+                header = "===Test-Error Notes==="
+            else:
+                header = "===Post-Test Notes==="
+                notes = info.get("Post Test Notes", "")
+    
+            # Write header
+            file.write(header + "\n")
+            # Write notes
+            file.write("".join(["\t" + line + "\n" for line in notes.splitlines(keepends=False)]))
+            # Write results
+            file.write("===M2E Results===" + "\n")
+            file.write("\t" + f"Mouth-To-Ear Latency Estimate: {info['mean']}, 95% Confidence Interval: " +
+                       f'{np.array2string(info["ci"], separator=", ")} seconds' + "\n")
+            # Write end
+            file.write("===End Test===\n\n")
