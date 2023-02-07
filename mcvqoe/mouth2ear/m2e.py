@@ -52,6 +52,7 @@ class measure(mcvqoe.base.Measure):
         self.audio_interface = None
         self.bgnoise_file = ""
         self.bgnoise_snr = 50
+        self.dev_dly = float(31e-3)
         self.info = {}
         self.outdir = ""
         self.ptt_wait = 0.68
@@ -258,6 +259,16 @@ class measure(mcvqoe.base.Measure):
         # ----------------------------[calculate M2E]----------------------------
 
         estimated_m2e_latency = dly / self.audio_interface.sample_rate
+        print(f"{self.dev_dly}")
+
+        # If not simulation, subtract device delay from M2E Latency
+        # If a simulation, m2e latency will be whatever is loaded into device delay
+        # TODO: Possibility this is ran while not in sim. Does that matter?
+        if (estimated_m2e_latency == 0) or (estimated_m2e_latency == self.dev_dly):
+            pass
+        else:
+            # Not a simulation, subtract device delay
+            estimated_m2e_latency = estimated_m2e_latency - self.dev_dly
 
         # -----------------------------[Return Info]-----------------------------
 
