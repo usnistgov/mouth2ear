@@ -259,7 +259,6 @@ class measure(mcvqoe.base.Measure):
         # ----------------------------[calculate M2E]----------------------------
 
         estimated_m2e_latency = dly / self.audio_interface.sample_rate
-        print(f"{self.dev_dly}")
 
         # If not simulation, subtract device delay from M2E Latency
         # If a simulation, m2e latency will be whatever is loaded into device delay
