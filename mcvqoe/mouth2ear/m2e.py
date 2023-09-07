@@ -1,12 +1,5 @@
-import csv
-import datetime
-import json
-import math
 import os
-import re
-import shutil
-import signal
-import time
+
 from collections import namedtuple
 from fractions import Fraction
 
@@ -18,7 +11,6 @@ import pkg_resources
 import scipy.signal
 from mcvqoe.base.terminal_user import terminal_progress_update
 from mcvqoe.delay.ITS_delay import active_speech_level
-from mcvqoe.timing import require_timecode
 
 # version import for logging purposes
 from .version import version
@@ -276,7 +268,7 @@ class measure(mcvqoe.base.Measure):
             "channels": mcvqoe.base.audio_channels_to_string(rec_chans),
         }
     
-    def post_write(self):
+    def post_write(self, test_folder=""):
         """Overwrites measure class post_write() in order to print M2E results in
         tests.log
         """
@@ -291,9 +283,9 @@ class measure(mcvqoe.base.Measure):
             info = {}
             
         # finish log entry
-        self.post(info=info, outdir=self.outdir)
+        self.post(info=info, outdir=self.outdir, test_folder=test_folder)
         
-    def post(self, info={}, outdir=""):
+    def post(self, info={}, outdir="", test_folder=""):
         """
         Take in a QoE measurement class info dictionary to write post-test to tests.log.
         Specific to M2E
@@ -309,6 +301,8 @@ class measure(mcvqoe.base.Measure):
     
         # Add 'outdir' to tests.log path
         log_datadir = os.path.join(outdir, "tests.log")
+        
+        # Write to outer tests.log
         with open(log_datadir, "a") as file:
             if "Error Notes" in info:
                 notes = info["Error Notes"]
@@ -327,3 +321,29 @@ class measure(mcvqoe.base.Measure):
                        f'{np.array2string(info["ci"], separator=", ")} seconds' + "\n")
             # Write end
             file.write("===End Test===\n\n")
+            
+        # Add test's specific log file to folder if given
+        if test_folder != "":
+            
+            # Add "test_folder" to tests.log path
+            log_datadir = os.path.join(test_folder, "tests.log")
+            
+            # Write ending log entry into specific tests.log
+            with open(log_datadir, "a") as file:
+                if "Error Notes" in info:
+                    notes = info["Error Notes"]
+                    header = "===Test-Error Notes==="
+                else:
+                    header = "===Post-Test Notes==="
+                    notes = info.get("Post Test Notes", "")
+        
+                # Write header
+                file.write(header + "\n")
+                # Write notes
+                file.write("".join(["\t" + line + "\n" for line in notes.splitlines(keepends=False)]))
+                # Write results
+                file.write("===M2E Results===" + "\n")
+                file.write("\t" + f"Mouth-To-Ear Latency Estimate: {info['mean']}, 95% Confidence Interval: " +
+                           f'{np.array2string(info["ci"], separator=", ")} seconds' + "\n")
+                # Write end
+                file.write("===End Test===\n\n")

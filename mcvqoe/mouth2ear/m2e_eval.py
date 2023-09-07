@@ -22,12 +22,12 @@ import mcvqoe.math
 # Main class for evaluating
 class evaluate():
     """
-    Class to evaluate mouth to ear lataency time.
+    Class to evaluate mouth to ear latency time.
 
     Parameters
     ----------
     test_names : str or list of str
-        File names of M2E seessions part of a test.
+        File names of M2E sessions part of a test.
 
     test_path : str
         Full path to the directory containing the sessions within a test.
@@ -65,6 +65,7 @@ class evaluate():
                  use_reprocess=False,
                  json_data=None,
                  **kwargs):
+        
         if json_data is None:
             # If only one test, make a list for iterating
             if isinstance(test_names, str):
@@ -80,7 +81,9 @@ class evaluate():
                 
                 if not dat_path and not fext == '.csv':
                     # generate using test_path
-                    dat_path = os.path.join(test_path, 'csv')
+                    # dat_path = os.path.join(test_path, 'csv')
+                    # Looking in the top level directory now
+                    dat_path = test_path
                     dat_file = os.path.join(dat_path, fname + '.csv')
                 else:
                     dat_file = test_name
