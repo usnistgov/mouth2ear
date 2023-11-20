@@ -57,7 +57,11 @@ class measure(mcvqoe.base.Measure):
         self.rng = np.random.default_rng()
         self.save_tx_audio = True
         self.save_audio = True
-
+        # Variables for multiple iterations
+        self.iterations = 1
+        self.data_filename = []
+        self.data_dirs = []
+        
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
@@ -202,6 +206,11 @@ class measure(mcvqoe.base.Measure):
 
         if self.ptt_wait < 0:
             raise ValueError("\nptt_wait parameter must be >= 0")
+            
+        if self.iterations < 1:
+            raise ValueError(
+                f"Can't have less than 1 iteration of a test. {self.iterations} iterations chosen."
+            )
 
     def process_audio(self, clip_index, fname, rec_chans):
         """
@@ -268,7 +277,7 @@ class measure(mcvqoe.base.Measure):
             "channels": mcvqoe.base.audio_channels_to_string(rec_chans),
         }
     
-    def post_write(self, test_folder=""):
+    def post_write(self, test_folder="", file=""):
         """Overwrites measure class post_write() in order to print M2E results in
         tests.log
         """
@@ -277,13 +286,14 @@ class measure(mcvqoe.base.Measure):
             # get notes
             info = {}
             info.update(self.get_post_notes())
-            eval_obj = evaluation.evaluate(test_names=self.data_filename)
-            info["mean"], info["ci"] = eval_obj.eval()
+            for itr in range(len(file)): 
+                eval_obj = evaluation.evaluate(test_names=file[itr])
+                info["mean"], info["ci"] = eval_obj.eval()
+                self.post(info=info, outdir=self.outdir, test_folder=test_folder[itr])
         else:
             info = {}
-            
-        # finish log entry
-        self.post(info=info, outdir=self.outdir, test_folder=test_folder)
+            for itr in range(len(file)):
+                self.post(info=info, outdir=self.outdir, test_folder=test_folder[itr])
         
     def post(self, info={}, outdir="", test_folder=""):
         """
