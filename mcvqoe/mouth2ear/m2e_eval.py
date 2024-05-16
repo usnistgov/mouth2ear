@@ -283,7 +283,6 @@ class evaluate():
 
         self.mean = mean_cum/len(self.test_names)
         
-        
         self.ci = mcvqoe.math.bootstrap_datasets_ci(*ci_dsets)
 
         return (self.mean, self.ci)

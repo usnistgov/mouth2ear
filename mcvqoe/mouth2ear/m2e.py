@@ -61,6 +61,9 @@ class measure(mcvqoe.base.Measure):
         self.iterations = 1
         self.data_filename = []
         self.data_dirs = []
+        # To make compatible with new gui_progress_updates changes
+        # Can always add to this for real-time printouts
+        self.gui_extras = []
         
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -286,7 +289,7 @@ class measure(mcvqoe.base.Measure):
             # get notes
             info = {}
             info.update(self.get_post_notes())
-            for itr in range(len(file)): 
+            for itr in range(len(file)):
                 eval_obj = evaluation.evaluate(test_names=file[itr])
                 info["mean"], info["ci"] = eval_obj.eval()
                 self.post(info=info, outdir=self.outdir, test_folder=test_folder[itr])
